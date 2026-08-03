@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (work-index / work-find scripts)
+__pycache__/
+*.pyc
+
+# Obsidian per-user state (the vault skeleton ships shared config only)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+
+# Editor
+.idea/
+.vscode/
+*.swp
