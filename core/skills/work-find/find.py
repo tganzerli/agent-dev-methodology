@@ -21,13 +21,15 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "work-index"))
 try:
-    from generate import parse_frontmatter, find_vault  # reuse the canonical parser
+    from generate import parse_frontmatter, find_vault, DATE_SLUG  # reuse the canonical parser
 except Exception:  # minimal fallback
     def parse_frontmatter(_):  # noqa
         return {}
 
     def find_vault(_root):  # noqa
         return None
+
+    DATE_SLUG = re.compile(r"^\d{4}-\d{2}-\d{2}_")
 
 
 def read(path):
@@ -54,7 +56,7 @@ def main():
     for kind in ("tasks", "plans", "executions"):
         for path in glob.glob(os.path.join(args.root, vault, "work", kind, "*.md")):
             name = os.path.basename(path)
-            if name.startswith("_"):
+            if name.startswith("_") or not DATE_SLUG.match(name):
                 continue
             wid = name[:-3]
             trios.setdefault(wid, {})[kind[:-1]] = path
@@ -64,12 +66,16 @@ def main():
         task_fm = parse_frontmatter(read(arts["task"])) if "task" in arts else {}
         ex_path = arts.get("execution")
         ex_fm = parse_frontmatter(read(ex_path)) if ex_path else {}
-        summary = ex_fm.get("summary") or task_fm.get("summary") or task_fm.get("title") or wid
+        pl_path = arts.get("plan")
+        pl_fm = parse_frontmatter(read(pl_path)) if pl_path else {}
+        summary = (ex_fm.get("summary") or task_fm.get("summary")
+                   or pl_fm.get("summary") or task_fm.get("title") or wid)
         status = task_fm.get("status") or ex_fm.get("status") or "?"
-        topics = ex_fm.get("topic") or task_fm.get("topic") or []
+        topics = ex_fm.get("topic") or task_fm.get("topic") or pl_fm.get("topic") or []
         if isinstance(topics, str):
             topics = [topics]
-        updated = max([task_fm.get("updated", ""), ex_fm.get("updated", "")])
+        updated = max([task_fm.get("updated", ""), ex_fm.get("updated", ""),
+                       pl_fm.get("updated", "")])
 
         if args.topic and args.topic.lower() not in [t.lower() for t in topics]:
             continue
@@ -79,8 +85,9 @@ def main():
         head = f"{wid} {summary} {' '.join(topics)}".lower()
         body = read(ex_path).lower() if ex_path else ""
         body += (read(arts["task"]).lower() if "task" in arts else "")
+        body += (read(pl_path).lower() if pl_path else "")
 
-        pats = [re.compile(r"\b" + re.escape(t)) for t in terms]
+        pats = [re.compile(r"(?<!\w)" + re.escape(t) + r"(?!\w)") for t in terms]
         if not all(p.search(head) or p.search(body) for p in pats):
             continue
         score = sum(3 for p in pats if p.search(head)) + sum(1 for p in pats if p.search(body))

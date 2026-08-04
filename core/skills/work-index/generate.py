@@ -150,16 +150,23 @@ def scope_str(scope):
 
 
 def load_trios(root, vault):
-    trios = {}
+    """Key trios by the FILENAME stem (not the frontmatter work_id) so the generated
+    index links resolve to real files on disk, and work-find keys them the same way.
+    A declared work_id that disagrees with the filename is a data error, surfaced as
+    a warning by build()."""
+    trios, mismatches = {}, {}
     for kind in ("tasks", "plans", "executions"):
         for path in sorted(glob.glob(os.path.join(root, vault, "work", kind, "*.md"))):
             name = os.path.basename(path)
             if name.startswith("_") or not DATE_SLUG.match(name):
                 continue
             fm = read_fm(path)
-            wid = fm.get("work_id") or name[:-3]
-            trios.setdefault(wid, {})[kind[:-1]] = fm  # task/plan/execution
-    return trios
+            stem = name[:-3]
+            declared = fm.get("work_id")
+            if declared and declared != stem:
+                mismatches[stem] = declared
+            trios.setdefault(stem, {})[kind[:-1]] = fm  # task/plan/execution
+    return trios, mismatches
 
 
 def trio_view(wid, arts):
@@ -203,19 +210,28 @@ def sort_key(t):
 
 
 def build(root, vault, cur_q, verbose=False):
-    trios = load_trios(root, vault)
+    trios, mismatches = load_trios(root, vault)
     views = [trio_view(w, a) for w, a in trios.items()]
     warnings = []
+    known_status = ACTIVE | TERMINAL
+    for stem, declared in sorted(mismatches.items()):
+        warnings.append(f"{stem}: frontmatter work_id '{declared}' != filename stem; "
+                        f"links use the filename (rename the file or fix work_id)")
     for t in views:
         bad = [tp for tp in t["topics"] if tp not in VALID_TOPICS]
         if bad:
             warnings.append(f"{t['wid']}: topic outside vocabulary: {bad}")
         if not (t.get("summary")):
             warnings.append(f"{t['wid']}: missing summary/title")
+        if t["status"] not in known_status:
+            warnings.append(f"{t['wid']}: status '{t['status']}' outside vocabulary "
+                            f"{sorted(known_status)}; treated as active (not archived)")
 
     active, archive = [], {}
     for t in views:
-        is_active = t["status"] in ACTIVE or t["quarter"] == cur_q or t["quarter"] is None
+        # Only explicitly TERMINAL trios are archivable; anything else (active or
+        # off-vocabulary status) stays in the active index so open work is never hidden.
+        is_active = t["status"] not in TERMINAL or t["quarter"] == cur_q or t["quarter"] is None
         if is_active:
             active.append(t)
         else:
