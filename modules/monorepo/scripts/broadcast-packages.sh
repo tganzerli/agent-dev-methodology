@@ -54,9 +54,20 @@ REMOTE="${CI_PUSH_REMOTE:?TODO set this to the authenticated push URL}"
 # If the push to dev_packages introduced no change under packages/, this is a
 # fast-forward of main (or a commit with no package effect). Skip the broadcast
 # to avoid purposeless merge commits on the devs.
-if [ -n "$(git rev-parse --verify --quiet HEAD^ 2>/dev/null)" ]; then
-  if git diff --quiet HEAD^ HEAD -- packages/; then
-    echo "[broadcast-packages] dev_packages@${SHORT_SHA} — no change under packages/ vs HEAD^. Skipping."
+# A push may introduce several commits; inspect the whole pushed range, not just
+# the tip. Map CI_BEFORE_SHA to your host's "before" SHA:
+#   GitHub Actions : ${{ github.event.before }}
+#   GitLab CI      : ${CI_COMMIT_BEFORE_SHA}
+# A plain HEAD^..HEAD only sees the tip commit and false-skips a multi-commit push
+# whose package change sits in an earlier commit. Falls back to HEAD^ when no
+# "before" SHA is available (e.g. a brand-new branch's first push).
+BEFORE="${CI_BEFORE_SHA:-}"
+if [ -z "${BEFORE}" ] || ! git rev-parse --verify --quiet "${BEFORE}^{commit}" >/dev/null 2>&1; then
+  BEFORE="$(git rev-parse --verify --quiet HEAD^ 2>/dev/null || true)"
+fi
+if [ -n "${BEFORE}" ]; then
+  if git diff --quiet "${BEFORE}" "${SHA}" -- packages/; then
+    echo "[broadcast-packages] dev_packages@${SHORT_SHA} — no change under packages/ across the pushed range. Skipping."
     exit 0
   fi
 fi
