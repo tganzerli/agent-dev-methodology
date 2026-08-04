@@ -52,6 +52,8 @@ Every technical claim needs a citation to its source file. Inline format:
 
 A claim without a citation **must** be marked `⚠ unverified` at the end of the paragraph until someone anchors it.
 
+> **Module tags.** Optional modules define specialized uncertainty tags, appended into this file by their `conventions-extension.md` at install: `⚠ unverified <metric>` (benchmarks — a quantitative claim without a reproducible page) and `⚠ contract-drift` (contracts — a contract page out of sync with its definition). They are stricter, scoped variants of `⚠ unverified`.
+
 **When NOT to cite:** domain definitions (cite the external source/ADR instead of code); process/methodology statements (cite `.agents/METHODOLOGY.md` or a rule).
 
 ## 3. Wikilinks

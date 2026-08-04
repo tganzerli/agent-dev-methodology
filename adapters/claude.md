@@ -50,10 +50,10 @@ Claude Code keeps a user-scoped memory (`.claude/projects/.../memory/`). Use it 
 
 ## 7. Git workflow
 
-> Applies **fully** only if the **monorepo module** is installed (it ships `.agents/rules/git_branching_rule.md`, `trigger: always_on`). In a single-repo project, follow the project's normal branch/PR flow and skip the branch-naming sequence below.
+> A git branching rule ships in **core** (`.agents/rules/git_branching_rule.md`, `trigger: always_on`: single-repo `main`/`dev` + plan-gated `<type>/<work_id>__<scope>` ephemerals). The **monorepo module** replaces it at the same path with the multi-app topology. The branch-creation gate below applies whenever that rule is installed (it is, by default); only a project that deliberately removed the core branching rule skips it.
 
 - **Git via `Bash`** only. Do not invent non-standard flags.
-- **Before creating a branch** (monorepo module), validate the rule's sequence: (1) does `{{project}}_wiki/work/plans/{work_id}.md` exist? (2) is it `status: approved`? (3) does the name `<type>/<work_id>__<scope>` match the syntax? If any fails: **stop and require the gate** — never invent a branch name.
+- **Before creating a branch** (per the branching rule), validate the rule's sequence: (1) does `{{project}}_wiki/work/plans/{work_id}.md` exist? (2) is it `status: approved`? (3) does the name `<type>/<work_id>__<scope>` match the syntax? If any fails: **stop and require the gate** — never invent a branch name.
 - **Announce every git command** before running it; the human may interrupt.
 - **Destructive ops need in-the-moment human confirmation** (`[y/n]`): `push --force` (even `--with-lease`) on a permanent branch; `branch -D`; `push --delete` on any permanent branch; renaming a permanent branch. Do not batch multiple destructive ops without an intermediate confirmation.
 - **Never `git commit` on protected permanent branches** (e.g. `main`, `staging_*`) — those receive PRs only.

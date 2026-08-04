@@ -53,10 +53,10 @@ Gemini has **no native** [Agent Skills](https://agentskills.io/specification) di
 
 ## 6. Git workflow
 
-> Applies **fully** only if the **monorepo module** is installed (ships `.agents/rules/git_branching_rule.md`, `trigger: always_on`). In a single-repo project, follow the normal branch/PR flow and skip the branch-naming sequence.
+> A git branching rule ships in **core** (`.agents/rules/git_branching_rule.md`, `trigger: always_on`: single-repo `main`/`dev` + plan-gated `<type>/<work_id>__<scope>` ephemerals). The **monorepo module** replaces it at the same path with the multi-app topology. The branch-creation gate below applies whenever that rule is installed (it is, by default); only a project that deliberately removed the core branching rule skips it.
 
 - **Git via shell-out** (`!` in Gemini CLI). **Announce the command first** and wait for approval. Do not run multiple destructive ops in sequence without an intermediate confirmation.
-- **Before creating a branch** (monorepo module), validate the rule's sequence: (1) `{{project}}_wiki/work/plans/{work_id}.md` exists? (2) `status: approved`? (3) name `<type>/<work_id>__<scope>` valid? If any fails: **stop and require the gate** — do not invent a name.
+- **Before creating a branch** (per the branching rule), validate the rule's sequence: (1) `{{project}}_wiki/work/plans/{work_id}.md` exists? (2) `status: approved`? (3) name `<type>/<work_id>__<scope>` valid? If any fails: **stop and require the gate** — do not invent a name.
 - **Never `git commit` on protected permanent branches** (e.g. `main`, `staging_*`) — PRs only.
 - **`push --force` forbidden without `--with-lease`** on any branch.
 - **Host-UI actions** the CLI cannot do (branch protection, PR templates, merge checks): **guide the human** through the panel; do not work around via API.

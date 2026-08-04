@@ -24,6 +24,9 @@ Ask these before creating anything. Keep it to one round; propose sensible defau
 | 6 | **Does a partner team** (e.g. backend) collaborate through their own LLM, exchanging specs/contracts? | installs `modules/cross-team/` | no |
 | 7 | **Git host?** (GitHub, GitLab, Bitbucket, none/local) | wording of monorepo CI stubs + PR guidance | GitHub |
 | 8 | **Do multiple agents work this repo** — concurrently, or handing work across sessions — and need to coordinate / hand off? | installs `modules/intra-team/` | no |
+| 9 | **Does the project make quantitative/empirical claims** (performance, cost, accuracy, …) it must stand behind? | installs `modules/benchmarks/` | no |
+| 10 | **Does the project expose a versioned contract** other code/teams/systems depend on (public API, DB schema, wire/IPC protocol, event schema, FFI ABI)? | installs `modules/contracts/` | no |
+| 11 | **Does the project depend on external services** (DB, broker, cache, …) that must be reproducible across machines and CI? | installs `modules/dev-env/` | no |
 
 > **Never guess question 3.** If the human does not state a knowledge language, ask explicitly. Everything the methodology generates (plans, wiki pages) is in that language; getting it wrong means rewriting the vault.
 
@@ -51,6 +54,7 @@ kit core/                              →  target project
 ──────────────────────────────────────────────────────────
 core/METHODOLOGY.md                    →  .agents/METHODOLOGY.md
 core/rules/mandatory_planning_rule.md  →  .agents/rules/mandatory_planning_rule.md
+core/rules/git_branching_rule.md       →  .agents/rules/git_branching_rule.md   (single-repo default; monorepo module §4 overrides at this path)
 core/vault/_meta/conventions.md        →  {{project}}_wiki/_meta/conventions.md
 core/vault/_meta/index.md              →  {{project}}_wiki/_meta/index.md
 core/vault/_meta/log.md                →  {{project}}_wiki/_meta/log.md
@@ -65,6 +69,8 @@ core/skills/*                          →  .claude/skills/*
 ```
 
 Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,executions}/` and `{{project}}_wiki/work/archive/`.
+
+The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated ephemerals); the monorepo module (§4) replaces it at the same path with the multi-app topology.
 
 **Core skills to install** (from `core/skills/`): `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, and the skills index `_index.md`. The `work-index` and `work-find` skills ship a small Python script each — copy the whole skill directory.
 
@@ -118,6 +124,48 @@ Follow `modules/intra-team/README.md` for the reference-first rule, the claim-st
 
 **If answer 8 = no:** skip. A single agent working the repo alone needs nothing here — the trio and the execution log already record what one agent does.
 
+## 5-ter. Install the BENCHMARKS module (only if answer 9 = yes)
+
+Adds the empirical-claim discipline: a quantitative claim needs a reproducible evidence page, or it carries `⚠ unverified <metric>` and cannot be cited. Copy from `modules/benchmarks/`:
+
+```
+modules/benchmarks/rules/benchmark_protocol_rule.md  →  .agents/rules/benchmark_protocol_rule.md
+modules/benchmarks/templates/benchmark-page.md       →  {{project}}_wiki/benchmarks/_template.md
+modules/benchmarks/skills/run-benchmark/             →  .claude/skills/run-benchmark/
+modules/benchmarks/conventions-extension.md          →  append into {{project}}_wiki/_meta/conventions.md
+```
+
+Then: create `{{project}}_wiki/benchmarks/`; register `run-benchmark` (manual-only) in `.claude/skills/_index.md`. The module registers a `bench` ephemeral branch type (already anticipated in `core/rules/git_branching_rule.md`). Benchmark pages are authored in {{KNOWLEDGE_LANG}}. See `modules/benchmarks/README.md`.
+
+**If answer 9 = no:** skip. The core `⚠ unverified` citation discipline still applies to non-quantitative claims.
+
+## 5-quater. Install the CONTRACTS module (only if answer 10 = yes)
+
+Adds the cross-boundary-contract discipline: a change to a versioned contract requires an atomic ADR + synchronized multi-artifact PR. Copy from `modules/contracts/`:
+
+```
+modules/contracts/rules/contract_change_rule.md  →  .agents/rules/contract_change_rule.md
+modules/contracts/templates/adr-contract.md      →  {{project}}_wiki/decisions/_templates/adr-contract.md
+modules/contracts/conventions-extension.md       →  append into {{project}}_wiki/_meta/conventions.md
+```
+
+Then: ensure `{{project}}_wiki/decisions/` exists; the module registers a `contract` ephemeral branch type (already anticipated in `core/rules/git_branching_rule.md`). If the benchmarks module is installed, the rule's hot-path regression gate references it. No skill. See `modules/contracts/README.md`.
+
+**If answer 10 = no:** skip.
+
+## 5-quinquies. Install the DEV-ENV module (only if answer 11 = yes)
+
+Adds reproducible external-service environments: versioned per-service containers, mandatory healthcheck, lifecycle modes. Copy from `modules/dev-env/`:
+
+```
+modules/dev-env/rules/dev_environment_rule.md  →  .agents/rules/dev_environment_rule.md
+modules/dev-env/skills/dev-env/                →  .claude/skills/dev-env/
+```
+
+Then: create `docker/` at the repo root (per-service subdirs added as services appear); add `docker/**/.env` to `.gitignore`; register `dev-env` (manual-only) in `.claude/skills/_index.md`. See `modules/dev-env/README.md`.
+
+**If answer 11 = no:** skip.
+
 ## 6. Generate the per-agent entry-points (from `adapters/`)
 
 The methodology is agent-agnostic; each agent just needs a thin stub pointing at `.agents/METHODOLOGY.md`. For each agent named in answer 5:
@@ -143,6 +191,10 @@ Run these before telling the human it is done:
 - [ ] If cross-team module installed: `cross-team-handoff` skill present; conventions extended.
 - [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1).
 - [ ] `/work-index` runs clean (generates an empty-but-valid `work/_index.md`).
+- [ ] `.agents/rules/git_branching_rule.md` exists (core single-repo variant, or the monorepo module's variant if installed).
+- [ ] If benchmarks module installed: `.agents/rules/benchmark_protocol_rule.md`, `{{project}}_wiki/benchmarks/_template.md`, `run-benchmark` skill, conventions extended.
+- [ ] If contracts module installed: `.agents/rules/contract_change_rule.md`, `{{project}}_wiki/decisions/_templates/adr-contract.md`, conventions extended.
+- [ ] If dev-env module installed: `.agents/rules/dev_environment_rule.md`, `dev-env` skill, `docker/` created + `docker/**/.env` gitignored.
 
 ## 8. Hand-off to the human
 

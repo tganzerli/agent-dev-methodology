@@ -8,7 +8,8 @@
 
 1. **`.agents/METHODOLOGY.md`** — the canonical, LLM-agnostic methodology. Everything flows from here.
 2. **`.agents/rules/mandatory_planning_rule.md`** — no code before an approved plan (`trigger: always_on`).
-3. *(monorepo projects only)* **`.agents/rules/git_branching_rule.md`** and **`.agents/rules/knowledge_source_of_truth_rule.md`**.
+3. **`.agents/rules/git_branching_rule.md`** — the core single-repo branching rule. *(monorepo projects)* the same path holds the monorepo variant, which also adds **`.agents/rules/knowledge_source_of_truth_rule.md`**.
+3b. **Any installed optional-module rule** — `benchmark_protocol_rule.md`, `contract_change_rule.md`, `dev_environment_rule.md` are `trigger: always_on` when their module is installed. Read whichever are present in `.agents/rules/`.
 4. **`.claude/skills/_index.md`** — the catalog of Agent Skills available here.
 5. **`{{project}}_wiki/_meta/conventions.md`** — if you will write to the wiki.
 6. **`{{project}}_wiki/_meta/index.md`** — the knowledge catalog.

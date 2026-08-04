@@ -24,3 +24,12 @@
 | **Accretion** | A methodology feature added later in response to a specific scaling pain (see `design-rationale.md`), as opposed to the day-one seed. |
 | **Skill** | An Agent Skills unit (`.claude/skills/<name>/SKILL.md`) encapsulating a repeatable flow or background knowledge. |
 | **Adapter** | A thin per-agent entry-point (`.agents/llm/<agent>.md` + root stub) pointing at the canonical methodology. |
+| **Empirical claim / benchmark page** | Benchmarks module: a quantitative claim (latency, throughput, cost, accuracy, …) must be backed by a reproducible page (hypothesis → exact command → dataset → statistics → verdict) under `{{project}}_wiki/benchmarks/`. |
+| **`⚠ unverified <metric>`** | Benchmarks module tag: a quantitative claim with no reproducible page. Stricter than base `⚠ unverified` ("no citation yet"); used with the metric name (`⚠ unverified perf`, `⚠ unverified cost`, …). |
+| **Verdict (hypothesis)** | The explicit outcome closing a benchmark page: `confirmed \| refuted \| partially-confirmed \| inconclusive`. Refutation is a valid result; rewriting the hypothesis post-hoc to "confirm" it is forbidden (anti-p-hacking). |
+| **Cross-boundary contract** | Contracts module: a versioned interface other code/teams/systems depend on — public API, DB schema, wire/IPC protocol, event/message schema, or FFI ABI. |
+| **`⚠ contract-drift`** | Contracts module tag: the contract-definition file changed after its describing page's `updated` date (the doc no longer matches the contract). |
+| **`contract_version`** | Contracts module frontmatter: the contract's own `MAJOR.MINOR`, decoupled from the product version (MAJOR = breaking, MINOR = additive). |
+| **Lifecycle modes (dev-env)** | Dev-environment module: `persistent` (daily dev), `ephemeral` (short smoke tests, auto-torn-down), `benchmark` (dedicated per-run volume, discarded after). |
+| **Directory-scoped override** | A subtree may declare a lighter local cycle via a nested entry-point (e.g. prose: outline → draft → review → deliver), keeping the still-applicable safeguards. See METHODOLOGY §4.6. |
+| **Rule provenance** | A rule clause born from a concrete incident cites that incident inline (postmortem/ADR/cycle id) — the `file:line` discipline applied to the methodology's own evolution. See METHODOLOGY §10.1. |
