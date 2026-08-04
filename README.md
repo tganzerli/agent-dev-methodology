@@ -9,9 +9,10 @@ It is designed to be driven by **any coding agent** — Claude Code, Codex, Gemi
 - **A work cycle with human gates.** Nothing runs before a plan is approved; nothing reaches the wiki without review. Plans are preceded by optional **parallel-agent analyses** and a **contextual model recommendation** per role.
 - **A knowledge vault.** Obsidian graph linking work ↔ knowledge, mandatory frontmatter, and a strict `file:line` citation discipline (`⚠ unverified` when a claim is not anchored).
 - **Skills** (per the [Agent Skills spec](https://agentskills.io/specification)) that encapsulate the repetitive flows: `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`.
-- **Two optional modules** you install only when you need them:
+- **Three optional modules** you install only when you need them:
   - **`modules/monorepo/`** — branch topology, canonical-knowledge-in-`main`, promote/sync/broadcast machinery. For multi-app/multi-package repos.
-  - **`modules/cross-team/`** — bidirectional LLM↔LLM collaboration with a partner team (e.g. backend), via a `cross-team-handoff` skill and living-contract pages.
+  - **`modules/cross-team/`** — bidirectional LLM↔LLM collaboration with a partner team (e.g. backend) that does **not** share your repo, via a `cross-team-handoff` skill and living-contract pages.
+  - **`modules/intra-team/`** — the mirror of cross-team for agents that **do** share the repo: agent↔agent notes, requests, handoffs, conflict resolution, and a coordination board. Reference-first (cite `file:line`) instead of self-contained.
 
 ## How to install it
 
@@ -38,7 +39,8 @@ agent-dev-methodology/
 │   └── vault/                 Obsidian skeleton (_meta, overview, .obsidian)
 ├── modules/
 │   ├── monorepo/          ← OPTIONAL: branching + promote/sync/broadcast
-│   └── cross-team/        ← OPTIONAL: partner-team LLM handoff
+│   ├── cross-team/        ← OPTIONAL: partner-team LLM handoff (no shared repo)
+│   └── intra-team/        ← OPTIONAL: agent↔agent messaging (shared repo)
 ├── adapters/              ← per-agent entry-point templates
 └── docs/
     ├── design-rationale.md    the seed-vs-accretion story (install core first, defer the rest)
