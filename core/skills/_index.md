@@ -31,6 +31,9 @@ Knowledge about Obsidian formats (wikilinks, callouts, bases, canvas, clean web 
 - **Monorepo module** — adds `promote-knowledge`, `sync-knowledge`, `distribute-packages` (per-app branch topology, knowledge-canonical-in-`main`, CI broadcast). Installed only for multi-app/multi-package repos. See `modules/monorepo/`.
 - **Cross-team module** — adds `cross-team-handoff` (bidirectional LLM↔LLM collaboration with a partner team). See `modules/cross-team/`.
 - **Intra-team module** — adds `intra-team` (agent↔agent coordination inside one repo: notes, requests, responses, handoffs, conflicts, and a coordination board). **Hybrid** invocation: `note` is agent-invocable/autonomous; every other flow carries an in-body human gate. See `modules/intra-team/`.
+- **Benchmarks module** — adds `run-benchmark` (manual `/run-benchmark {work_id}`: collect environment metadata, run the exact command, do the statistics, generate a reproducible chart, write the benchmark page). Installed when the project makes quantitative/empirical claims. See `modules/benchmarks/`.
+- **Contracts module** — adds **no skill** (a `contract_change_rule` + an ADR-contract template + a conventions extension). See `modules/contracts/`.
+- **Dev-environment module** — adds `dev-env` (manual `/dev-env up|down|status|logs|exec`: operate versioned per-service containers, wait on healthchecks, persistent/ephemeral/benchmark lifecycle). See `modules/dev-env/`.
 - **Domain skills** — background knowledge skills (`user-invocable: false`) that load automatically when the agent touches a domain area. Added as the knowledge base grows; not part of the seed.
 
 ## How to create a new skill

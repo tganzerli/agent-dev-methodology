@@ -94,6 +94,9 @@ File: `{{project}}_wiki/work/plans/{ID}.md`. Mandatory structure in `.agents/rul
 
 Plan frontmatter must include `type: plan`, `work_id`, `scope`, `status` (`draft|approved|executed`), `related[]` linking the knowledge pages the plan touches.
 
+### 4.3.5. Branch (after approval, before execution)
+If the project installs a git branching rule (`.agents/rules/git_branching_rule.md` — the core single-repo rule, or the monorepo module's variant at the same path), the branch for the work is created **after** the plan is `approved` and **before** any code runs. The branch name embeds the `work_id` (`<type>/<work_id>__<scope>`), binding the trio to its branch. The creation gate is the rule's own: no branch without an approved plan; never invent a branch name. In a project with no branching rule installed, skip this sub-step and follow the project's normal flow.
+
 ### 4.4. Execution (live log)
 File: `{{project}}_wiki/work/executions/{ID}.md`. The LLM writes this **during** execution, not at the end. Update after each completed step. Template: `{{project}}_wiki/work/executions/_template.md`. Contains:
 - Current status (`in_progress | done | paused | aborted`).
@@ -115,6 +118,9 @@ Command: `/wiki-sync {ID}`. The LLM:
    `## [YYYY-MM-DD] wiki-sync | {ID} | N pages touched`
 
 **Gate:** the human reviews the diff before commit.
+
+### 4.6. Directory-scoped overrides
+The full cycle is calibrated for changes to **product code**. A subtree whose work has a different shape — long-form writing, a data corpus, generated assets — MAY declare a **lighter local cycle** through a directory-scoped entry-point (e.g. a nested `CLAUDE.md`/`AGENTS.md` in that subtree). The override replaces the heavy trio/branch flow with one that fits the material (for prose: outline → draft → review → deliver) while **keeping the safeguards that still apply**: the knowledge language, the `file:line` citation discipline, the human gates, and any always-on rule (a performance claim still needs its evidence page). The override is **explicit and local** — it never silently loosens the cycle for product code, and the default everywhere else stays the full cycle. Record the override in the subtree's entry-point so every agent discovers it.
 
 ## 5. The wiki
 
@@ -217,7 +223,7 @@ Core skills (portable to any project): `work-cycle`, `wiki-sync`, `wiki-lint`, `
 In order:
 1. Read this document (`.agents/METHODOLOGY.md`).
 2. Read `.agents/rules/mandatory_planning_rule.md`.
-3. If the monorepo module is installed: read `.agents/rules/git_branching_rule.md` and `.agents/rules/knowledge_source_of_truth_rule.md`.
+3. Read `.agents/rules/git_branching_rule.md` (the core single-repo branching rule; if the monorepo module is installed, the same path holds its monorepo variant, which also brings `.agents/rules/knowledge_source_of_truth_rule.md`).
 4. Read `.claude/skills/_index.md`.
 5. Read `{{project}}_wiki/_meta/conventions.md` (if you will write to the wiki).
 6. Read `{{project}}_wiki/_meta/index.md` (knowledge catalog).
@@ -228,7 +234,13 @@ In order:
 ## 10. Version and evolution
 This methodology is versioned with the code. Relevant changes append an entry to `{{project}}_wiki/_meta/log.md`: `## [YYYY-MM-DD] methodology-update | summary`.
 
+### 10.1. Rules carry their provenance
+A rule — or a single rule clause — that exists because of a concrete incident **cites that incident inline**, the same discipline as a wiki claim citing `file:line`. When a costly lesson hardens a rule (a recurring failure, a discarded hypothesis, a non-obvious workaround graduated from an execution per §5.6), the new clause names its origin: a dated `postmortems/`/`cross-cutting/` page, an ADR, or the commit/cycle that produced it. This makes each clause **self-justifying** — the methodology shows its evidence instead of asking for faith — and **safe to prune**, because you can tell why a clause exists before removing it. Keep provenance markers terse (a wikilink or a short parenthetical); the narrative lives in the cited page, not in the rule.
+
 ## 11. Optional modules
 - **Monorepo module** (`modules/monorepo/` in the kit): git branching model, knowledge-canonical-in-`main` rule, `promote-knowledge`/`sync-knowledge`/`distribute-packages` skills, CI broadcast. Install only for multi-app/multi-package repos with per-app branches.
 - **Cross-team module** (`modules/cross-team/` in the kit): `cross-team-handoff` skill, handoff/response/living-contract templates, extended source frontmatter. Install only when a partner team collaborates through their own LLM.
 - **Intra-team module** (`modules/intra-team/` in the kit): `intra-team` skill (notes/requests/responses/handoffs/conflicts + coordination board), message/board templates, extended relay frontmatter. The mirror of cross-team for agents that **share** the repo — reference-first instead of self-contained. Install only when more than one agent works the repo and needs to coordinate.
+- **Benchmarks module** (`modules/benchmarks/` in the kit): the empirical-claim discipline — a `benchmark_protocol_rule.md`, a benchmark-page template, a `run-benchmark` skill, and a conventions extension adding the `⚠ unverified <metric>` seal (a quantitative claim without a reproducible page cannot be cited). Registers a `bench` ephemeral branch type. Install when the project makes quantitative/empirical claims (performance, cost, accuracy, …) it must stand behind.
+- **Contracts module** (`modules/contracts/` in the kit): the cross-boundary-contract discipline — a `contract_change_rule.md` requiring an atomic ADR + synchronized multi-artifact PR for any change to a versioned contract (public API, DB schema, wire/IPC protocol, event schema, FFI ABI), an ADR-contract template, and a `⚠ contract-drift` tag. Registers a `contract` ephemeral branch type. Install when the project exposes a versioned contract other code/teams depend on.
+- **Dev-environment module** (`modules/dev-env/` in the kit): reproducible external-service environments — a `dev_environment_rule.md` (versioned per-service containers, mandatory healthcheck, persistent/ephemeral/benchmark lifecycle modes) and a `dev-env` skill. Install when the project depends on external services (DB, broker, cache, …) that must be reproducible across machines and CI.
