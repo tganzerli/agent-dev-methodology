@@ -181,7 +181,7 @@ Every entry-point stub is short: it names the reading order and points at the ca
 
 Run these before telling the human it is done:
 
-- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude CLAUDE.md GEMINI.md AGENTS.md` returns **nothing** (all placeholders substituted).
+- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude scripts CLAUDE.md GEMINI.md AGENTS.md` returns **nothing** (all placeholders substituted — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
 - [ ] `.agents/METHODOLOGY.md`, `.agents/rules/mandatory_planning_rule.md` exist.
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).

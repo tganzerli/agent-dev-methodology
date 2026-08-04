@@ -99,7 +99,7 @@ If the project installs a git branching rule (`.agents/rules/git_branching_rule.
 
 ### 4.4. Execution (live log)
 File: `{{project}}_wiki/work/executions/{ID}.md`. The LLM writes this **during** execution, not at the end. Update after each completed step. Template: `{{project}}_wiki/work/executions/_template.md`. Contains:
-- Current status (`in_progress | done | paused | aborted`).
+- Current status (`in_progress | done | aborted`).
 - The plan's checklist with items marked as they advance.
 - Commits involved (`git log` by hash).
 - **Divergences from the plan, with justification** — if anything changed vs. the plan, record it here.

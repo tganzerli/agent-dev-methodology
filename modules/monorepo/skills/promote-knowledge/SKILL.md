@@ -41,8 +41,9 @@ The **step 7** checks are **deterministic automatic verifications**: on failure 
 
 ## Steps
 
-### 1. Validate context
+### 1. Validate context and resolve `work_id`
 
+- **Resolve `<work_id>` first** — it is a prerequisite of the scoped detection in step 2. If the argument is absent, take the most recent execution in `{{project}}_wiki/work/executions/` (`in_progress` or `done`); if ambiguous, ask. Validate the `YYYY-MM-DD_slug` format.
 - `git branch --show-current` → must be `dev_<app>`. If `demo_*`/`staging_*`/`main`, **abort** with a clear message.
 - `git status --short` → must be empty. If dirty, instruct `commit`/`stash`.
 - `git fetch origin main` to refresh refs.
@@ -116,11 +117,9 @@ Confirm? (y/n)
 - Without an explicit `y` → **abort** (nothing created/pushed).
 - With `y` → the agent runs **all following steps autonomously**, through push and the PR link, **without asking again**.
 
-### 4. Resolve `work_id`
+### 4. Confirm `work_id`
 
-> **Order:** in **default (scoped) mode** the `work_id` is a prerequisite of step 2 — resolve it **before** detecting files. In `--all` mode it is only needed to name the branch (step 5) and may be resolved here.
-
-If the argument is absent: look at `{{project}}_wiki/work/executions/` and take the most recent execution (`in_progress` or `done`). If ambiguous, ask. Validate the `YYYY-MM-DD_slug` format.
+`work_id` is resolved in **step 1** — it is a prerequisite of the scoped detection in step 2, and in `--all` mode it is only needed to name the branch (step 5). Confirm the resolved value before creating the branch; nothing more to do here if step 1 already resolved it. (This heading is retained so steps 5–12 and their cross-references keep their numbers.)
 
 ### 5. Create the ephemeral branch
 
