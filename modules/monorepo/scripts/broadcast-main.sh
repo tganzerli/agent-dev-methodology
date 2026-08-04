@@ -123,9 +123,14 @@ for TARGET in "${TARGETS[@]}"; do
     # Main is canonical for the knowledge layer, so adopt main's version for the
     # conflicted Group-A files, then regenerate the derived index on top. Any
     # conflict OUTSIDE Group A (app/package code, Group-B build/CI paths) → abort.
-    CONFLICTS=$(git diff --name-only --diff-filter=U)
+    # Read conflicted paths NUL-delimited into an array so paths with spaces or
+    # shell-glob characters are neither word-split nor glob-expanded (a plain
+    # `for f in ${CONFLICTS}` would mis-handle them).
+    CONFLICTS=()
+    while IFS= read -r -d '' f; do CONFLICTS+=("${f}"); done \
+      < <(git diff --name-only -z --diff-filter=U)
     KNOWLEDGE_ONLY=1
-    for f in ${CONFLICTS}; do
+    for f in "${CONFLICTS[@]}"; do
       match=0
       for p in "${KNOWLEDGE_PATHS[@]}"; do
         case "${f}" in "${p}"*) match=1; break ;; esac
@@ -133,13 +138,13 @@ for TARGET in "${TARGETS[@]}"; do
       [ "${match}" = "0" ] && { KNOWLEDGE_ONLY=0; break; }
     done
 
-    if [ -n "${CONFLICTS}" ] && [ "${KNOWLEDGE_ONLY}" = "1" ] && command -v python3 >/dev/null 2>&1; then
+    if [ ${#CONFLICTS[@]} -gt 0 ] && [ "${KNOWLEDGE_ONLY}" = "1" ] && command -v python3 >/dev/null 2>&1; then
       echo "[broadcast-main]   conflict confined to knowledge layer (Group A) — reconciling with the main version"
       # Adopt main's side. Handle delete/modify correctly: if main DELETED the
       # file (no stage-3 entry in ls-files -u), remove it; otherwise --theirs.
       # (A naive `checkout --theirs || true` would silently KEEP dev's version
       #  when main deleted the file — violating main-canonical.)
-      for f in ${CONFLICTS}; do
+      for f in "${CONFLICTS[@]}"; do
         if git ls-files -u -- "${f}" | grep -q '^[0-7]* [0-9a-f]* 3'; then
           git checkout --theirs -- "${f}" && git add -- "${f}"
         else
