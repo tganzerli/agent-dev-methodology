@@ -21,13 +21,16 @@ These existed from the first day and are irreducible:
 
 If you install nothing else, the project already has a working, disciplined methodology.
 
+> **Note on branching.** A later refinement promoted a *minimal* git branching discipline into the seed (`core/rules/git_branching_rule.md`): `main`/`dev`, throwaway `experiment/<slug>`, and plan-gated `<type>/<work_id>__<scope>` ephemerals with a creation gate. Any repo where an agent creates branches wants it; only the multi-app permanent topology stays deferred to the monorepo module. It appears in the accretion table below as a core-shipped item, for honesty about when it arrived.
+
 ## The accretions (defer until the pain appears)
 
 Each was a response to a concrete problem. Add it when you recognize the trigger.
 
 | Accretion | Trigger that justified it | Where in the kit |
 |---|---|---|
-| **Git branching model** (permanent branch classes; `<type>/<work_id>__<scope>` ephemerals) | Multiple apps on independent cadences + agents able to create branches | `modules/monorepo/` |
+| **Minimal git branching** (`main`/`dev`, `experiment/<slug>`, plan-gated `<type>/<work_id>__<scope>` ephemerals) | An agent can create branches — true even in a single repo | `core/rules/git_branching_rule.md` |
+| **Multi-app branch topology** (per-app permanent branches, promote/broadcast) | Multiple apps on independent cadences | `modules/monorepo/` |
 | **Knowledge-canonical-in-`main`** + `promote-knowledge` / `sync-knowledge` | Knowledge fragmented across per-app branches; `main` went stale | `modules/monorepo/` |
 | **`work-audit`** | Drift between trio frontmatter and the index | `core/skills/` (generic, but born from scale) |
 | **`dev_packages` trunk + CI broadcast** | N simultaneous package PRs were operationally heavy | `modules/monorepo/` |
@@ -35,6 +38,9 @@ Each was a response to a concrete problem. Add it when you recognize the trigger
 | **Execution = historical / knowledge = living memory** corollary | Costly lessons were dying in chronological logs nobody re-reads | `core/` (conventions §"Execution = historical log") |
 | **Pre-plan parallel-agent analyses + contextual per-role model recommendation** | Big/risky tasks needed investigation before a plan could be trusted | `core/` (METHODOLOGY §4.2.5, `work-cycle`) |
 | **Agent↔agent messaging** (relay notes/requests/handoffs/conflicts + coordination board) | More than one agent on the same repo — concurrent agents clobbering each other's scope, or work handed across sessions with context lost | `modules/intra-team/` |
+| **Empirical-claim discipline** (reproducible benchmark page, `⚠ unverified <metric>`, hypothesis verdict, anti-p-hacking) | The project makes quantitative claims it must stand behind | `modules/benchmarks/` |
+| **Cross-boundary contract discipline** (atomic ADR + synchronized PR for a versioned contract) | The project exposes a versioned contract other code/teams depend on | `modules/contracts/` |
+| **Reproducible external-service env** (versioned containers, healthcheck, lifecycle modes) | The project depends on external services (DB/broker/cache) | `modules/dev-env/` |
 
 ### Why `work-index`/`work-find`/`work-audit` are in `core/`, not `monorepo/`
 They were *born* from scale pain, but their logic is generic — they operate on trio frontmatter, not on branch topology. A single-repo project that runs many tasks will hit the same flat-index bloat. So they ship in the portable core; only their occasional monorepo-flavored guards (e.g. "regenerate on broadcast conflict") are inert in a single repo, which is harmless.
@@ -48,6 +54,8 @@ They were *born* from scale pain, but their logic is generic — they operate on
 - **The work index went from hand-edited to generated.** Hand-editing caused drift (the reason `work-audit` exists) and constant merge conflicts. Always regenerate; never hand-merge the index.
 - **Rules are extended by satellite ADRs, never by rewriting history.** When a new app needed a rule tweak, a new dated ADR was added and the original left intact. ADRs are superseded, not rewritten. Nothing is deleted — history is preserved.
 - **ADR filenames are `YYYY-MM-DD_slug.md`,** not numbered — numbering caused renumber churn.
+- **Branching split into a seed and an accretion.** The ephemeral-branch discipline + creation gate proved valuable even in a single repo, so it moved into `core/`. Only the multi-app permanent topology (`staging_<app>`/`dev_<app>`, promote/broadcast) stayed in the monorepo module. Both ship one filename (`git_branching_rule.md`); the monorepo variant supersedes the core one when installed.
+- **Rules cite the incident that hardened them.** A clause born from a concrete failure carries an inline provenance marker (a `postmortems/` wikilink, an ADR, a cycle id), the same discipline as `file:line` for wiki claims — self-justifying, and safe to prune. See METHODOLOGY §10.1.
 
 ## The cross-team module: what was proven vs. generalized
 
@@ -56,6 +64,16 @@ The **inbound** half (ingesting a partner's docs via `ingest-source`) was used h
 ## The intra-team module: the mirror, mostly generalized
 
 `modules/intra-team/` is the deliberate **mirror** of cross-team: same structural spine (addressed docs, stable ask IDs, episodic-message + durable-board split, per-claim tags, dual closing ask), one premise **inverted** — the reader **shares the repo**. That inversion flips the governing rule from *self-contained* to **reference-first** (cite `file:line`/`[[wikilinks]]`, don't re-paste), and turns the confidence tag from a repo-access question into a **claim-state** one (`✅ landed` / `⚠ in-flight` / `🔒 intent`). Unlike cross-team — whose hand-shape was run repeatedly before it became a skill — intra-team is **largely an informed generalization**: the reference-first rule and the claim-state tags are its new, unproven pieces. Adopt the spine; let real multi-agent use prune the rest (the module README §10 says so explicitly).
+
+## A second provenance: the systems / scientific project
+
+The benchmarks, contracts, and dev-environment modules were **not** distilled from the mobile monorepo above — they come from a second production project that ran this same methodology on a **single-repo, systems-level** codebase (a high-performance native/runtime library held to a scientific-evidence bar). There, three disciplines were battle-tested rather than merely generalized:
+
+- **`modules/benchmarks/`** — every quantitative claim had to carry a reproducible page (hypothesis → exact command → dataset → statistics → **verdict**), with refutation treated as a valid result and an explicit anti-p-hacking stance. It is the `⚠ unverified` citation ethos extended to an empirical axis.
+- **`modules/contracts/`** — a versioned cross-language ABI was governed as a contract: every change went through an atomic ADR + synchronized multi-artifact PR, with independent `MAJOR.MINOR` versioning and a runtime compatibility check. Generalized here to any versioned cross-boundary contract (public API, DB schema, wire protocol, event schema, FFI ABI).
+- **`modules/dev-env/`** — external services (databases, brokers) lived in versioned, health-checked containers with explicit lifecycle modes, so benchmarks and integration tests reproduced across machines and CI.
+
+Unlike the intra-team module (an informed generalization), these three carry real production mileage — on a **different kind of project** than the mobile monorepo, which is exactly why they ship as opt-in modules rather than seed.
 
 ## Bottom line for the installing agent
 
