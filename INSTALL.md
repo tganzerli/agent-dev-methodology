@@ -23,6 +23,7 @@ Ask these before creating anything. Keep it to one round; propose sensible defau
 | 5 | **Which agents** will operate in this repo? (Claude Code, Codex, Gemini/Antigravity, Cursor, …) | which `adapters/*` + entry-points to generate | Claude + a generic `AGENTS.md` |
 | 6 | **Does a partner team** (e.g. backend) collaborate through their own LLM, exchanging specs/contracts? | installs `modules/cross-team/` | no |
 | 7 | **Git host?** (GitHub, GitLab, Bitbucket, none/local) | wording of monorepo CI stubs + PR guidance | GitHub |
+| 8 | **Do multiple agents work this repo** — concurrently, or handing work across sessions — and need to coordinate / hand off? | installs `modules/intra-team/` | no |
 
 > **Never guess question 3.** If the human does not state a knowledge language, ask explicitly. Everything the methodology generates (plans, wiki pages) is in that language; getting it wrong means rewriting the vault.
 
@@ -97,6 +98,25 @@ modules/cross-team/conventions-extension.md    →  append its frontmatter field
 Follow `modules/cross-team/README.md` to extend the source-page frontmatter (`direction`, `doc_role`, handoff `status`, `external_tickets`, provenance) and register the new skill in the skills index.
 
 **If answer 6 = no:** skip. The core `ingest-source` skill already handles one-directional ingest of external docs; the cross-team module is only needed when you also **author outbound** handoffs and maintain a living contract with a partner LLM.
+
+## 5-bis. Install the INTRA-TEAM module (only if answer 8 = yes)
+
+Adds agent↔agent coordination **inside one repo** — the mirror of cross-team, for agents that **share** the repository. Copy from `modules/intra-team/`:
+
+```
+modules/intra-team/skills/intra-team/   →  .claude/skills/intra-team/
+modules/intra-team/templates/*          →  {{project}}_wiki/work/relay/_templates/
+modules/intra-team/conventions-extension.md  →  append its fields into {{project}}_wiki/_meta/conventions.md
+```
+
+Then:
+- Create `{{project}}_wiki/work/relay/` and seed `{{project}}_wiki/work/relay/_board.md` from the coordination-board template.
+- Register `intra-team` in `.claude/skills/_index.md` — mark it **hybrid** (agent-invocable; `note` is autonomous, all other flows carry an in-body human gate).
+- **No script change needed:** `work-index`/`work-find`/`work-audit` scan only `tasks`/`plans`/`executions`, so `work/relay/` is ignored by design (relay docs are historical, never `stale`; `_board.md` is their own catalog).
+
+Follow `modules/intra-team/README.md` for the reference-first rule, the claim-state tags (`✅ landed` / `⚠ in-flight` / `🔒 intent`), and the message roles.
+
+**If answer 8 = no:** skip. A single agent working the repo alone needs nothing here — the trio and the execution log already record what one agent does.
 
 ## 6. Generate the per-agent entry-points (from `adapters/`)
 

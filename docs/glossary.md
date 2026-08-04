@@ -17,6 +17,10 @@
 | **Broadcast** | Monorepo CI flow that propagates `main`'s knowledge (and package changes) to per-app branches automatically. |
 | **Living-contract page** | Cross-team module: a `cross-cutting/` page addressed to a partner team's LLM, holding the current-state contract plus an append-only update history. |
 | **Handoff / response** | Cross-team module doc roles: an outbound spec/questions doc (handoff) and its inbound answer (response), threaded across rounds. |
+| **Intra-team messaging** | Optional module: agent↔agent coordination **inside one repo** (notes / requests / responses / handoffs / conflicts + a coordination board). The mirror of cross-team — **reference-first** (the reader shares the repo), not self-contained. Docs live in `work/relay/`. |
+| **Coordination board** | Intra-team module: the durable `work/relay/_board.md` page holding active scope locks + agreements between agents, with an append-only history. The intra-team analogue of the living-contract page. |
+| **Claim-state tag** | Intra-team marker tagging a claim by **visibility/state**, not repo access: `✅ landed` (committed, carries a `file:line`) · `⚠ in-flight` (author's working tree / unmerged branch — not visible to the reader yet) · `🔒 intent` (planned, not started). |
+| **Scope lock** | A **social** (not OS-enforced) signal on the coordination board that one agent owns a scope right now, so a second agent avoids clobbering it. |
 | **Accretion** | A methodology feature added later in response to a specific scaling pain (see `design-rationale.md`), as opposed to the day-one seed. |
 | **Skill** | An Agent Skills unit (`.claude/skills/<name>/SKILL.md`) encapsulating a repeatable flow or background knowledge. |
 | **Adapter** | A thin per-agent entry-point (`.agents/llm/<agent>.md` + root stub) pointing at the canonical methodology. |
