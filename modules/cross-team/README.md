@@ -35,19 +35,41 @@ It **complements** the core, it does not replace it. The core `ingest-source` sk
 
 ## 3. The proven pattern
 
-This module codifies a hand-shape that was run repeatedly by hand before it was a skill. Five rules:
+This module codifies a hand-shape that was run repeatedly by hand before it was a skill.
 
-1. **Every handoff opens with `Audience:` and `Author:` lines.** `Audience:` names **the partner team's LLM** as the intended reader ("the backend team's coding agent"). `Author:` names who wrote it (your team's agent + the human who gated it). The reader is another LLM — write for it.
+> **The template is the full shape, not a skeleton.** A handoff carrying only context + spec + questions reads like a ticket and gets answered like one: partially, and without the facts you need to write your own code. Each section below closed a specific observed failure. **Scale them to the ask; do not drop them** — a one-question handoff still names its target system, still itemizes the return document, and still carries a contact, in two lines each.
+
+### 3.1. Required sections
+
+| § | Section | Closes this failure |
+|---|---|---|
+| header | `From:` / `To:` naming the **concrete system** that owns the change | The partner's agent guesses which service is in scope and specs it in the wrong place |
+| header | Purpose of the document (1)(2)(3) + forward pointer to the asks | The partner reads the spec without knowing what is expected back |
+| 1 | Context — what the system *is*, plus the invariants (auth, addressing, tenancy) | A partner who cannot judge whether the proposal is reasonable implements it literally |
+| 2 | What is already done — validated *where and when* vs merely written; coverage table; the number that motivates the ask | "It does not scale" is an opinion; a measured cost is an argument |
+| 3 | Dependencies, lettered, each with a **state marker** and an explicit **Where:** | "Pending" and "already works, don't break it" read as the same request |
+| 4 | Pending summary — a `- [ ]` checklist | Multi-item asks come back partially answered |
+| 5 | Open questions — stable IDs, blocking flags | (see rule 4 below) |
+| 6 | Ask 1 — return document, **itemized**, incl. DEV vs PROD per item | A generic "please reply" omits exactly what unblocks you; "done" means merged and you validate against the wrong environment |
+| 7 | Ask 2 — plan-then-execute, with its four components | The partner implements first and explains later |
+| 8 | Appendices (*conditional*) — what the partner must confirm/map, plus your **silent failure modes** | Field names diverge silently and surface months later |
+| 9 | Contact — named human, email, artifact identification | The reply goes to whoever last spoke, or nowhere |
+
+Two habits that pay for themselves inside §3: when the partner **already receives** the data you want exposed, show them **where it sits on their side** (payload position, ingestion point) — it turns "add a feature" into "expose what you already have". And **flag counter-intuitive mappings inline** (an array whose order is not alphabetical, a flag whose name inverts its meaning, a unit already converted): named here it costs a sentence, discovered later it costs a round.
+
+### 3.2. The five rules
+
+1. **Every handoff names its reader and its target.** The `To:` line names **the partner team's LLM** *and the concrete system that owns the change* — service, module, or repo, not just "the backend team's agent". `From:` names your side with its concrete artifact. The reader is another LLM — write for it.
 
 2. **Self-contained rule.** The document must assume the reader's LLM has **zero access to your repo**. *Everything it needs is in the document.* Provenance citations back to your own code (`file:line`) are included **as provenance only** — labelled so, and explicitly *not required reading* for the partner. If a claim matters to the partner, state it inline; don't make them chase a file they can't open.
 
 3. **Spec written implementable-inline.** When you need the partner to build something, paste the **full** thing — the entire algorithm, the complete field list, the exact state machine — into the doc. Do not reference "our implementation"; reproduce what they must reproduce.
 
-4. **Stable numbered questions.** Open questions get **stable IDs** (`Q1`, `Q2`, …) that **do not change across rounds**. Each carries a **blocking flag** (🔴 blocking / ⚪ non-blocking) and a **status** (`open | answered | resolved | superseded`). New rounds append `Q7`, `Q8`… and never renumber the old ones — so "the answer to Q3" means the same thing in round 4 as in round 1.
+4. **Stable numbered questions.** Open questions get **stable IDs** (`Q1`, `Q2`, …) that **do not change across rounds**. Each carries a **blocking flag** (🔴 blocking / ⚪ non-blocking) and a **status** (`open | answered | resolved | superseded`). New rounds append `Q7`, `Q8`… and never renumber the old ones — so "the answer to Q3" means the same thing in round 4 as in round 1. **Revising a round you already sent** — expanding the wording, adding context — is allowed and does not license renumbering: rewrite the body, keep the IDs, and record in the round log whether the questions changed, so the partner knows whether work already started must be redone.
 
-5. **Dual closing ask.** Every handoff closes with two asks to the partner LLM:
-   - **(a) Send back a return document we can ingest** — a response doc in the same shape, so your side can `ingest-source` it cleanly.
-   - **(b) Bring a plan-then-execute proposal before touching your code** — i.e. propagate this methodology's core gate to the partner: no code before an approved plan.
+5. **Two closing asks, each a section of its own** — not a sentence each:
+   - **(a) A return document, itemized.** One item per dependency, the updated contract field-by-field plus one real example, how to reach it per environment, **what is in DEV vs PROD today per item**, and their ticket IDs. Ask for answers **keyed to the `Q` IDs** with one **provenance tag per claim**, so your side can `ingest-source` it cleanly. A generic "please reply" comes back missing exactly what unblocks you.
+   - **(b) A plan-then-execute proposal before they touch code** — propagate this methodology's core gate. Spell out the four components you expect: **what** changes (before → after), **why** (which item motivates it), **impact and compatibility**, and **validation**.
 
 A **response** (inbound) is ingested with a **per-claim provenance tag**: `✅` verified-in-their-code vs `⚠` not-auditable / needs-confirmation. Your side cannot audit the partner's repo, so each claim they make is tagged by *their* confidence and re-checked on your side where it touches your code.
 
