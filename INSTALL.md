@@ -171,7 +171,7 @@ Then: create `docker/` at the repo root (per-service subdirs added as services a
 The methodology is agent-agnostic; each agent just needs a thin stub pointing at `.agents/METHODOLOGY.md`. For each agent named in answer 5:
 
 - **Claude Code** → `.agents/llm/claude.md` (from `adapters/claude.md`) + a root `CLAUDE.md` stub that points to the reading order (§9 of METHODOLOGY). Claude discovers `.claude/skills/` natively.
-- **Gemini / Antigravity** → `.agents/llm/gemini.md` (from `adapters/gemini.md`) + a root `GEMINI.md` with a **"Skills available"** section (Gemini has no native skill discovery — it reads the catalog and loads a `SKILL.md` when the topic matches).
+- **Gemini / Antigravity** → `.agents/llm/gemini.md` (from `adapters/gemini.md`) + a root `GEMINI.md` with a **"Skills available"** section. In Antigravity / modern Gemini environments, skills are discovered **natively** by registering `.agents/skills.json` (`{ "entries": [ { "path": "../.claude/skills" } ] }`) or creating a symlink `.agents/skills -> ../.claude/skills`. For legacy Gemini CLI, it falls back to reading the catalog manually.
 - **Codex / others** → `.agents/llm/codex.md` (from `adapters/codex.md`).
 - **Always** → a root `AGENTS.md` (from the kit's `AGENTS.md`, de-templated) as the universal entry-point convention. This is the file a generic agent looks for.
 

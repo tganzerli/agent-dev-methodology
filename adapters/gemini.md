@@ -40,16 +40,16 @@
 - **Knowledge language:** force **{{KNOWLEDGE_LANG}}** explicitly; Gemini's default drifts with the opening prompt.
 - **Git flags:** Gemini sometimes swaps flags (`-D` vs `--delete`, `--force` vs `--force-with-lease`). **Paste canonical commands** rather than letting it generate them (see §6).
 
-## 5. Skills — manual simulation (no native discovery)
+## 5. Skills — Native discovery (Antigravity) vs manual simulation (Gemini CLI)
 
-Gemini has **no native** [Agent Skills](https://agentskills.io/specification) discovery. This project simulates it:
-
-1. The catalog lives at `.claude/skills/_index.md` (same path as Claude — convention, not exclusivity).
-2. The root `GEMINI.md` carries a **"Skills available"** section (name · description · trigger) generated from that catalog.
-3. On entering a conversation, **scan that section** and load the matching `SKILL.md` when the topic applies. E.g. the human asks `/wiki-sync` → load `.claude/skills/wiki-sync/SKILL.md`; if the cross-team module is installed and the human asks to write a partner handoff → load `.claude/skills/cross-team-handoff/SKILL.md`.
-4. **Lazy-load references:** only read a skill's `references/*.md` when its specific subject comes up.
-5. **Do not invent skills.** Use only those listed. If a recurring case has no skill, suggest creating one.
-6. **`disable-model-invocation: true`** skills run **only** on explicit human request (side effects + human gate). **`user-invocable: false`** skills are background knowledge — load silently when relevant, never announce them as commands.
+- **Antigravity / Modern Gemini Agentic Environments:** Discovery of Agent Skills in `.claude/skills/` is **native**. Registering `.agents/skills.json` (`{ "entries": [ { "path": "../.claude/skills" } ] }`) or creating a symlink `.agents/skills -> ../.claude/skills` allows Gemini to discover and execute all skills automatically (same behavior as Claude Code).
+- **Gemini CLI (Legacy):** Does not support native skill discovery. The agent reads `.claude/skills/_index.md` or the "Skills available" section in root `GEMINI.md` and loads the matching `SKILL.md` manually when the topic applies:
+  1. The catalog lives at `.claude/skills/_index.md` (same path as Claude — convention, not exclusivity).
+  2. The root `GEMINI.md` carries a **"Skills available"** section (name · description · trigger) generated from that catalog.
+  3. On entering a conversation, **scan that section** and load the matching `SKILL.md` when the topic applies. E.g. the human asks `/wiki-sync` → load `.claude/skills/wiki-sync/SKILL.md`.
+  4. **Lazy-load references:** only read a skill's `references/*.md` when its specific subject comes up.
+  5. **Do not invent skills.** Use only those listed.
+  6. **`disable-model-invocation: true`** skills run **only** on explicit human request (side effects + human gate). **`user-invocable: false`** skills are background knowledge — load silently when relevant, never announce them as commands.
 
 ## 6. Git workflow
 
