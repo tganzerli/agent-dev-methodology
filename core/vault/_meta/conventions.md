@@ -89,7 +89,7 @@ Pages that cross boundaries live in `cross-cutting/`.
 ### Work (cataloged in `{{project}}_wiki/work/_index.md`)
 | `type` | Directory | Content |
 |---|---|---|
-| `task` | `work/tasks/` | Human request. Status: `open | in_progress | done | cancelled | aborted`. Human-owned; LLM edits only on explicit request + approval. |
+| `task` | `work/tasks/` | Human request. Status: `open | in_progress | future | paused | done | cancelled | aborted`. Human-owned; LLM edits only on explicit request + approval. |
 | `plan` | `work/plans/` | LLM analysis + plan (follows `mandatory_planning_rule.md`). Status: `draft | approved | executed`. |
 | `execution` | `work/executions/` | Live execution log. Status: `in_progress | done | aborted`. |
 
@@ -162,6 +162,9 @@ What is still missing to document/implement/decide.
 
 ### Work pages
 - **task** — `open` → `in_progress` → `done`; terminal `cancelled`/`aborted`.
+  - **`future`** — accepted, deliberately **not** started (it depends on something that has not happened, or belongs to a later phase). It is the backlog status, and it is what keeps a decision from being re-litigated every time someone notices the gap again: the answer is "already decided, not now", with the trio to prove it.
+  - **`paused`** — started, then suspended with work already on the ground. Distinct from `future`, because the cost of resuming is not the cost of starting: the execution log says how far it got.
+  - Both are **non-terminal**, so `/work-index` keeps them in the active catalog rather than archiving them by quarter. A backlog item is not history.
 - **plan** — `draft` → `approved` (human gate) → `executed`.
 - **execution** — `in_progress` → `done`/`aborted`.
 

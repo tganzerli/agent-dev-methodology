@@ -125,12 +125,26 @@ Hotfixes patch the release line without going through `dev`. They still require 
 4. **Mandatory merge-back:** after merging into `main`, merge `main` into `dev` so the fix is not lost.
 5. Cut the SemVer patch tag on the merge commit (§7).
 
-## 6. Commits
+## 6. Commits and pull requests
+
+### 6.1. Commits
 
 - **Language:** commit messages in **English**.
 - **Format (Conventional Commits):** `<type>(<scope>): <short imperative description>` — e.g. `feat(scheduler): add worker pool router`; `fix(transport): close socket on connect failure`.
 - **Granularity:** one commit = one reversible logical unit. Do not amalgamate unrelated changes.
 - **Atomic:** avoid leaving "WIP" commits on ephemeral branches before the final PR; clean up with a local interactive rebase.
+
+### 6.2. Pull requests
+
+Each direction has its own preconditions. A PR opened before its row is satisfied is closed, not reviewed.
+
+| Direction | When | Preconditions |
+|---|---|---|
+| `<ephemeral> → dev` | The execution is finished (`status: done`) | Execution log links its commits; `/wiki-sync` done (or explicitly deferred, with the reason recorded); the project's validations green — build, tests, lint, and the benchmark when the benchmarks module is installed and the change touches a measured path; human review |
+| `dev → main` | `dev` represents a release candidate — a **human decision**, not a fixed cadence | A SemVer tag is cut after the merge (§7) |
+| `hotfix/* → main` **and** `hotfix/* → dev` | The emergency is fixed | **Two** PRs, not one: merge into `main` first, then carry the same fix into `dev` (§5) |
+
+Only the middle row is a judgement call; the other two are mechanical — the work either satisfies its checklist or it does not. An agent may prepare any of them, but **opening and merging a PR is a human gate**.
 
 ## 7. Version tags
 
@@ -202,6 +216,33 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 10. ❌ A commit message in a language other than English.
 11. ❌ A tag with an app/scope prefix, or an un-annotated tag.
 12. ❌ Renaming/deleting a permanent branch without `[y/n]` human confirmation.
+
+### 9.1. Destructive operations require an explicit `[y/n]`
+
+The prohibitions above are about *where* history goes. These are about **destroying history that already exists** — ask for confirmation, in the moment, before running any of:
+
+- `push --force` or `push --force-with-lease`, on **any** branch (`--with-lease` is safer, not safe).
+- `branch -D` — deleting a local branch that is not merged.
+- `push --delete` on a permanent branch.
+- `branch -m` — renaming a permanent branch.
+- `reset --hard` on a branch carrying commits that were never pushed.
+
+**Never chain two destructive operations behind a single confirmation.** Approval is granted per operation, not per session: a human who agreed to a force-push did not thereby agree to the `reset --hard` that follows it. The agent's job here is to make the loss legible *before* it happens — say what will be destroyed and whether it exists anywhere else — not to seek the shortest path to a clean tree.
+
+### 9.2. Documented exceptions carry their conditions and their provenance
+
+A project may find, in practice, that one of the gates above is too tight for a narrow class of change — typically a docs-or-index-only commit whose ceremony costs more than it protects. That is a legitimate finding, and the way to act on it is to **write the exception into this rule**, never to let an agent judge case by case that "this one is trivial".
+
+A documented exception is only valid if it states **all four**:
+
+1. **Explicit human authorization** in the current session. It cannot be inferred from a past authorization, and an agent cannot grant it to itself.
+2. **An allow-list** — the paths the diff may touch.
+3. **A deny-list with a zero-change assertion** — the paths it must not touch at all (source code, `.agents/**` methodology and rules, `.claude/**`, any contract definition, any stable knowledge page). "Mostly docs" does not qualify.
+4. **A mandated commit prefix**, so the exception is greppable in the history afterwards.
+
+Two invariants hold regardless: **direct commit to `main` admits no exception** (gate #1 is absolute — reach `main` through `dev`), and the exception cites its **provenance** — the retrospective, postmortem page, or cycle that produced it (METHODOLOGY §10.1). An exception without a recorded origin cannot be audited later, and cannot be safely pruned when it stops paying.
+
+> Worked example, from the project this kit came from: direct commits to `dev` were allowed for **generated-index and backlog-task files only**, requiring per-session authorization, a four-path allow-list, a zero-change assertion over code/methodology/skills/stable-knowledge, and a `docs(...)` prefix — with the clause citing the N=12 retrospective that produced it and the two commits that had exercised it.
 
 ## 10. Precedence / Cross-reference
 
