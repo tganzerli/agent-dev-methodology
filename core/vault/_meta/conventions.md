@@ -118,6 +118,21 @@ related:
 - **`summary`** — one sentence stating what the work delivers. It is the text shown in the generated catalog (`work/_index.md`). Long narrative lives **only** in the execution. Generator preference: `execution.summary` → `task.summary` → `title`.
 - **`topic`** — controlled-vocabulary labels for subject filtering and `/work-find`. Seed the vocabulary in this file; a new label is added here before use. `/work-index` warns on off-vocabulary topics.
 
+#### `parent_task` (optional) — sub-trio
+
+A piece of work can spawn **sub-work** with its own plan and execution but **no task of its own**: an investigation that opens into separate fronts, an umbrella task whose stages become independent cycles. The plan and the execution then declare:
+
+```yaml
+parent_task: 2026-05-17_extended-protocol
+```
+
+Rules:
+
+- **The parent task must exist** under `work/tasks/`. A `parent_task` pointing at a missing file is a data error, not a sub-trio.
+- **The sub-trio has its own `work_id`** (date + slug), distinct from the parent's. It names the plan, the execution, and the branch like any other work.
+- **`/work-index` renders a sub-trio pointing at its parent**, as `sub · [[work/tasks/{parent}]] › {work_id}`. Without the field, the plan+execution pair reads as a "trio with no task" and the generated line links a file that never existed, with the summary degrading to the raw `work_id`.
+- **Do not confuse it with a split trio.** A split trio is one piece of work whose `work_id` disagrees between the task and the plan/execution — that is drift to repair. A sub-trio is deliberate structure. **Check `parent_task` before renaming any artifact to "reunify" a trio**: in the project this kit came from, that check kept two deliberate sub-trios from being renamed as if they were drift.
+
 #### The work index is generated, not hand-edited
 `{{project}}_wiki/work/_index.md` and `work/archive/*.md` are the deterministic output of `/work-index` (reads trio frontmatter). Do not edit them by hand; adjust frontmatter and regenerate. On a merge conflict, regenerate rather than resolve by hand.
 

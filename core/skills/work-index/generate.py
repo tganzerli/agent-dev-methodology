@@ -177,8 +177,12 @@ def trio_view(wid, arts):
     ex = arts.get("execution", {})
     plan = arts.get("plan", {})
     status = task.get("status") or ex.get("status") or "open"
-    summary = (ex.get("summary") or task.get("summary")
-               or plan.get("summary") or task.get("title") or wid)
+    # Sub-trio: a plan/execution pair belonging to a parent task, with no task of
+    # its own. Without this the pair reads as a "trio with no task" and its rendered
+    # line links a file that never existed. See _meta/conventions.md ("work frontmatter").
+    parent = plan.get("parent_task") or ex.get("parent_task") or ""
+    summary = (ex.get("summary") or task.get("summary") or plan.get("summary")
+               or task.get("title") or ex.get("title") or plan.get("title") or wid)
     scope = task.get("scope") or ex.get("scope") or plan.get("scope") or {}
     topics = task.get("topic") or ex.get("topic") or plan.get("topic") or []
     if isinstance(topics, str):
@@ -187,7 +191,8 @@ def trio_view(wid, arts):
     updated = max(dates) if dates else ""
     return {
         "wid": wid, "status": status, "summary": summary, "scope": scope,
-        "topics": topics, "updated": updated,
+        "topics": topics, "updated": updated, "parent": parent,
+        "has_task": "task" in arts,
         "has_plan": "plan" in arts, "has_exec": "execution" in arts,
         "quarter": quarter_of(updated),
     }
@@ -203,7 +208,13 @@ def render_line(t):
     if t["has_plan"]:
         links.append(f"[plan](work/plans/{t['wid']})")
     links.append(f"[exec](work/executions/{t['wid']})" if t["has_exec"] else "exec —")
-    return (f"- {emoji} [[work/tasks/{t['wid']}]] · `{t['status']}`{when} · "
+    if not t["has_task"] and t["parent"]:
+        # Sub-trio: point at the parent task (a link that resolves) instead of
+        # fabricating a task wikilink for a file that does not exist.
+        head = f"- {emoji} sub · [[work/tasks/{t['parent']}]] › `{t['wid']}`"
+    else:
+        head = f"- {emoji} [[work/tasks/{t['wid']}]]"
+    return (f"{head} · `{t['status']}`{when} · "
             f"`{scope_str(t['scope'])}`{topics}\n"
             f"  — {t['summary']} ↳ {' · '.join(links)}")
 
