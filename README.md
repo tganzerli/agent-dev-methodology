@@ -16,6 +16,7 @@ It is designed to be driven by **any coding agent** — Claude Code, Codex, Gemi
   - **`modules/benchmarks/`** — the empirical-claim discipline: a quantitative claim (performance, cost, accuracy, …) needs a reproducible evidence page or it carries `⚠ unverified <metric>` and cannot be cited. Adds a `benchmark_protocol_rule`, a benchmark-page template, and a `run-benchmark` skill.
   - **`modules/contracts/`** — the cross-boundary-contract discipline: a change to a versioned contract (public API, DB schema, wire/IPC protocol, event schema, FFI ABI) requires an atomic ADR + synchronized multi-artifact PR.
   - **`modules/dev-env/`** — reproducible external-service environments: versioned per-service containers, mandatory healthcheck, and persistent/ephemeral/benchmark lifecycle modes, operated by a `dev-env` skill.
+  - **`modules/writing/`** — long-form prose (thesis, papers, articles, posts) as a first-class deliverable: a directory-scoped override giving `content/` its own cycle, three writing skills, and a `⚠ source needed` seal so a citation never gets invented.
 
 ## How to install it
 
@@ -48,7 +49,8 @@ agent-dev-methodology/
 │   ├── intra-team/        ← OPTIONAL: agent↔agent messaging (shared repo)
 │   ├── benchmarks/        ← OPTIONAL: reproducible empirical-claim / benchmark pages
 │   ├── contracts/         ← OPTIONAL: versioned cross-boundary contract changes
-│   └── dev-env/           ← OPTIONAL: reproducible external-service containers
+│   ├── dev-env/           ← OPTIONAL: reproducible external-service containers
+│   └── writing/           ← OPTIONAL: prose deliverables (thesis, papers, articles, posts)
 ├── adapters/              ← per-agent entry-point templates
 └── docs/
     ├── design-rationale.md    the seed-vs-accretion story (install core first, defer the rest)

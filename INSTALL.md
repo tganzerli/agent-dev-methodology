@@ -27,6 +27,7 @@ Ask these before creating anything. Keep it to one round; propose sensible defau
 | 9 | **Does the project make quantitative/empirical claims** (performance, cost, accuracy, …) it must stand behind? | installs `modules/benchmarks/` | no |
 | 10 | **Does the project expose a versioned contract** other code/teams/systems depend on (public API, DB schema, wire/IPC protocol, event schema, FFI ABI)? | installs `modules/contracts/` | no |
 | 11 | **Does the project depend on external services** (DB, broker, cache, …) that must be reproducible across machines and CI? | installs `modules/dev-env/` | no |
+| 12 | **Does the project deliver long-form prose** for people outside the repo (thesis/dissertation, paper, technical articles, posts), derived from the work it does? | installs `modules/writing/` | no |
 
 > **Never guess question 3.** If the human does not state a knowledge language, ask explicitly. Everything the methodology generates (plans, wiki pages) is in that language; getting it wrong means rewriting the vault.
 
@@ -172,6 +173,22 @@ Then: create `docker/` at the repo root (per-service subdirs added as services a
 
 **If answer 11 = no:** skip.
 
+## 5-sexies. Install the WRITING module (only if answer 12 = yes)
+
+Adds long-form prose as a first-class deliverable: a directory-scoped override that swaps the trio cycle for a writing cycle inside `content/`, three human-gated writing skills, and the `⚠ source needed` seal. Copy from `modules/writing/`:
+
+```
+modules/writing/templates/content-entrypoint.md  →  content/CLAUDE.md   (and/or content/AGENTS.md, per answer 5)
+modules/writing/skills/*                         →  .claude/skills/*    (write-academic, write-article, write-post)
+modules/writing/conventions-extension.md         →  append into {{project}}_wiki/_meta/conventions.md
+```
+
+Then: create the `content/` tree (`academic/`, `articles/{drafts,published}/`, `posts/{drafts,published}/`, `_norms/`, `_drafts/`, `_assets/`, plus a `content/_index.md` catalog); register the three skills as **manual-only** (`disable-model-invocation: true`) in `.claude/skills/_index.md`.
+
+**Two adaptations are required, not optional.** `write-academic` ships generic: fill in its persona with the project's domain, and replace its style section with the conventions of the **style authority that actually governs the work** (asked for at first use if `content/_norms/` is empty). If an institutional rulebook governs AI use, transcribe its binding rules and record any author override in the skill's override table, with its safeguard. See `modules/writing/README.md`.
+
+**If answer 12 = no:** skip. The METHODOLOGY §4.6 override concept still applies to any subtree whose work has a different shape — this module is the worked instance of it for prose.
+
 ## 6. Generate the per-agent entry-points (from `adapters/`)
 
 The methodology is agent-agnostic; each agent just needs a thin stub pointing at `.agents/METHODOLOGY.md`. For each agent named in answer 5:
@@ -201,6 +218,7 @@ Run these before telling the human it is done:
 - [ ] If benchmarks module installed: `.agents/rules/benchmark_protocol_rule.md`, `{{project}}_wiki/benchmarks/_template.md`, `run-benchmark` skill, conventions extended.
 - [ ] If contracts module installed: `.agents/rules/contract_change_rule.md`, `{{project}}_wiki/decisions/_templates/adr-contract.md`, conventions extended.
 - [ ] If dev-env module installed: `.agents/rules/dev_environment_rule.md`, `dev-env` skill, `docker/` created + `docker/**/.env` gitignored.
+- [ ] If writing module installed: `content/CLAUDE.md` override present and naming the safeguards it keeps; the three `write-*` skills registered as manual-only; `content/` tree created; conventions extended; **`write-academic` adapted** — persona filled in and the style section replaced with the actual style authority (a shipped-as-is `write-academic` is an incomplete install).
 
 ## 8. Hand-off to the human
 
