@@ -39,6 +39,7 @@ agent-dev-methodology/
 │   ├── rules/                 mandatory_planning_rule + git_branching_rule
 │   ├── templates/             task / plan / execution / wiki-page / source
 │   ├── skills/                the generic core skills (+ scripts)
+│   ├── agents/                role sub-agents with a pinned model tier (Claude Code)
 │   └── vault/                 Obsidian skeleton (_meta, overview, .obsidian)
 ├── modules/
 │   ├── monorepo/          ← OPTIONAL: branching + promote/sync/broadcast
