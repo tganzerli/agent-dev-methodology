@@ -13,7 +13,8 @@ Ensure every piece of work over this repository produces three bound artifacts �
 1. **Everything is markdown.** Tasks, plans, executions, wiki — all `.md`. Any LLM can read and write them.
 2. **Paths relative to repo root.** No `$HOME` or user-absolute paths.
 3. **Human gate at every transition.** A plan does not run without approval. An execution does not close without review. The wiki does not update without an explicit `/wiki-sync`.
-4. **Source-of-truth discipline.** Every technical claim in the wiki or in a plan carries a `file:line` citation. A claim without a citation is marked `⚠ unverified` until someone anchors it.
+4. 🔒 **Source-of-truth discipline.** Every technical claim in the wiki, in a plan, **and in the rules** carries a `file:line` citation. A claim without a citation is marked `⚠ unverified` until someone anchors it.
+   **In the rules this is what makes them verifiable.** A rule that describes code behaviour without pointing at the code **cannot be checked against reality** — it drifts silently and nobody notices, because there is nothing to notice with. Applies to claims that are **new or edited**; it does not demand a backfill of existing text.
 5. **Scope attribution.** Every wiki page, plan, and execution declares what it affects. In a single-repo project this is the module/area; in a monorepo it is which `apps/*` and/or `packages/*` (see the optional monorepo module).
 6. **The methodology lives in exactly one place.** This file is the source. Per-LLM entry-point stubs (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`, …) only point here.
 
@@ -67,7 +68,11 @@ File: `{{project}}_wiki/work/tasks/{ID}.md`. Template: `{{project}}_wiki/work/ta
 - `related[]` is a soft exception: the LLM may populate it when it spots pertinent wikilinks, but should still flag the change.
 - **Additional stages may be proposed by the LLM during execution of a prior stage**, when that better serves the demand. Inclusion follows the same gate: LLM proposes, human approves, then the task is updated.
 
-**Model recommendation (contextual, per role):** when materializing/starting the work, the LLM **recommends to the human which model to use** at each decision point — creating/refining the task, running each pre-plan analysis (§4.2.5), and writing the plan (§4.3). The choice is **contextual**: it depends on the specific content of the work (reasoning depth, breadth, mechanical vs. exploratory nature, cost/latency, risk), **not** a fixed role→model table. Model line-ups change often — treat any model list in `.agents/llm/*` as a hint that may be outdated, and map these dimensions to the **models actually available right now**. The recommendation is **advisory** (one justification line per point); the human may override.
+**Model per role — move the work between contexts, not the session between models.** Each phase runs on the model that fits it, but **the session itself does not switch models**. On most agent runtimes the prompt cache is keyed by model: switching mid-session discards the cached prefix and the next request re-reads the whole history uncached, at full price and full latency. Extra capability is therefore bought **per unit of work**, by dispatching a sub-agent — which has its own context and its own cache, and so never touches the session's prefix.
+
+The mapping from phase to role is: authoring the task (§4.2), each pre-plan analysis and broad sweep (§4.2.5), writing the plan (§4.3), and drafting wiki pages (§4.5). **The execution (§4.4) stays on the main thread** — its log is live and its gates are interactive, and an isolated sub-agent can do neither. From it you delegate individual **steps**, in both directions: *up* when a step is harder than the average, and *down* when a step is mechanical. That second direction is real saving, not just avoided loss — without a cheaper destination, mechanical work burns the session's model.
+
+The role's model is a **floor, not a ceiling**. The choice stays **contextual**: it depends on the specific content of the work (reasoning depth, breadth, mechanical vs. exploratory nature, cost/latency, risk), **not** a fixed role→model table. Model line-ups change often — pin **tiers**, never version names, and treat any concrete list as a dated hint. The recommendation to the human is **advisory** (one justification line per point); the human may override.
 
 ### 4.2.5. Triage and pre-plan analyses (LLM, with parallel agents)
 
@@ -202,6 +207,34 @@ Run periodically (`/wiki-lint`). Check: knowledge pages `status: stale`; orphan 
 ### 6.4. Wiki sync (post-execution)
 See §4.5.
 
+## 6.5. Gates are marked inline, and the list is generated
+
+A rule file grows two kinds of sentence: **obligations** (proibitions, gates, mandatory sequences) and **recipes** (command runbooks, release flows, worked examples). Most projects keep a consolidated "gates" list at the end of the rule as a **summary** of the obligations scattered through the body.
+
+**That summary drifts, and it drifts silently.** A sub-rule added to the body is a gate the day it is written; the summary is updated only if the author remembers. In the project this kit came from, an exhaustive sweep of four normative documents found **29 imperative sub-rules living only in the body**, against 26 items in the three consolidated lists — more unlisted gates than listed ones. Several were tied to incidents that had already happened.
+
+The fix is not to promote them by hand into a bigger summary, which would drift again. It is to change the regime:
+
+- Every sub-rule that is a gate carries a marker (`🔒`) **on its own line, in the body, where it already lives**.
+- The consolidated list is **generated** from those markers, and points back with `file:line`. It is a router, not a digest.
+- Either it has the marker and appears, or it is not a gate. There is no third state.
+
+This is the same verdict as "the work index is generated, not hand-edited" (§5.5): **regenerate beats hand-maintain**, for the same reason.
+
+> Two traps, both learned the hard way. **Do not mark meta** — a note that *talks about* gates is not one, and self-inclusion inflates the list silently. And **read the generated summary**: if a marked line's summary does not stand on its own, the marker is on the wrong line (a section heading, or the tail of a previous sentence) — that reading is the cheapest correctness check you have.
+
+## 6.6. The mandatory prefix has a budget
+
+Everything an agent must read before it can start is a **prefix** paid on every session — and, on runtimes where the prompt cache is keyed by model or effort, re-paid on every switch. It also competes directly with the work: source files, build output, device logs.
+
+Three failure modes produce a bloated prefix, and all three are structural rather than a discipline problem:
+
+1. **Catalogs read instead of searched.** An index exists to be queried; an entry-point that says "read it" turns a growing artifact into a fixed per-session cost. Fix: §9's two-level list, plus a search skill.
+2. **Catalog entries that became digests.** One paragraph per entry duplicates what the target page already says. Fix: one line per entry, a byte budget on the file, and a check that **fails** — a convention with no verification is a suggestion.
+3. **Recipe living inside a normative rule.** The obligation must be loaded always; the runbook around it must not. Fix: keep the gate in the rule, move the recipe to a skill (§8 — the skill body is genuinely deferred).
+
+**Measure before you cut, and measure at section granularity.** A file-level ratio ("the core is ~30%") is misleading: the heavy sections tend to be exactly the ones containing gates, so the movable share is smaller than the average suggests. Cut against a measurement, not an estimate.
+
 ## 7. Anti-patterns (do NOT)
 - ❌ Execute code without plan approval.
 - ❌ Write to the wiki without a `file:line` citation.
@@ -214,22 +247,30 @@ See §4.5.
 
 ## 8. Agent Skills
 
-This project adopts the [Agent Skills spec](https://agentskills.io/specification). Skills live in `.claude/skills/` (the conventional path Claude Code discovers natively; other agents consume the same directory via an instruction in their entry-point). Each skill is a directory with `SKILL.md` (frontmatter + body) and optionally `references/*.md` (lazy-load).
+This project adopts the [Agent Skills spec](https://agentskills.io/specification). Skills live in `.claude/skills/` (the conventional path Claude Code discovers natively; other agents consume the same directory via an instruction in their entry-point). Each skill is a directory with `SKILL.md` (frontmatter + body) and optionally `references/*.md`.
+
+⚠️ **Know which half of that is a mechanism.** On Claude Code the **body of a skill genuinely does not enter context until the skill is invoked** — that is runtime behaviour, and it is the lever. `references/*.md`, by contrast, is a **naming convention**: the model reads those files because the `SKILL.md` prose tells it to, not because anything defers them. Outside a skill directory, a `references/` folder is indistinguishable from any other path mentioned in prose. Verify this on your own runtime before designing around it — the distinction decides whether "move it to `references/`" buys anything at all.
 
 Core skills (portable to any project): `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`. Skills do not replace METHODOLOGY or rules — they offload material that can live on demand. Catalog in `.claude/skills/_index.md`.
 
 ## 9. For agents new to the project
 
-In order:
-1. Read this document (`.agents/METHODOLOGY.md`).
-2. Read `.agents/rules/mandatory_planning_rule.md`.
-3. Read `.agents/rules/git_branching_rule.md` (the core single-repo branching rule; if the monorepo module is installed, the same path holds its monorepo variant, which also brings `.agents/rules/knowledge_source_of_truth_rule.md`).
-4. Read `.claude/skills/_index.md`.
-5. Read `{{project}}_wiki/_meta/conventions.md` (if you will write to the wiki).
-6. Read `{{project}}_wiki/_meta/index.md` (knowledge catalog).
-7. Read `{{project}}_wiki/work/_index.md` (work catalog).
-8. Read `{{project}}_wiki/overview.md` (to understand the product).
-9. Read `.agents/llm/{your-name}.md` if it exists.
+**Read always, in order:**
+
+1. This document (`.agents/METHODOLOGY.md`).
+2. `.agents/rules/mandatory_planning_rule.md`.
+3. `.agents/rules/git_branching_rule.md` (the core single-repo branching rule; if the monorepo module is installed, the same path holds its monorepo variant, which also brings `.agents/rules/knowledge_source_of_truth_rule.md`).
+4. `.agents/llm/<your-name>.md`, if present.
+5. `{{project}}_wiki/overview.md` — the product map.
+
+**Consult on demand — catalogs and references, not prerequisites:**
+
+- `{{project}}_wiki/work/_index.md` — work in flight. To find *past* work, **search** (`/work-find <term>`), do not read the catalog end to end.
+- `{{project}}_wiki/_meta/index.md` — the knowledge catalog.
+- `{{project}}_wiki/_meta/conventions.md` — only if you will write to the wiki.
+- `.claude/skills/_index.md` — Claude Code discovers skills by itself; the index is for understanding the set, not a prerequisite.
+
+> **Why the split.** Loading a catalog at session open costs context that then competes with the actual work — and catalogs grow monotonically while the work does not. Everything that is a **gate** is in the first list; the rest is looked up. This is the single highest-return change in this document: in the project this kit came from it cut the mandatory prefix by more than half, on its own.
 
 ## 10. Version and evolution
 This methodology is versioned with the code. Relevant changes append an entry to `{{project}}_wiki/_meta/log.md`: `## [YYYY-MM-DD] methodology-update | summary`.

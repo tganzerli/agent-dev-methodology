@@ -23,11 +23,31 @@ When running as Claude Code:
 
 Whenever tool calls are independent (multiple `Read`s, independent `Bash`es), emit them **in the same response** to parallelize. Only serialize when a later call depends on an earlier result.
 
-## 3. Models (contextual — treat any list as a dated hint)
+## 3. Models — never switch mid-session
 
-Per METHODOLOGY §4.2 the model recommendation is **contextual, per role** — never a fixed role→model table. Map the work's dimensions (reasoning depth, breadth, mechanical vs. exploratory, cost/latency, risk) to whatever Claude models are **actually available right now**.
+**The prompt cache is keyed by the model.** Running `/model` in the middle of a session discards the cached prefix: the next request re-reads the entire history with no cache hit, at full input price and full latency. The same applies to changing the effort level, and to `opusplan` — which resolves to different models in plan vs. execution mode, so **every plan-mode toggle is a model switch that starts a fresh cache**. Convenient, and it keeps the whole cost.
 
-> Any concrete model line-up written here **ages** — line-ups change often. As a rough heuristic *at time of writing*: a top-tier reasoning model for deep planning / complex ingest / wiki lint; a balanced model for executing an approved plan; a small/fast model for mechanical edits. Re-check the current line-up before relying on these names.
+Choose the model **at the top of the session** and leave it there. When you need more capability mid-task, **dispatch a sub-agent** — it has its own context and its own cache, so the main thread's prefix is never reprocessed. That is the only way to buy capability without paying the switch.
+
+### 3.1. Roles live in `.claude/agents/`
+
+One file per role, each declaring `model:` in its frontmatter. The kit ships templates in `core/agents/` (see `INSTALL.md`). Set, mapped to METHODOLOGY §4.2:
+
+| Phase | Role | Runs in |
+|---|---|---|
+| §4.2 Task | `task-author` | sub-agent |
+| §4.2.5 Analyses | `analyst` (N in parallel) | sub-agent |
+| §4.2.5 Broad sweep | `mechanic` | sub-agent |
+| §4.3 Plan | `planner` | sub-agent |
+| **§4.4 Execution** | — | **main thread** |
+| §4.4 Heavy or mechanical step | `planner` / `mechanic` | sub-agent |
+| §4.5 Wiki sync | `scribe` | sub-agent |
+
+**The execution is not delegated wholesale.** Its log is live and its gates need human confirmation in the moment — an isolated sub-agent does neither. What you delegate are discrete steps, in both directions: *up* for a step harder than the average, *down* for a mechanical one.
+
+**Pin tiers, never version names.** A tier alias resolves to the current generation, so the file does not rot when a new model ships — and it does not become the fixed role→model table that METHODOLOGY §4.2 warns against. The role's tier is a floor: the main thread can override it per invocation when the specific work calls for it.
+
+> Any concrete line-up written down **ages**. As a rough heuristic *at time of writing*: a top-tier reasoning tier for planning and task framing, a balanced tier for analysis and wiki drafting, a small/fast tier for mechanical sweeps.
 
 ## 4. Skills — native discovery
 
@@ -36,11 +56,14 @@ Claude Code discovers `.claude/skills/` **natively**; the catalog is readable at
 - **Auto skills** load when their `description`/`paths` match.
 - **Manual-only skills** (`disable-model-invocation: true`, e.g. `/wiki-sync`, `/wiki-lint`, `/commit`, and — if the cross-team module is installed — `/cross-team-handoff`) run **only** on explicit human request; they have side effects and depend on a human gate.
 
+**Recipe belongs in a skill; the gate stays in the rule.** The body of a skill genuinely does not enter context until invoked — that is the one real lazy-loading lever Claude Code gives you. So when an `always_on` rule carries a long runbook, move the runbook to a skill and keep every obligation in the rule, each with enough context to stand without the recipe around it. Do **not** carry the gate markers into the skill: a marker there implies the obligation lives in a file that may never be invoked.
+
 **When to create a skill vs. edit METHODOLOGY:** a repeatable operational workflow → skill; a large domain body relevant only to part of the repo → skill with `paths`/`user-invocable: false`; an always-true methodological principle → METHODOLOGY or a rule. Update `.claude/skills/_index.md` whenever you add/remove a skill. Do not duplicate wiki content into a `SKILL.md` — skills **point** at the wiki.
 
 ## 5. Gates and cautions
 
-- Claude Code honors the methodology's gates **by instruction, not by lock**. **Name the gate** to the human ("is the plan approved?") before advancing.
+- Claude Code honors the methodology's gates **by instruction, not by lock** — unless you give it one. **Name the gate** to the human ("is the plan approved?") before advancing.
+- **Optional: make the plan gate a real lock.** A `PreToolUse` hook on `Edit`/`Write`, scoped to the code directories, can read the current work's plan and refuse the edit unless it is `status: approved`. This mechanizes a rule that already exists rather than inventing one, and it means the gate stops depending on the agent remembering. Keep the scope tight (never block the wiki or the trio), resolve the work id from the ephemeral branch name with a local marker file as fallback, and document an escape hatch. Note the hook cannot change the model — hooks gate tools, not model selection.
 - Speed never justifies skipping a gate or a cycle step.
 - When an `Agent` sub-agent generates wiki content, **validate every `file:line` citation on the main thread** before writing — the sub-agent does not share your context.
 

@@ -30,6 +30,9 @@ A cohesive, concise summary of what the task requested. Prove you understand the
 
 ### 4.2. Affected files
 A complete list of every file to be modified, created, or deleted. Include full relative paths.
+- 🔒 **Rules affected.** State explicitly **which rule describes the behaviour this plan changes** — or `none`, said as such. If the plan alters what an `always_on` rule asserts, **that rule belongs in the file list above**, and updating it is part of this work, not a follow-up.
+
+  *Why this line exists.* In the project this kit came from, a trio changed how a generated index was reconciled. It updated the code, the skill, the ADR and the session memory — and never listed the rule that described the old mechanism. **That rule went on asserting a dead invariant for two months**, while seven later commits touched the same file for other reasons and none revisited the block. Nothing was broken by malice or haste; the plan simply never asked the question. This is that question.
 
 ### 4.3. Changes and rationale
 - Detail exactly what changes each file gets.

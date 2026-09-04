@@ -66,6 +66,7 @@ core/templates/execution.md            →  {{project}}_wiki/work/executions/_te
 core/templates/wiki-page.md            →  {{project}}_wiki/_meta/_page_template.md
 core/templates/source.md               →  {{project}}_wiki/sources/external/_template.md
 core/skills/*                          →  .claude/skills/*
+core/agents/*                          →  .claude/agents/*        (Claude Code only)
 ```
 
 Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,executions}/` and `{{project}}_wiki/work/archive/`.
@@ -73,6 +74,8 @@ Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,exec
 The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated ephemerals); the monorepo module (§4) replaces it at the same path with the multi-app topology.
 
 **Core skills to install** (from `core/skills/`): `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, and the skills index `_index.md`. The `work-index` and `work-find` skills ship a small Python script each — copy the whole skill directory.
+
+**Role sub-agents (Claude Code only).** `core/agents/` ships five roles — `task-author`, `analyst`, `mechanic`, `planner`, `scribe` — each pinning a model **tier** in its frontmatter. They exist so the right model can be used per phase **without switching the session's model**, which would discard the prompt cache (see `adapters/claude.md` §3). Install them if your agent runtime supports per-sub-agent model selection; skip the directory otherwise — nothing else depends on it. **Adjust the `model:` tier aliases to your runtime's names**, and pin tiers rather than version numbers so the files do not rot.
 
 **Knowledge directory seed.** Create the knowledge subdirs the project will use. For a single-repo project: `{{project}}_wiki/{domains,entities,services,flows,pages,contracts,decisions,cross-cutting,sources/external,sources/internal}/`. For a monorepo, the monorepo module (§4) adds `apps/` and `packages/` layout instead.
 
