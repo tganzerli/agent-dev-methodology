@@ -68,8 +68,11 @@ def main():
         ex_fm = parse_frontmatter(read(ex_path)) if ex_path else {}
         pl_path = arts.get("plan")
         pl_fm = parse_frontmatter(read(pl_path)) if pl_path else {}
-        summary = (ex_fm.get("summary") or task_fm.get("summary")
-                   or pl_fm.get("summary") or task_fm.get("title") or wid)
+        # Same chain as generate.py:trio_view. A sub-trio has no task, so without the
+        # plan's/execution's own title the summary degrades to the raw work_id.
+        summary = (ex_fm.get("summary") or task_fm.get("summary") or pl_fm.get("summary")
+                   or task_fm.get("title") or ex_fm.get("title") or pl_fm.get("title")
+                   or wid)
         status = task_fm.get("status") or ex_fm.get("status") or "?"
         topics = ex_fm.get("topic") or task_fm.get("topic") or pl_fm.get("topic") or []
         if isinstance(topics, str):
