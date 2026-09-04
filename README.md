@@ -36,6 +36,7 @@ agent-dev-methodology/
 ├── AGENTS.md              ← universal entry-point convention (multi-agent)
 ├── core/                  ← portable to ANY repo
 │   ├── METHODOLOGY.md         canonical, LLM-agnostic
+│   ├── mcp.md                 MCP server catalog, mirrored across clients (optional)
 │   ├── rules/                 mandatory_planning_rule + git_branching_rule
 │   ├── templates/             task / plan / execution / wiki-page / source
 │   ├── skills/                the generic core skills (+ scripts)

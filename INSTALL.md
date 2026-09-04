@@ -53,6 +53,7 @@ The core is portable to any repo, monorepo or not. Copy and de-template these fr
 kit core/                              →  target project
 ──────────────────────────────────────────────────────────
 core/METHODOLOGY.md                    →  .agents/METHODOLOGY.md
+core/mcp.md                            →  .agents/mcp.md          (only if the project uses MCP servers)
 core/rules/mandatory_planning_rule.md  →  .agents/rules/mandatory_planning_rule.md
 core/rules/git_branching_rule.md       →  .agents/rules/git_branching_rule.md   (single-repo default; monorepo module §4 overrides at this path)
 core/vault/_meta/conventions.md        →  {{project}}_wiki/_meta/conventions.md
@@ -72,6 +73,8 @@ core/agents/*                          →  .claude/agents/*        (Claude Code
 Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,executions}/` and `{{project}}_wiki/work/archive/`.
 
 The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated ephemerals); the monorepo module (§4) replaces it at the same path with the multi-app topology.
+
+**MCP catalog (only if applicable).** If any agent in this repo will use MCP servers, install `core/mcp.md` and fill its §1 table. It is a **catalog consulted on demand**, not part of the mandatory reading prefix — its job is to keep every client's mirrored config (`.mcp.json`, `.gemini/settings.json`, `.cursor/mcp.json`) in agreement, so a capability granted to one agent is not invisible to the others. Skip the file entirely if the project uses no MCP server.
 
 **Core skills to install** (from `core/skills/`): `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, and the skills index `_index.md`. The `work-index` and `work-find` skills ship a small Python script each — copy the whole skill directory.
 

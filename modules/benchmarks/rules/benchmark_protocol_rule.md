@@ -123,6 +123,24 @@ Every page ends with one of four verdicts, chosen from the **data**, not from wh
 
 A refutation frequently produces the most interesting, most nuanced contribution of a project. Treat it as a result, not an embarrassment.
 
+### 6.1. Cross-bench synthesis in the index
+
+A verdict answers the question **one page** asked. It does not answer the question the project actually has — *"what is the gain of approach X?"* — once that question has **different answers in different regimes**: the same workload on two topologies, the same components under two concurrency levels, two hardware generations.
+
+When `{{project}}_wiki/benchmarks/` holds **≥2 related pages**, `benchmarks/_index.md` gains a **Cross-bench synthesis** section: one compact table, one row per regime.
+
+| Regime | Workload | Observed advantage | Where |
+|---|---|---|---|
+| {the condition that changes the answer} | {what was measured} | {which side wins, and by how much} | {wikilink to the page} |
+
+Rules that keep it from rotting into a second, contradictory source of truth:
+
+- **It aggregates verdicts, it does not restate them.** Every cell is traceable to a page; a number that appears here and nowhere else carries `⚠ unverified <metric>` like any other.
+- **A regime whose answer inverts the others is the point of the table**, not an inconvenience — that inversion is exactly what a reader taking one page as general would get wrong.
+- **Regenerate it when a page changes its verdict.** A synthesis pointing at a superseded verdict is worse than no synthesis.
+
+The test for whether you need one: if a reader could take a single page as the project's general answer and be wrong, the synthesis is what stops them.
+
 ## 7. Anti-patterns
 
 - ❌ Claiming a number in a commit/PR/README/ADR with no benchmark page (cite it and it must not carry `⚠ unverified <metric>`).

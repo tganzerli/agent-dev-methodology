@@ -21,6 +21,7 @@
 - **`{{project}}_wiki/_meta/index.md`** — the knowledge catalog.
 - **`{{project}}_wiki/_meta/conventions.md`** — only if you will write to the wiki.
 - **`.claude/skills/_index.md`** — Claude Code discovers skills natively; the index explains the set, it is not a prerequisite.
+- **`.agents/mcp.md`** — the MCP server catalog, if the project has one. Read it before adding, removing, or debugging an MCP server.
 
 > Catalogs grow monotonically; the work does not. Reading them at session open turns a growing artifact into a fixed per-session cost that competes with the actual task. Everything that is a **gate** is in the first list. See METHODOLOGY §6.6.
 

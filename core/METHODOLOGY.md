@@ -269,6 +269,7 @@ Core skills (portable to any project): `work-cycle`, `wiki-sync`, `wiki-lint`, `
 - `{{project}}_wiki/_meta/index.md` — the knowledge catalog.
 - `{{project}}_wiki/_meta/conventions.md` — only if you will write to the wiki.
 - `.claude/skills/_index.md` — Claude Code discovers skills by itself; the index is for understanding the set, not a prerequisite.
+- `.agents/mcp.md` — the MCP server catalog, when the project has one. Every MCP client reads its config from a different path, so the catalog is what keeps the mirrored files in agreement; consult it before adding or removing a server.
 
 > **Why the split.** Loading a catalog at session open costs context that then competes with the actual work — and catalogs grow monotonically while the work does not. Everything that is a **gate** is in the first list; the rest is looked up. This is the single highest-return change in this document: in the project this kit came from it cut the mandatory prefix by more than half, on its own.
 

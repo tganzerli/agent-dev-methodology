@@ -3,7 +3,7 @@
 
 Reads the frontmatter of the work trios in <vault>/work/{tasks,plans,executions}/*.md
 and emits:
-  - <vault>/work/_index.md            (ACTIVE catalog: open/in_progress + closed in current quarter)
+  - <vault>/work/_index.md            (ACTIVE catalog: non-terminal trios + closed in current quarter)
   - <vault>/work/archive/YYYY-Qn.md   (trios closed in past quarters, one line each)
   - <vault>/work/archive/_index.md    (router over the archive files)
 
@@ -30,9 +30,12 @@ import re
 import sys
 
 TERMINAL = {"done", "cancelled", "aborted", "completed", "superseded"}
-ACTIVE = {"open", "in_progress"}
+# Non-terminal statuses. `future` (accepted, deliberately not started) and `paused`
+# (started, suspended) keep a trio in the active catalog instead of archiving it —
+# a backlog item is not history. See _meta/conventions.md §6 ("Work pages").
+ACTIVE = {"open", "in_progress", "future", "paused"}
 EMOJI = {
-    "open": "🔧", "in_progress": "🚧", "done": "✅",
+    "open": "🔧", "in_progress": "🚧", "future": "🔮", "paused": "⏸️", "done": "✅",
     "cancelled": "🚫", "aborted": "⛔", "completed": "✅", "superseded": "♻️",
 }
 # Seed vocabulary — small and generic. Extend it in _meta/conventions.md §4
@@ -262,7 +265,7 @@ def render_active(active, archive, cur_q):
         f"(**{qlabel(cur_q)}**). Earlier quarters: {router} · [[work/archive/_index|all]].",
         "> Find old work: `/work-find <term>`. Narrative detail lives in the execution.",
         "",
-        "## In progress (open / in_progress)", "",
+        "## In progress (open / in_progress / future / paused)", "",
     ]
     out += [render_line(t) for t in ongoing] or ["_(none)_"]
     out += ["", f"## Closed — {qlabel(cur_q)} (current quarter)", ""]
