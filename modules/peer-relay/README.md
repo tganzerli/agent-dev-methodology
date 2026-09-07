@@ -2,6 +2,7 @@
 
 > **OPTIONAL module.** Install only when this project coordinates with **another project in a separate repository that lives on the same machine**, whose agent can *read* your files but does not *share* your checkout — a companion library, a research repo, a sibling product. If the other side is a partner team with **no access** to your code, use `cross-team` instead. If the other agent works **your** repo, use `intra-team`. Requires **intra-team** installed first: this module inherits its machinery rather than duplicating it.
 
+
 ## 1. The premise — a third value on a binary axis
 
 `cross-team` and `intra-team` are mirror images, and `modules/intra-team/README.md` states the axis they split on: *"they differ on one axis — does the reader share your repository?"*
@@ -72,3 +73,13 @@ The registry's highest-value field is **Quirks** — the things no index tells y
 ## 6. Mirroring
 
 A peer that should answer needs this module installed and a **mirrored** registry pointing back. Mirroring is neither automatic nor verified — if one side declares an inbox the other does not know, the message is written and never read. **Diff the two registries side by side when installing the counterpart.**
+
+## 7. Branch scope registered by this module
+
+This module registers a **`relay` branch scope**, the way the benchmarks module registers the `bench` type and the contracts module registers `contract` (`core/METHODOLOGY.md` §11). Add it to whichever branching rule the project installed, next to `knowledge` and `tooling`:
+
+> **`relay`** — for `docs/` branches carrying **only** relay messages under `<vault>/work/relay/`: an inbound delivery from a peer repository, or your own outbound copy.
+
+**Why it needs to be its own scope.** It is neither `knowledge` — the monorepo module's `knowledge_source_of_truth_rule.md` §2 does not list `work/relay/` in the knowledge layer — nor `tooling`, which is developed on a `dev_<app>`. Without registering it, a relay delivery has **no correct branch name available**, and the agent either invents one or misfiles it under `knowledge`.
+
+Found the first time two installations exchanged messages (2026-09-07): the receiving agent named its branch `docs/<id>__relay` on instinct, and the scope did not exist in the target repo's rule.
