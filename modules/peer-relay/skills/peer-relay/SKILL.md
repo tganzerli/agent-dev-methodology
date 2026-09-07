@@ -52,15 +52,29 @@ Saída: um resumo de estado — o que o projeto é, o que está em voo, o que es
 
 ### `send <peer> <slug>` · **GATE HUMANO DUPLO**
 
-Redige a mensagem em `{{project}}_wiki/work/relay/{YYYY-MM-DD}_{slug}.md` (template `peer-message.md`) e a **entrega** na caixa de entrada do peer.
+Redige a mensagem em `{{project}}_wiki/work/relay/{YYYY-MM-DD}_{slug}.md` (template `peer-message.md`) e a **entrega por Pull Request** no repositório do peer.
 
-🔒 **Dois gates, não um.** (a) o humano aprova o **texto**; (b) o humano aprova a **escrita no repositório do outro projeto**. São decisões diferentes: a segunda é irreversível do nosso lado, porque não temos permissão de commit lá para desfazer.
+🔒 **A entrega é um PR, nunca um arquivo solto na árvore de trabalho do peer.** Depositar o arquivo direto no diretório dele parece mais simples e é pior de três jeitos: ele **chega em silêncio** (nada avisa o agente de lá que existe), pode ser **varrido para o commit de outra pessoa** por um `git add` amplo, e some num `git clean`. Um PR tem revisor, histórico, notificação e reversão. *(Origem: revisão do mecanismo antes do primeiro envio real de uma instalação.)*
+
+🔒 **O PR obedece à regra de branch do repositório que RECEBE, não à do que envia.** Os dois repositórios podem ter topologias diferentes — um com conhecimento canônico em `main`, outro com `main` de release e efêmeras desembocando em `dev`. Presumir a nossa topologia produz um PR que viola a regra do leitor logo na primeira mensagem. O registro (`.agents/peers.md`) declara, por peer: **branch-base**, **alvo do PR**, **tipo** e **escopo** do nome da branch. Se o registro não declara, **pare e pergunte** — não deduza da nossa regra.
+
+🔒 **Nunca mergear o PR no repositório do peer.** Abrir é entrega; mergear é decidir pelo outro projeto. O merge é do lado de lá, por quem revisa.
+
+🔒 **Dois gates, não um.** (a) o humano aprova o **texto**; (b) o humano aprova a **abertura do PR no repositório do outro projeto**. São decisões diferentes: a segunda é ação externa e cria branch e commit num repositório que não é nosso.
 
 🔒 **Antes de redigir, leia o board do peer** (`<peer>:…/work/relay/_board.md`) e o nosso. Escrever sobre um escopo travado sem reconhecer o lock é exatamente o atropelo que o board existe para evitar.
 
-🔒 **Respeite a política de escrita do registro.** Se ela diz `work/relay/` apenas, é `work/relay/` apenas — nenhum arquivo fora dali, nenhuma branch, nenhum commit.
+🔒 **O diff do PR é um arquivo só**, sob o diretório de relay declarado no registro. Nenhum arquivo fora dali, nenhuma alteração de código, nenhum commit em branch permanente do peer.
 
-Depois de entregue: append em `{{project}}_wiki/_meta/log.md` (`## [YYYY-MM-DD] peer-relay | {slug} | to {peer}`) e, se a mensagem cria lock ou acordo, atualize o board.
+**Procedimento:**
+
+1. Ler no registro a configuração de entrega do peer (base, alvo, tipo, escopo).
+2. Verificar que a base está atualizada (`git -C <caminho> fetch`), e criar a branch efêmera a partir dela.
+3. Commitar **só** o arquivo da mensagem, com mensagem de commit no idioma que o peer usa em commits.
+4. `push` + abrir o PR, com corpo que diga em uma linha o que é e que a decisão de incorporar é de quem revisa.
+5. **Não mergear.**
+
+Depois de entregue: append em `{{project}}_wiki/_meta/log.md` (`## [YYYY-MM-DD] peer-relay | {slug} | to {peer} | PR <url>`) e, se a mensagem cria lock ou acordo, atualize o board. Registre a **URL do PR** — é o que torna a entrega auditável depois.
 
 ### `read <peer>` · autônomo
 
@@ -88,6 +102,9 @@ O template `peer-message.md` estende o `message.md` do `intra-team` em três pon
 - ❌ `[[wikilink]]` apontando para o nosso vault numa mensagem que sai daqui.
 - ❌ Varrer o repositório do peer em vez de usar os pontos de entrada.
 - ❌ Escrever no repo do peer sem o segundo gate, ou fora da política do registro.
+- ❌ **Depositar o arquivo direto na árvore de trabalho do peer.** A entrega é PR.
+- ❌ **Aplicar a NOSSA regra de branch ao PR que entra no repo dele.** Vale a dele.
+- ❌ **Mergear o PR no repositório do peer.** Abrir é entrega; mergear é decidir pelo outro projeto.
 - ❌ Só apontar `{{project}}:arquivo:linha` sem o resumo inline — o leitor não vai abrir.
 - ❌ Usar este módulo para um agente **deste** repo (é `intra-team`) ou para um time sem acesso ao nosso código (é `cross-team-handoff`).
 - ❌ Marcar um acordo como `A` no board antes do ack real do outro lado.
