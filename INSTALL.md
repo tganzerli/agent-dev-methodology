@@ -66,6 +66,7 @@ core/vault/.obsidian/                  →  {{project}}_wiki/.obsidian/
 core/templates/task.md                 →  {{project}}_wiki/work/tasks/_template.md
 core/templates/plan.md                 →  {{project}}_wiki/work/plans/_template.md
 core/templates/execution.md            →  {{project}}_wiki/work/executions/_template.md
+core/templates/adr.md                  →  {{project}}_wiki/decisions/_templates/adr.md
 core/templates/wiki-page.md            →  {{project}}_wiki/_meta/_page_template.md
 core/templates/source.md               →  {{project}}_wiki/sources/external/_template.md
 core/skills/*                          →  .claude/skills/*
