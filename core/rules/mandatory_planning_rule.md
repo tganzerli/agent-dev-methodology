@@ -34,6 +34,10 @@ A complete list of every file to be modified, created, or deleted. Include full 
 
   *Why this line exists.* In the project this kit came from, a trio changed how a generated index was reconciled. It updated the code, the skill, the ADR and the session memory — and never listed the rule that described the old mechanism. **That rule went on asserting a dead invariant for two months**, while seven later commits touched the same file for other reasons and none revisited the block. Nothing was broken by malice or haste; the plan simply never asked the question. This is that question.
 
+- 🔒 **ADRs affected.** State explicitly **which ADRs govern the area this plan implements**, and for each one whether this work leaves it **confirmed**, **refined** or **superseded** — or `none`, said as such. An ADR that this plan refines or supersedes **belongs in the file list above**, and updating it is part of this work, not a follow-up.
+
+  *Why this line exists.* An ADR is written **before** the code it governs, so it decides principles and defers concrete shape — the signature, the format, the field list. The status that means "decided" (`accepted`) is also the status that means "nothing to look at here", so the implementation that finally holds the evidence has no reason to open it. The deferred half then ages in silence, indistinguishable from a settled one. Origin: an installation wrote nine phase-0 ADRs and its author, reading them, observed they decided less than they appeared to. The observation was right, and the fix was **not** to decide more up front — it was to guarantee the return. The companion half lives in the ADR template: a `revisit_when` field and a **Planned revision** section that states the question, not the answer.
+
 ### 4.3. Changes and rationale
 - Detail exactly what changes each file gets.
 - Give the technical reasoning (*why* it is done this way).
