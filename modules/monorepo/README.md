@@ -43,8 +43,18 @@ The core installs a flat knowledge vault. This module reorganizes the knowledge 
 ├── cross-cutting/             ← subjects that span apps/packages (shared)
 ├── decisions/                 ← ADRs (shared)
 ├── sources/                   ← external/internal source summaries (shared)
+├── benchmarks/                ← evidence pages, if the benchmarks module is installed (shared)
+├── postmortems/               ← thematic lessons graduated from executions, per methodology §5.6 (shared)
+├── <your own>/                ← see below — this tree is NOT exhaustive
 └── work/                      ← the task/plan/execution trio cycle (unchanged from core)
 ```
+
+⚠ **This tree is not exhaustive, and reading it as exhaustive is the mistake to avoid.** It names the directories this module *reorganizes*; every other top-level knowledge directory **stays where it is and is left alone**. Two sources of those:
+
+- **Other parts of this kit.** The benchmarks module creates `{{project}}_wiki/benchmarks/`, and the methodology references `postmortems/` (§5.6, §10.1). Both are listed above now, because omitting them made this module look like it contradicted the rest of the kit.
+- **The project's own axis of organization.** A repo whose knowledge is organized by *layer* rather than by app — say `dart/`, `native/`, `protocols/` — keeps those directories untouched. This module separates knowledge **per app and per package**; it does not claim that app and package are the only valid axes.
+
+**What to do with a top-level directory this tree does not name:** leave it. If it holds knowledge, add it to the knowledge-layer path list in `knowledge_source_of_truth_rule.md` §2 in the same work, so promotion and reconciliation cover it. That §2 list — not this drawing — is the authoritative one.
 
 - Every knowledge page's `scope` frontmatter declares which `apps/*` and/or `packages/*` it covers (methodology §2 principle 5).
 - A page that genuinely spans boundaries lives under `cross-cutting/`, not duplicated per app.
