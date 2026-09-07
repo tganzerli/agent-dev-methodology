@@ -28,6 +28,7 @@ Ask these before creating anything. Keep it to one round; propose sensible defau
 | 10 | **Does the project expose a versioned contract** other code/teams/systems depend on (public API, DB schema, wire/IPC protocol, event schema, FFI ABI)? | installs `modules/contracts/` | no |
 | 11 | **Does the project depend on external services** (DB, broker, cache, …) that must be reproducible across machines and CI? | installs `modules/dev-env/` | no |
 | 12 | **Does the project deliver long-form prose** for people outside the repo (thesis/dissertation, paper, technical articles, posts), derived from the work it does? | installs `modules/writing/` | no |
+| 13 | **Does this project coordinate with another project in a separate repo on the same machine**, whose agent can read your files but does not share your checkout? | installs `modules/peer-relay/` (requires answer 8 = yes) | no |
 
 > **Never guess question 3.** If the human does not state a knowledge language, ask explicitly. Everything the methodology generates (plans, wiki pages) is in that language; getting it wrong means rewriting the vault.
 
@@ -188,6 +189,29 @@ Then: create the `content/` tree (`academic/`, `articles/{drafts,published}/`, `
 **Two adaptations are required, not optional.** `write-academic` ships generic: fill in its persona with the project's domain, and replace its style section with the conventions of the **style authority that actually governs the work** (asked for at first use if `content/_norms/` is empty). If an institutional rulebook governs AI use, transcribe its binding rules and record any author override in the skill's override table, with its safeguard. See `modules/writing/README.md`.
 
 **If answer 12 = no:** skip. The METHODOLOGY §4.6 override concept still applies to any subtree whose work has a different shape — this module is the worked instance of it for prose.
+
+## 5-septies. Install the PEER-RELAY module (only if answer 13 = yes)
+
+Adds agent↔agent coordination **across sibling repos on one machine** — the third value of the axis that `cross-team` and `intra-team` split on. Copy from `modules/peer-relay/`:
+
+```
+modules/peer-relay/skills/peer-relay/   →  .claude/skills/peer-relay/
+modules/peer-relay/templates/peer-message.md  →  {{project}}_wiki/work/relay/_templates/
+modules/peer-relay/templates/peers.md         →  .agents/peers.md
+modules/peer-relay/conventions-extension.md   →  append its fields into {{project}}_wiki/_meta/conventions.md
+```
+
+**Prerequisite: answer 8 must be yes.** This module *inherits* intra-team's machinery — the five `msg_role`s, the stable-ID ask table, the round log, `work/relay/` and `_board.md` — instead of duplicating it. Installing it without intra-team leaves dangling references. Append its conventions extension **after** intra-team's, which it declares inheritance from.
+
+Then:
+- Fill `.agents/peers.md`: one section per peer with path, citation prefix, write policy, inbox, **absorption entry points in reading order**, and a **Quirks** block. The quirks block is the highest-value field — record every place an index in that repo actively misleads a reader.
+- Register `peer-relay` in `.claude/skills/_index.md` — mark it **hybrid** (`absorb`/`read` autonomous; `send` carries a **double** human gate — the text, then the write into another repo; `board` gated).
+- **No script change needed**, same as intra-team: `work-index`/`work-find`/`work-audit` scan only `tasks`/`plans`/`executions`.
+- **Mirror the counterpart** in the peer, and diff the two registries side by side — mirroring is neither automatic nor verified, and a mismatched inbox means messages written and never read.
+
+Follow `modules/peer-relay/README.md` for the qualified-citation rule (a `file:line` without a repo prefix is a format error), the they-can-but-won't asymmetry, and claim-state with origin.
+
+**If answer 13 = no:** skip. `cross-team` covers a partner with no access to your code; `intra-team` covers another agent in your repo. This module is only for the middle case.
 
 ## 6. Generate the per-agent entry-points (from `adapters/`)
 
