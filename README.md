@@ -9,15 +9,37 @@ It is designed to be driven by **any coding agent** — Claude Code, Codex, Gemi
 - **A work cycle with human gates.** Nothing runs before a plan is approved; nothing reaches the wiki without review. Plans are preceded by optional **parallel-agent analyses** and a **contextual model recommendation** per role.
 - **A knowledge vault.** Obsidian graph linking work ↔ knowledge, mandatory frontmatter, and a strict `file:line` citation discipline (`⚠ unverified` when a claim is not anchored).
 - **Skills** (per the [Agent Skills spec](https://agentskills.io/specification)) that encapsulate the repetitive flows: `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`.
-- **Optional modules** you install only when you need them:
-  - **`modules/monorepo/`** — branch topology, canonical-knowledge-in-`main`, promote/sync/broadcast machinery. For multi-app/multi-package repos.
-  - **`modules/cross-team/`** — bidirectional LLM↔LLM collaboration with a partner team (e.g. backend) that does **not** share your repo, via a `cross-team-handoff` skill and living-contract pages.
-  - **`modules/intra-team/`** — the mirror of cross-team for agents that **do** share the repo: agent↔agent notes, requests, handoffs, conflict resolution, and a coordination board. Reference-first (cite `file:line`) instead of self-contained.
-  - **`modules/peer-relay/`** — the third value of the axis `cross-team`/`intra-team` split on: an agent in a **separate repo on the same machine** that can *read* your files but does not *share* your checkout. Adds a peer registry (`.agents/peers.md`) and a qualified-citation rule where a `file:line` without a repo prefix is a format error. Requires `intra-team`.
-  - **`modules/benchmarks/`** — the empirical-claim discipline: a quantitative claim (performance, cost, accuracy, …) needs a reproducible evidence page or it carries `⚠ unverified <metric>` and cannot be cited. Adds a `benchmark_protocol_rule`, a benchmark-page template, and a `run-benchmark` skill.
-  - **`modules/contracts/`** — the cross-boundary-contract discipline: a change to a versioned contract (public API, DB schema, wire/IPC protocol, event schema, FFI ABI) requires an atomic ADR + synchronized multi-artifact PR.
-  - **`modules/dev-env/`** — reproducible external-service environments: versioned per-service containers, mandatory healthcheck, and persistent/ephemeral/benchmark lifecycle modes, operated by a `dev-env` skill.
-  - **`modules/writing/`** — long-form prose (thesis, papers, articles, posts) as a first-class deliverable: a directory-scoped override giving `content/` its own cycle, three writing skills, and a `⚠ source needed` seal so a citation never gets invented.
+- **Optional modules** you install only when you need them — see the table below.
+
+## Modules
+
+The core is what every project gets. Modules are additive and independent, except where a **Requires** column says otherwise. The install interview (`INSTALL.md` §1) asks one question per module; you can also install one later by following its `INSTALL.md` section.
+
+| Module | Install when | Adds | Requires |
+|---|---|---|---|
+| `monorepo` | Multiple apps and/or shared packages, each on its own long-lived branch | `git_branching_rule` (replaces the core one) + `knowledge_source_of_truth_rule`; skills `promote-knowledge`, `sync-knowledge`, `distribute-packages`; CI broadcast stubs | — |
+| `cross-team` | A partner team collaborates through **their own LLM**, and they cannot read your repo | skill `cross-team-handoff`; handoff/response/living-contract templates | — |
+| `intra-team` | More than one agent works **your** repo and they must coordinate | skill `intra-team`; message + coordination-board templates; `work/relay/` | — |
+| `peer-relay` | Another project in a **separate repo on the same machine** collaborates; its agent can *read* your files but does not *share* your checkout | skill `peer-relay`; peer registry `.agents/peers.md`; peer-message template | `intra-team` |
+| `benchmarks` | The project makes quantitative claims (performance, cost, accuracy) it must stand behind | `benchmark_protocol_rule`; skill `run-benchmark`; benchmark-page template; the `⚠ unverified <metric>` seal | — |
+| `contracts` | The project exposes a versioned contract others depend on (public API, DB schema, wire/IPC protocol, event schema, FFI ABI) | `contract_change_rule`; ADR-contract template; the `⚠ contract-drift` tag. **No skill** — this module is discipline, not a flow | — |
+| `dev-env` | The project depends on external services (DB, broker, cache) that must be reproducible across machines and CI | `dev_environment_rule`; skill `dev-env`; the `docker/<service>/` layout | — |
+| `writing` | The project delivers long-form prose (thesis, papers, articles, posts) derived from its work | a directory-scoped override giving `content/` its own cycle; skills `write-academic`, `write-article`, `write-post`; the `⚠ source needed` seal | — |
+
+Each module directory carries its own `README.md` with the full rationale; the table is a router, not a summary.
+
+### Which messaging module?
+
+Three modules move messages between agents, and they are easy to confuse. They differ on **one axis with three values** — *what access does the reader have to your repository?*
+
+| | `cross-team` | `intra-team` | `peer-relay` |
+|---|---|---|---|
+| Reader **shares** your checkout | no | **yes** | no |
+| Reader **can read** your files | no | yes | **yes** |
+| Governing rule | **self-contained** — inline the full spec; `file:line` is provenance only | **reference-first** — cite `file:line`/`[[wikilinks]]`, never re-paste | **reference-first, qualified** — every citation carries a repo prefix |
+| Typical reader | a partner squad's LLM | another agent (or session) on this repo | the agent of a sibling project on this machine |
+
+Picking the wrong one has a specific cost. Self-contained where reference-first applies duplicates content that then drifts. Reference-first where it does not apply produces ambiguity (`lib/router.dart:9` exists in both repos), dead links (`[[wikilinks]]` do not cross vaults), and colliding identifiers (two projects both using `YYYY-MM-DD_slug`).
 
 ## How to install it
 
@@ -25,9 +47,9 @@ Point your agent at this repo and say:
 
 > "Install this methodology into my project at `<path>`. Follow `INSTALL.md`."
 
-The agent runs a short **interview** (`INSTALL.md` §1) — project name, vault slug, **knowledge-content language**, monorepo yes/no, which agents, partner-team yes/no, git host — then scaffolds the core, wires the entry-points, and installs only the modules you need.
+The agent runs an **interview** (`INSTALL.md` §1): five questions that shape the scaffold — project name, vault slug, **knowledge-content language**, which agents will operate the repo, and git host — plus one yes/no per optional module. It then scaffolds the core, wires the entry-points, and installs only what you said yes to.
 
-> The kit's own documentation is in **English**. The **content the methodology generates** (plans, wiki pages, tasks) is written in the **language you choose at install** — the agent will ask.
+> **Language.** The kit's own documentation is in English; the **content the methodology generates** — plans, wiki pages, tasks, executions — is written in the language you choose at install. **Never let the agent guess it:** everything downstream is authored in that language, and getting it wrong means rewriting the vault.
 
 ## Repository layout
 
@@ -48,11 +70,12 @@ agent-dev-methodology/
 │   ├── monorepo/          ← OPTIONAL: branching + promote/sync/broadcast
 │   ├── cross-team/        ← OPTIONAL: partner-team LLM handoff (no shared repo)
 │   ├── intra-team/        ← OPTIONAL: agent↔agent messaging (shared repo)
+│   ├── peer-relay/        ← OPTIONAL: agent↔agent across sibling repos (needs intra-team)
 │   ├── benchmarks/        ← OPTIONAL: reproducible empirical-claim / benchmark pages
 │   ├── contracts/         ← OPTIONAL: versioned cross-boundary contract changes
 │   ├── dev-env/           ← OPTIONAL: reproducible external-service containers
 │   └── writing/           ← OPTIONAL: prose deliverables (thesis, papers, articles, posts)
-├── adapters/              ← per-agent entry-point templates
+├── adapters/              ← per-agent entry-points (claude, codex, gemini, _generic)
 └── docs/
     ├── design-rationale.md    the seed-vs-accretion story (install core first, defer the rest)
     └── glossary.md
