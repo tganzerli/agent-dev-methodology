@@ -28,7 +28,7 @@ trigger: manual
 
 | Peer | Prefix | Path | Methodology | Write allowed |
 |---|---|---|---|---|
-| `{peer}` | `{peer}:` | `{absolute path}` | yes/no | `{path}` only / none / via PR |
+| `{peer}` | `{peer}:` | `{absolute path}` | yes/no | `{path}`, **PR only** / none |
 
 ---
 
@@ -44,10 +44,32 @@ trigger: manual
 - **Methodology:** {yes — same `.agents/METHODOLOGY.md`, modules X/Y installed | no}
 - **Knowledge language:** {lang}
 - **Read:** {allowed, whole repo | allowed, paths X and Y}
-- **Write:** {**only** `<path>` — authorized by the human on YYYY-MM-DD | none, read-only | via PR}
+- **Write:** {**only** `<path>`, and **only by Pull Request** — authorized by the human on YYYY-MM-DD | none, read-only}
 - **Inbox** (our messages to them): `{peer}:{wiki}/work/relay/`
 - **Outbox** (their messages to us): `{{project}}_wiki/work/relay/`
 - **Their board:** `{peer}:{wiki}/work/relay/_board.md`
+
+### Delivery configuration (required by the `send` flow)
+
+The skill reads these fields and **stops** if they are missing. They exist because the PR obeys the
+branching rule of the repository that **receives** it — which may not be yours. Two repositories can
+differ: one with knowledge canonical in `main`, another with `main` as a release line and ephemerals
+landing in `dev`. Assuming your own topology produces a PR that violates the reader's rule on the
+very first message.
+
+| Field | Value |
+|---|---|
+| Base branch | `{branch the ephemeral is cut from, in THEIR repo}` |
+| PR target | `{branch the PR opens against, in THEIR repo}` |
+| Type | `{their ephemeral type, e.g. docs}` |
+| Scope | `{their scope token, e.g. wiki / knowledge}` |
+| Resulting name | `{type}/{work_id}__{scope}` |
+
+> Read these from the peer's own branching rule — do not infer them. If that repo has no branching
+> rule, ask the human and record the answer here.
+>
+> If the peer's topology changes (e.g. they adopt a knowledge-canonical-in-`main` model), these
+> fields change with it. Date the note that says so, so it can be retired.
 
 ### Absorption entry points
 

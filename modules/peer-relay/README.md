@@ -23,7 +23,7 @@ Both existing rules fail in the middle case, and they fail in opposite direction
 
 | Artifact | Path | Purpose |
 |---|---|---|
-| `peer-relay` skill | `.claude/skills/peer-relay/SKILL.md` | Four flows: `absorb` (orient in the peer's repo), `send` (author + deliver), `read` (our inbox), `board`. |
+| `peer-relay` skill | `.claude/skills/peer-relay/SKILL.md` | Four flows: `absorb` (orient in the peer's repo), `send` (author + deliver by PR), `read` (our inbox), `board`. |
 | Peer registry | `.agents/peers.md` | Where each peer is, what to read to orient, what may be written. **The absorption mechanism.** |
 | Peer message template | `{{project}}_wiki/work/relay/_templates/peer-message.md` | Extends intra-team's `message.md` with two namespaces, an Orientation section, and a third closing ask. |
 | Frontmatter extension | appended into `{{project}}_wiki/_meta/conventions.md` | `peer`, `peer_work_refs`, the qualified-citation rule, claim-state with origin. |
@@ -62,7 +62,10 @@ The registry's highest-value field is **Quirks** — the things no index tells y
 ## 5. Gates
 
 - `absorb` and `read` are **autonomous**.
-- `send` carries a **double human gate**: approve the text, then approve the write into another project's repository. These are different decisions, and the second is irreversible from your side — you have no commit rights there to undo it.
+- `send` **delivers by Pull Request**, never by dropping a file into the peer's working tree. A file that materializes there arrives in silence: nothing tells the other agent it exists, a broad `git add` can sweep it into someone else's commit, and `git clean` deletes it. A PR has a reviewer, history, notification and reversal.
+- The PR **obeys the branching rule of the repository that receives it**, not yours — the registry records each peer's base branch, PR target, type and scope. Two repos can differ (knowledge canonical in `main` on one side; `main` as a release line fed only from `dev` on the other), and assuming your own topology means violating the reader's rule on the first message.
+- **Never merge that PR.** Opening it is delivery; merging it is deciding for the other project.
+- `send` carries a **double human gate**: approve the text, then approve opening the PR in another project's repository. These are different decisions, and the second is an outward-facing action that creates a branch and a commit in a repo that is not yours.
 - `board` is human-gated, as in intra-team.
 - 🔒 The registry's write policy is a ceiling, not a floor: `work/relay/` only means no code, no branch, no commit.
 
