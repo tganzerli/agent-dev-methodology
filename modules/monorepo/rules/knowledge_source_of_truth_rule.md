@@ -33,13 +33,26 @@ CLAUDE.md, GEMINI.md, AGENTS.md, README.md   # entry-points
 {{project}}_wiki/cross-cutting/       # cross-cutting knowledge
 {{project}}_wiki/decisions/           # ADRs
 {{project}}_wiki/sources/             # external/internal source summaries
+{{project}}_wiki/benchmarks/          # evidence pages — if the benchmarks module is installed
+{{project}}_wiki/postmortems/         # thematic lessons graduated from executions (METHODOLOGY §5.6)
 {{project}}_wiki/overview.md          # apps × packages × domains map
 {{project}}_wiki/.obsidian/           # shared vault config (gitignored: workspace*.json)
 ```
 
+> **Two of these directories are created by this kit, not by the project.** `benchmarks/` comes with
+> the benchmarks module and `postmortems/` is referenced by `METHODOLOGY.md` §5.6 and §10.1 — both are
+> listed here so an install does not have to rediscover them. A project whose knowledge is organized
+> on another axis keeps its own top-level directories and adds them to this list (see the module
+> README, "Vault reorganization").
+
 **Outside the knowledge layer (per-branch during the trio; promoted on close):**
 - `{{project}}_wiki/work/tasks/`, `plans/`, `executions/` — born on the work branch.
 - `{{project}}_wiki/work/_index.md` — updated in `main` when a trio closes (generated, not hand-edited).
+- `{{project}}_wiki/work/relay/` — cross-repository coordination messages, if the `peer-relay` module
+  is installed. **Outside by decision, not by omission:** a delivered message exists in *both*
+  repositories and is never rewritten, so it cannot be reconciled by a broadcast. This is what the
+  `relay` branch scope in `git_branching_rule.md` §4 rests on — today it argues from the *absence* of
+  this line, which survives only until someone adds the path "for completeness".
 
 **Outside this rule (code, always per-branch):**
 - `apps/*/lib/`, `apps/*/test/`, `apps/*/android/`, `apps/*/ios/`, etc.
