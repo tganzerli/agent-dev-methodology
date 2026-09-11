@@ -80,7 +80,7 @@ Claude Code keeps a user-scoped memory (`.claude/projects/.../memory/`). Use it 
 - **Announce every git command** before running it; the human may interrupt.
 - **Destructive ops need in-the-moment human confirmation** (`[y/n]`): `push --force` (even `--with-lease`) on a permanent branch; `branch -D`; `push --delete` on any permanent branch; renaming a permanent branch. Do not batch multiple destructive ops without an intermediate confirmation.
 - **Never `git commit` on protected permanent branches** (e.g. `main`, `staging_*`) — those receive PRs only.
-- **Host-UI actions** (branch protection, PR templates, merge checks) that the `git` CLI cannot do: **guide the human** through the panel steps; do not work around them via API.
+- **Host configuration** (branch protection, rulesets, required checks, merge settings, a bot's bypass): **never on your own initiative** — guide the human through the panel steps. With **explicit, per-task authorisation** you may use the API, and then the branching rule's §9.1 obligations apply: scoped to the named change, **recorded** in the execution log from-what-to-what, and **read back** instead of trusting the write's exit code. Prefer the panel whenever you would have to guess an identifier (actor id, app id) — the panel shows the real list.
 
 ### ⚠ No LLM co-authorship on commits (non-negotiable)
 

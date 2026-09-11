@@ -59,7 +59,7 @@
 - **Before creating a branch** (per the branching rule), validate the rule's sequence: (1) `{{project}}_wiki/work/plans/{work_id}.md` exists? (2) `status: approved`? (3) name `<type>/<work_id>__<scope>` valid? If any fails: **stop and require the gate** — do not invent a name.
 - **Never `git commit` on protected permanent branches** (e.g. `main`, `staging_*`) — PRs only.
 - **`push --force` forbidden without `--with-lease`** on any branch.
-- **Host-UI actions** the CLI cannot do (branch protection, PR templates, merge checks): **guide the human** through the panel; do not work around via API.
+- **Host configuration** (branch protection, rulesets, required checks, merge settings, a bot's bypass): **never on your own initiative** — guide the human through the panel. With **explicit, per-task authorisation** you may use the API, and the branching rule's §9.1 obligations then apply: scoped, **recorded** from-what-to-what, and **read back** instead of trusting the write's exit code.
 - **Prefer canonical commands:** copy git commands from the branching rule rather than letting Gemini generate them (see §4).
 
 ### ⚠ No LLM co-authorship on commits (non-negotiable)
