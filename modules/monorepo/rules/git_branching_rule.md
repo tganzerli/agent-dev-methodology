@@ -265,9 +265,9 @@ git branch -D <type>/<work_id>__<scope>
 
 **Destructive operations — require human confirmation.** `push --force` (any variant, including `--force-with-lease` on a permanent branch), `branch -D` (unmerged local delete), `push --delete` on a permanent branch (`main`, `staging_*`, `dev_*`, `demo_*`) — always announce the command and ask `[y/n]` before running.
 
-## 9. Manual actions in the git host UI
+## 9. Host configuration — who may change it, and how
 
-Some operations are **not doable via `git` CLI** and require you to guide the human through their git host's control panel. Do **not** work around them via API — describe the exact steps. The exact menu path varies by host (GitHub → Settings → Branches → Branch protection rules; GitLab → Settings → Repository → Protected branches; Bitbucket → Repository settings → Branch permissions), so name the concept and let the human find it in their host:
+Some operations live in the git host's **control panel**, not in `git`: branch protection, required checks, merge settings, a bot's push exception. **By default the agent guides the human through the panel and does not touch them itself.** The menu path varies by host (GitHub → Settings → Rules → Rulesets, or Settings → Branches; GitLab → Settings → Repository → Protected branches; Bitbucket → Repository settings → Branch permissions), so name the concept and let the human find it in their host:
 
 | Situation | Concept to configure in the host UI |
 |---|---|
@@ -280,6 +280,24 @@ Some operations are **not doable via `git` CLI** and require you to guide the hu
 | Block force-push on permanent branches | Prevent history rewriting |
 
 When guiding the human, **describe the path for their specific host** and the expected result.
+
+### 9.1. The gate is the authorisation, not the tool
+
+🔒 **An agent never changes host configuration on its own initiative.** That — and only that — is the prohibition. The API is not what is banned: the host's REST API configures **every row of the table above**, so *"not doable via `git`"* was never the same as *"cannot be automated"*. The principle underneath is narrower and holds either way: **access control is the repository owner's to grant, not an agent's to assume.**
+
+With **explicit, per-task human authorisation**, an agent MAY apply the change through the API. Three obligations ride with it, and they are what make the permission auditable instead of a blank cheque:
+
+1. 🔒 **Scoped.** The authorisation covers the named change, in the named work. It does **not** carry to the next task, the next session, or a second change nobody mentioned.
+2. 🔒 **Recorded.** The execution log states what changed, **from what to what**, and quotes the authorisation in the human's own words.
+3. 🔒 **Read back.** Verify with a fresh read of the host's state — **never trust the exit code of the write.**
+
+**Prefer the panel whenever the agent would have to guess an identifier** — an actor id, an app id, a role name. The panel shows the real list; a wrong guess grants the wrong thing to the wrong actor, and a bypass handed to a repository-admin role instead of the CI identity quietly dissolves the funnel §10.1 depends on.
+
+> **Why this section says "authorisation" instead of "never".** It said "never" until 2026-09-11. In the project this kit came from, the human authorised **three** exceptions to it **on one day** — creating the permanent-branch ruleset, then a repository setting plus a second ruleset, then a CI bypass actor. Each was legitimate, each was scoped in the human's own words, and **not one violated what the section actually protects**: the owner granted, the agent did not assume.
+>
+> The second of those carried a written trigger — *"if a third arrives, stop writing notes and rewrite this section"* — on the reasoning that a policy suspended every time it binds is not a policy but a ritual with a waiver attached. The third arrived the same day.
+>
+> This rewrite is deliberately **not** a loosening. The control that was actually in force all three times is now what the text says, plus two obligations (record, read back) that used to be habit and are now required. The failure it avoids is the one catalogued in the kit's own lesson on unexecuted copies: a clause that everybody waives becomes a clause nobody reads.
 
 ## 10. LLM gates (explicit prohibitions)
 

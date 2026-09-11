@@ -41,7 +41,7 @@ Codex has **no native** [Agent Skills](https://agentskills.io/specification) dis
 - **Announce every git command**; respect Codex's approval prompt. Do not batch destructive ops without intermediate confirmation.
 - **Before creating a branch** (per the branching rule): (1) `{{project}}_wiki/work/plans/{work_id}.md` exists? (2) `status: approved`? (3) name `<type>/<work_id>__<scope>` valid? If any fails, **stop and require the gate** — do not invent a name.
 - **Never `git commit` on protected permanent branches** (e.g. `main`, `staging_*`) — PRs only. **`push --force` only with `--with-lease`.**
-- **Host-UI actions** the CLI cannot do (branch protection, PR templates, merge checks): **guide the human** through the panel; do not work around via API.
+- **Host configuration** (branch protection, rulesets, required checks, merge settings, a bot's bypass): **never on your own initiative** — guide the human through the panel. With **explicit, per-task authorisation** you may use the API, and the branching rule's §9.1 obligations then apply: scoped, **recorded** from-what-to-what, and **read back** instead of trusting the write's exit code.
 
 ### ⚠ No LLM co-authorship on commits (non-negotiable)
 
