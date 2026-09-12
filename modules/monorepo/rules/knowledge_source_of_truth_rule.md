@@ -48,11 +48,26 @@ CLAUDE.md, GEMINI.md, AGENTS.md, README.md   # entry-points
 **Outside the knowledge layer (per-branch during the trio; promoted on close):**
 - `{{project}}_wiki/work/tasks/`, `plans/`, `executions/` — born on the work branch.
 - `{{project}}_wiki/work/_index.md` — updated in `main` when a trio closes (generated, not hand-edited).
-- `{{project}}_wiki/work/relay/` — cross-repository coordination messages, if the `peer-relay` module
-  is installed. **Outside by decision, not by omission:** a delivered message exists in *both*
+- `{{project}}_wiki/work/relay/` — cross-repository coordination **messages**, if the `peer-relay`
+  module is installed. **Outside by decision, not by omission:** a delivered message exists in *both*
   repositories and is never rewritten, so it cannot be reconciled by a broadcast. This is what the
   `relay` branch scope in `git_branching_rule.md` §4 rests on — today it argues from the *absence* of
   this line, which survives only until someone adds the path "for completeness".
+
+  > ⚠ **The reason covers messages; the path covers more than messages.** Two files in this directory
+  > are not messages, and neither inherits the argument above.
+  >
+  > `_board.md` is not delivered, does not exist in both repositories, and **is** rewritten every
+  > time — three of three attributes fail. It still belongs outside the layer, but on its own
+  > argument: it is durable coordination state, versioned with the trio, and reaches this line when
+  > the work lands.
+  >
+  > `_locks.md` is **live state** and the line above actively harms it: a scope lock must be readable
+  > from another working tree *while it exists*, and per-branch versioning guarantees that writer and
+  > reader sit in different trees during exactly that window. Measured in one installation at 17.0 h
+  > of lock life and zero visibility. It needs a publication route that does not wait for the work to
+  > land, and §3.2 of `git_branching_rule.md` forbids the obvious one without exception — so the
+  > route is a deliberate choice, not a default. See `modules/intra-team/README.md` §4.
 
 **Outside this rule (code, always per-branch):**
 - `apps/*/lib/`, `apps/*/test/`, `apps/*/android/`, `apps/*/ios/`, etc.

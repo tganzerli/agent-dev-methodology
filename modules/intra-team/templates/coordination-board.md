@@ -30,16 +30,15 @@ related: []
 
 **Audience:** every agent working this repo.
 
-> The current-state tables below are authoritative — **"now."** The update history explains **how it got there.** **Do not rewrite history blocks** — overwrite only the current-state tables. Reference-first: link the driving message `[[work/relay/{slug}]]` and `work_id`s; do not re-explain what the message already says.
+> **This file is not "now."** It is versioned with the trio and reaches the shared line when the work lands, so it describes what has **already landed**: agreements, history, open items. The agreements table is current-state and is overwritten in place; the history is append-only. **Do not rewrite history blocks.** Reference-first: link the driving message `[[work/relay/{slug}]]` and `work_id`s; do not re-explain what the message already says.
+>
+> **"Now" lives in `_locks.md`**, which has a publication route of its own — see `modules/intra-team/README.md` §4. Do not move that table back in here.
 
-## 1. Active scope locks (authoritative — overwritten in place)
+## 1. Active scope locks → [[work/relay/_locks]]
 
-> Who is touching what, right now. Add a row when a lock is taken; **remove the row or mark it `released`** when the work lands or is handed off. Overwriting caps growth — **do not accumulate dead rows.** A lock is a **social** signal (avoid clobbering by communication), **not** OS/filesystem enforcement — nothing stops an agent from editing a locked scope; the board only works if every agent checks it first.
-
-| Scope | Owner agent | work_id | State | Until | Note |
-|---|---|---|---|---|---|
-| {file/dir/module or logical scope, e.g. `lib/domain/diary_schedule_service.dart`} | {from_agent, e.g. opus-4.8/auth-refactor} | {work_id} | held | {YYYY-MM-DD or "landing of work_id"} | [[work/relay/{YYYY-MM-DD}_{slug}]] |
-| {scope} | {agent} | {work_id} | releasing | {YYYY-MM-DD} | handing off — see [[work/relay/{YYYY-MM-DD}_{slug}]] |
+> **The live table does not live here, and putting it back is the defect** `modules/intra-team/README.md` §4 documents: a lock written mid-cycle would sit on that cycle's branch and be invisible during exactly the window it exists to warn about. Measured once at 17.0 h of life and zero visibility.
+>
+> This heading stays as a **permanent pointer**, so a reader who learned the old location lands somewhere correct.
 
 ## 2. Agreements (authoritative — overwritten in place)
 

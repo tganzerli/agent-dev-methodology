@@ -37,11 +37,13 @@ Messages live **inside the vault's work layer**, so the Obsidian graph links a m
 ├── executions/                  ← trio (unchanged)
 └── relay/                       ← THIS MODULE
     ├── YYYY-MM-DD_slug.md        ← one file per message (note / request / response / handoff / conflict)
-    └── _board.md                ← the durable coordination board (active scope locks + agreements)
+    ├── _board.md                ← the DURABLE board (agreements + history + open items)
+    └── _locks.md                ← the LIVE lock table — different lifetime, different route (§4)
 ```
 
 - **`relay/YYYY-MM-DD_slug.md`** — one message per file. Reference-first: cite code and wiki, don't re-paste. Its own slug (not a `work_id`); it points at work via `work_refs`.
-- **`relay/_board.md`** — the durable **coordination board** (§4). Current-state table of active scope locks + agreements, plus an append-only history. Outlives any single message.
+- **`relay/_board.md`** — the **durable** board (§4): agreements, append-only history, open items. Outlives any single message, and describes what has **landed**.
+- **`relay/_locks.md`** — the **live** lock table (§4). Same directory, opposite lifetime: it answers "now", so it needs a publication route that does not wait for the work to land. **Do not merge it back into `_board.md`** — that is the defect §4 documents.
 
 ### `relay/` is a fourth `work/` subdir — deliberately outside the trio scan
 
@@ -63,13 +65,62 @@ Messages live **inside the vault's work layer**, so the Obsidian graph links a m
 
 A claim that touches code the reader can already open **must** carry a `file:line` and be tagged `✅ landed`. The value of `⚠ in-flight` / `🔒 intent` is precisely to name the things a `grep` **won't** find yet — the collisions that cause two agents to clobber each other.
 
-## 4. The coordination board (`relay/_board.md`)
+## 4. The board (`relay/_board.md`) and the live lock table (`relay/_locks.md`)
 
-Messages are *episodic* (one exchange). The **board** is *durable* — the running answer to *"who is touching what right now, and what have we agreed?"* so no agent re-derives it from ten messages.
+Messages are *episodic* (one exchange). The **board** is *durable*. A **scope lock is neither** — it lives for hours and must be read by a **different working tree while it is alive**. Those are opposite versioning requirements, and one file cannot serve both.
 
-- **Active scope locks** — a current-state table: `scope · owner agent · work_id · state · until`. Overwritten in place as locks are taken and released (this caps growth). A lock is a **social** signal (avoid clobbering), not a filesystem lock.
-- **Agreements** — durable decisions between in-flight work items ("A owns the `User` entity shape this week; B consumes it read-only"). Tagged **proposal** vs **agreed**.
-- **Append-only history** — dated `⚠ UPDATE YYYY-MM-DD` blocks: what lock/agreement changed and why. Never rewritten; the current-state table is "now", the history is "how we got here".
+| | Live lock table | Agreements · history · open items |
+|---|---|---|
+| Lifetime | hours | permanent |
+| Answers | "who is touching what **right now**" | "what we agreed, how we got here" |
+| Who must read it | another working tree, **during** | whoever arrives later |
+| Versioning that serves it | publish when taken | land when the work lands |
+
+**This split is measured, not deduced.** In the project this kit came from, a lock lived **17.0 h** and was visible on the shared line for **zero** of them: the merge carried its creation *and* its removal in the same push, so the net was nothing. A peer agent checked the board during that window and read `(none)` — **correctly, per the file**. In a **second installation** the same declaration stands unexercised rather than disproved: board five days stale, both state tables empty, one history block, while the channel kept running. Its own agent's words: *"no lock was lost because none was taken — that is traffic luck, not a property of the design."*
+
+The defect is **structural, not hygiene**. If `work/relay/` is versioned per-branch (this kit's default — `core/METHODOLOGY.md` §11 and the path list in `modules/monorepo/rules/knowledge_source_of_truth_rule.md` §2), then a lock written mid-cycle lives on that cycle's branch, and writer and reader are in different trees during exactly the window the signal exists for. Nothing an agent remembers to do fixes that.
+
+### 4.1. The two files
+
+- **`relay/_locks.md`** — the **live** table: `scope · owner agent · work_id · state · until · source`. Overwritten in place. A lock is a **social** signal (avoid clobbering), never a filesystem lock.
+- **`relay/_board.md`** — **durable**: agreements (**proposal** vs **agreed**), an append-only `⚠ UPDATE YYYY-MM-DD` history, and open items. It describes **what has landed**, so it must not claim to be "now".
+
+Keep the lock section in `_board.md` as a **permanent pointer** rather than deleting it: a reader who learned the old location lands somewhere correct instead of on a missing heading.
+
+### 4.2. The requirement — and why this kit does not hand you the route
+
+The live table needs a publication route that **does not wait for the work to land**. That is the requirement; the route is a **topology decision this kit cannot make for you**, because it depends on which line every agent reads.
+
+Be aware that this kit's own monorepo module makes the obvious route unavailable: `git_branching_rule.md` §3.2 states *"Direct commit into `main` or `staging_*` is FORBIDDEN — no exception"*, and LLM gate 1 repeats it. So an installation has to choose deliberately:
+
+| Route | What it costs |
+|---|---|
+| A narrow, **named** exception for that one file | A second exception in the branching rule. One installation did this and it is the route with the least friction — see §4.3. |
+| A line that already accepts direct commits from an approved plan (`dev_*`) | Cheap, but only works if that line is a **single** read point for every agent. In a multi-app monorepo it is not. |
+| One PR per lock, on a `relay`-scope branch | No rule change, and the measurement above is what it costs: the route existed, was written in two places, and the 17 h lock did not use it. A route documented and unused measures friction, not ignorance. |
+| Machine-local file, outside version control | Lowest friction; loses the history that made this defect measurable in the first place. |
+
+**Do not adopt a route by default.** Pick one, write down why, and write down what it does not fix.
+
+### 4.3. What the exception route looked like, and the criterion that placed it
+
+The installation that took the exception route learned two things worth carrying:
+
+**Where a new exception goes.** The instinct is to widen the existing docs-trivial exception, and that was the worse edit: seven places in that repository described it by the two attributes it would have lost. The question that settled it generalizes to any rule with an exceptions section:
+
+> **Are the two cases safe for the same reason?** If not, they are two sections.
+
+The existing exception was safe by being **rare and human-judged** — a person chooses the diff, and judgement is the only bound. Live-state publication is safe for the opposite reason: **the diff is machine-bounded**, produced by a tool that only knows how to write one row in one file. Two arguments, two sections; the old one keeps its rarity claim true and measurable.
+
+**A per-act human gate is the wrong safeguard here**, and it was dropped deliberately. Requiring a person to approve each lock makes a lock's visibility depend on someone being in the session — the same defect class, re-entered. Taking a lock only **announces**; it blocks nobody by mechanism and undoes in one row, which is the same carve-out this module already makes for `note` (§6). The safeguards that replaced the gate are a diff bound the tool enforces before pushing, plus CI checks after the fact (§9).
+
+**Publish without switching branches.** Whoever takes a lock is mid-cycle with a dirty tree, so any route that requires `git checkout` will not be used. A throwaway `git worktree` on the shared line writes the row and leaves the working session untouched.
+
+### 4.4. What none of this fixes, and say so out loud
+
+**Nothing forces an agent to take a lock.** Every route above changes the cost of *publishing* a lock; none creates an obligation to declare scope. An empty table stays truthful when it says it is empty.
+
+Say this wherever the mechanism is documented. The installation above found the criterion the hard way, from a peer that refused to offer its own mitigation as a fix on exactly this ground: *"the gate depends on the agent remembering."* A mechanism that promises **visibility** and delivers it is worth installing; the same mechanism sold as ending clobbering is not.
 
 ## 5. Frontmatter this module standardizes
 
@@ -119,11 +170,25 @@ All authored content is in **{{KNOWLEDGE_LANG}}**, like the rest of the wiki.
 
 The reference-first message + coordination-board shape is the core. Heavier ideas — install only if the pain appears:
 
-- **Machine-checked scope locks in CI** — a pre-merge hook that fails a PR touching a scope another agent holds on `_board.md`. *Escalate when:* social locks are ignored and clobbering keeps happening. Until then, the board is advisory.
+- **Machine-checked scope locks in CI.** ⚠ **The obvious shape does not work, and the reason is instructive.** A **pre-merge** hook that fails a PR touching a scope another agent holds reads the lock table **from the branch being merged** — the very tree the lock is stuck in. It has the same timing defect as the mechanism it would escalate, so it cannot be the escalation for it.
+
+  What does have teeth, once the live table has a publication route (§4), is the **mirror** check plus two companions:
+
+  | Check | What it catches |
+  |---|---|
+  | Fail a PR that carries a change to the live lock table | A lock travelling on a work branch is a lock nobody can see — the measured defect |
+  | Fail a non-merge commit on the shared line that touches the lock table **and anything else** | Verifies the machine-bounded-diff claim instead of trusting the tool that makes it |
+  | Fail a lock row whose `work_id` names a **closed** trio | A dead lock read as an active front — this happened, and a peer planned around it |
+
+  ⚠ **Do not** also fail a row whose `work_id` has **no** trio in the checkout. That is the *normal* state of a live lock: the trio is in progress, so it is per-branch and absent from the shared line — the very asymmetry the live table exists to bridge. One installation shipped that condition, and it rejected every real lock on the first production attempt. It had passed its tests because the tests ran on the branch where the trio existed, which is never where the check runs.
+
+  *Escalate when:* locks are taken but not seen. Until then, the board is advisory.
 - **Structured broadcast bus** — a queue/topic instead of one-file-per-message, for many agents at high message volume. *Escalate when:* `relay/` churns faster than humans can gate. Until then, one file per message + `work_refs` greppability suffices.
 
 Both are **not defaults** — the seed-vs-accretion principle (`docs/design-rationale.md`).
 
 ## 10. Provenance — proven vs. generalized
 
-Be honest about maturity: unlike `cross-team` (whose hand-shape was run repeatedly before it was a skill), this module is **largely an informed generalization**. It applies the *proven* structural spine of `cross-team` (addressed docs, stable ask IDs, episodic-message + durable-durable split, per-claim tags, dual closing ask) to the intra-repo case, **inverting** the access premise. The **reference-first rule** and the **claim-state tags** are the new, unproven pieces — adopt them, then let real multi-agent use tell you which parts earn their keep. Prune what doesn't.
+Be honest about maturity: unlike `cross-team` (whose hand-shape was run repeatedly before it was a skill), this module is **largely an informed generalization**.
+
+**The board/lock split of §4 is the first piece this module got back from real use, and it arrived as a defect.** Two installations ran it. In one, a lock was taken and measured at 17.0 h of life with zero visibility, while a peer agent read the empty table and planned around it. In the other, nothing broke — and its own agent named why: no lock had ever been taken, which is traffic luck and not a property of the design. Both boards carried the same "authoritative — now" declaration against per-branch versioning. §4, the §9 correction and the path-list note in the monorepo module are what that use bought; the split itself is now **proven**, and the route remains per-installation. It applies the *proven* structural spine of `cross-team` (addressed docs, stable ask IDs, episodic-message + durable-durable split, per-claim tags, dual closing ask) to the intra-repo case, **inverting** the access premise. The **reference-first rule** and the **claim-state tags** are the new, unproven pieces — adopt them, then let real multi-agent use tell you which parts earn their keep. Prune what doesn't.
