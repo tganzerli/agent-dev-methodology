@@ -15,7 +15,7 @@
 title: {título}
 type: relay
 direction: outbound            # outbound (autoramos) | inbound (recebemos)
-peer: {nome no registro}       # ex.: tcc — precisa existir em .agents/peers.md
+peer: {nome no registro}       # precisa existir em .agents/peers.md
 from_agent: {modelo/role}      # ex.: opus-5/backend-foundations
 to_agent: {modelo/role | any}
 msg_role: request              # note | request | response | handoff | conflict
