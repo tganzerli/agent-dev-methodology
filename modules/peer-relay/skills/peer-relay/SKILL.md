@@ -1,6 +1,6 @@
 ---
 name: peer-relay
-description: Coordenar com o agente de OUTRO projeto no mesmo computador — repositórios distintos que conseguem ler um ao outro. Cobre absorção (orientar-se no repo do peer sem varrê-lo), envio de mensagem à caixa de entrada dele, leitura da nossa caixa, e o board compartilhado. Use quando precisar pedir, responder, avisar ou transferir trabalho para um projeto declarado em .agents/peers.md — por exemplo o projeto do TCC. Não use para agentes deste mesmo repositório (é `intra-team`) nem para times sem acesso ao nosso código (é `cross-team-handoff`).
+description: Coordenar com o agente de OUTRO projeto no mesmo computador — repositórios distintos que conseguem ler um ao outro. Cobre absorção (orientar-se no repo do peer sem varrê-lo), envio de mensagem à caixa de entrada dele, leitura da nossa caixa, e o board compartilhado. Use quando precisar pedir, responder, avisar ou transferir trabalho para um projeto declarado em .agents/peers.md. Não use para agentes deste mesmo repositório (é `intra-team`) nem para times sem acesso ao nosso código (é `cross-team-handoff`).
 argument-hint: "[absorb <peer> | send <peer> <slug> | read <peer> | board]"
 ---
 
@@ -26,7 +26,7 @@ Ele **importa a maquinaria do `intra-team`** — os cinco `msg_role` (`note`/`re
 
 O motivo de o módulo existir. Num universo de dois repositórios, `router.dart:9` existe **nos dois** e significa coisas diferentes.
 
-1. 🔒 **Toda citação de arquivo carrega prefixo de repo.** `tcc:dart/lib/src/decoder/_decoder.dart:56`, `{{project}}:packages/domain/lib/src/value/enums.dart:1-3`. O prefixo vem de `.agents/peers.md`. Um `file:line` sem prefixo é **erro de formato**, não estilo.
+1. 🔒 **Toda citação de arquivo carrega prefixo de repo.** `{peer}:lib/src/decoder/_decoder.dart:56`, `{{project}}:packages/domain/lib/src/value/enums.dart:1-3`. O prefixo vem de `.agents/peers.md`. Um `file:line` sem prefixo é **erro de formato**, não estilo.
 2. **Citação ao repo do leitor: reference-first puro.** Ele abre o arquivo. Não re-cole.
 3. **Citação ao nosso repo: reference-first *com resumo inline suficiente*.** Ele *pode* abrir, mas está em outro checkout com outro contexto carregado e **não vai**. A afirmação se sustenta sozinha no corpo; a citação fica como proveniência verificável. É o meio-termo que nenhum dos outros dois módulos oferece — e é o erro mais fácil de cometer, porque "reference-first" convida a só apontar.
 4. **`[[wikilinks]]` só para páginas do repo do leitor.** Vaults são distintos: um wikilink para o nosso vault vira link morto no Obsidian dele. Para páginas nossas, caminho de arquivo com prefixo.
@@ -84,7 +84,7 @@ Uma mensagem lida vira `status: read`; respondida, `answered`. **Não** feche um
 
 ### `board` · gate humano
 
-Mantém `{{project}}_wiki/work/relay/_board.md`. Locks cujo escopo vive no repo do peer levam o **prefixo dele** na coluna Escopo (`tcc:dart/lib/`).
+Mantém `{{project}}_wiki/work/relay/_board.md`. Locks cujo escopo vive no repo do peer levam o **prefixo dele** na coluna Escopo (`{peer}:lib/`).
 
 Um lock aqui é sinal **social**, não trava de sistema de arquivos — e entre repositórios é ainda mais frágil, porque o outro agente pode nem ter olhado. Ao travar escopo que atravessa a fronteira, **diga isso na mensagem**; não confie no board sozinho.
 

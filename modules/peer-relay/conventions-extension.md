@@ -22,7 +22,7 @@ Mensagens trocadas com o agente de **outro projeto** que consegue ler o nosso re
 ### Campos adicionais
 
 ```yaml
-peer: tcc                      # nome do peer no registro .agents/peers.md — obrigatório
+peer: {peer}                   # nome do peer no registro .agents/peers.md — obrigatório
 peer_work_refs: []             # work_ids DO PEER. Separado de work_refs (os nossos),
                                # porque há dois espaços de nomes e os dois usam
                                # o formato YYYY-MM-DD_slug — a colisão é questão de tempo.
