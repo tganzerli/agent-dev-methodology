@@ -1,0 +1,13 @@
+description = "Sync local working tree with remote before starting work"
+
+prompt = """
+You are executing the `/sync-context` command in this project.
+
+The canonical source of truth is `@.claude/skills/sync-context/SKILL.md`. Follow the 4 steps:
+1. Fetch remote changes.
+2. Check working tree status (dirty tree aborts).
+3. Report divergence between local and remote.
+4. Propose safe pull/rebase with explicit human confirmation.
+
+Arguments: {{args}}
+"""

@@ -1,0 +1,12 @@
+description = "Manual fallback for broadcast from dev_packages to dev_<app>"
+
+prompt = """
+You are executing the `/distribute-packages` command in this project.
+
+The canonical source of truth is `@.claude/skills/distribute-packages/SKILL.md`.
+Use only as a manual fallback (when CI fails or bootstrapping a new app):
+1. Validate context (branch must be dev_<app>, clean working tree).
+2. Fetch origin/dev_packages.
+3. Detect divergence in packages/ and shared tooling.
+4. Merge with explicit human confirmation (`git merge --no-ff origin/dev_packages`).
+"""

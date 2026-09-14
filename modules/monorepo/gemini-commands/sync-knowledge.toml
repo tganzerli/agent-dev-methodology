@@ -1,0 +1,13 @@
+description = "Sync knowledge layer from main into dev_<app> without touching code or work/"
+
+prompt = """
+You are executing the `/sync-knowledge` command in this project.
+
+The canonical source of truth is `@.claude/skills/sync-knowledge/SKILL.md`.
+Follow the steps:
+1. Validate context: branch must be dev_<app>, clean tree, fetch origin/main.
+2. Detect divergence in knowledge layer paths only.
+3. Checkout modified knowledge files from origin/main.
+4. Regenerate work index (/work-index).
+5. Human review of diff before commit.
+"""

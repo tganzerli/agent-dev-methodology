@@ -1,0 +1,13 @@
+description = "Conduct bidirectional LLM<->LLM exchange with a partner team"
+
+prompt = """
+You are executing the `/cross-team-handoff` command in this project.
+
+The canonical source of truth is `@.claude/skills/cross-team-handoff/SKILL.md`.
+Supported flows:
+- `outbound <slug>` -> Author an outbound handoff in `{{project}}_wiki/sources/external/{YYYY-MM-DD}_{slug}.md`.
+- `inbound <path-or-url>` -> Ingest a partner team response with per-claim provenance tags.
+- `contract <subject>` -> Create or update a living-contract page in cross-cutting/.
+
+Arguments: {{args}}
+"""

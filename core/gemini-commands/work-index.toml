@@ -1,0 +1,13 @@
+description = "Regenerate the work index deterministically from trios frontmatter"
+
+prompt = """
+You are executing the `/work-index` command in this project.
+
+The canonical source of truth is `@.claude/skills/work-index/SKILL.md`.
+Regenerate the work catalog by running:
+`python3 .claude/skills/work-index/generate.py {{args}} --root .`
+
+If `--check` is passed, run in dry-run mode without modifying files.
+
+Arguments: {{args}}
+"""

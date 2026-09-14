@@ -1,0 +1,15 @@
+description = "Ingest an external source into the wiki under sources/external/"
+
+prompt = """
+You are executing the `/ingest-source` command in this project.
+
+The canonical source of truth is `@.claude/skills/ingest-source/SKILL.md` and `@.agents/METHODOLOGY.md` §6.1. Follow the workflow:
+1. Collect source (local file or URL via defuddle).
+2. Discuss takeaways with human (confirm scope before writing).
+3. Create summary in `{{project}}_wiki/sources/external/YYYY-MM-DD_slug.md`.
+4. Update affected knowledge pages with file:line citations.
+5. Update indices (`_meta/index.md` and `_meta/log.md`).
+6. Human gate before finalizing.
+
+Arguments: {{args}}
+"""

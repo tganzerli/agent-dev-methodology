@@ -1,0 +1,15 @@
+description = "Promote knowledge layer changes from dev_<app> to main via docs/<id>__knowledge"
+
+prompt = """
+You are executing the `/promote-knowledge` command in this project.
+
+The canonical source of truth is `@.claude/skills/promote-knowledge/SKILL.md`.
+Follow the steps:
+1. Validate context: branch must be dev_<app> (never demo, staging, or main), clean tree.
+2. Detect knowledge files to promote (scoped to work_id by default, or --all; --trio if closed).
+3. Single human gate: ask for confirmation before branch creation and push.
+4. Autonomous execution: checkout docs/<work_id>__knowledge off origin/main, copy files, regenerate index (/work-index), commit, push.
+5. Instruct human to open PR `docs/<work_id>__knowledge -> main`.
+
+Arguments: {{args}}
+"""
