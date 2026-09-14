@@ -1,0 +1,16 @@
+description = "Propagate a completed execution log into the wiki knowledge pages"
+
+prompt = """
+You are executing the `/wiki-sync` command in this project.
+
+The canonical source of truth is `@.claude/skills/wiki-sync/SKILL.md` and `@.agents/METHODOLOGY.md` §4.5.
+Follow the steps:
+1. Locate and validate execution log in `{{project}}_wiki/work/executions/{{args}}.md` (must be `status: done`).
+2. Update/create knowledge pages using surgical edits and file:line citations.
+3. Update `related[]` in execution log.
+4. Update indices (`_meta/index.md` and regenerate work index via `/work-index`).
+5. Append log entry in `{{project}}_wiki/_meta/log.md`.
+6. Human gate to review diff.
+
+Arguments: {{args}}
+"""

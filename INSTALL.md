@@ -220,9 +220,10 @@ Follow `modules/peer-relay/README.md` for the qualified-citation rule (a `file:l
 The methodology is agent-agnostic; each agent just needs a thin stub pointing at `.agents/METHODOLOGY.md`. For each agent named in answer 5:
 
 - **Claude Code** → `.agents/llm/claude.md` (from `adapters/claude.md`) + a root `CLAUDE.md` stub that points to the reading order (§9 of METHODOLOGY). Claude discovers `.claude/skills/` natively.
-- **Gemini / Antigravity** → `.agents/llm/gemini.md` (from `adapters/gemini.md`) + a root `GEMINI.md` with a **"Skills available"** section. In Antigravity / modern Gemini environments, skills are discovered **natively** by registering `.agents/skills.json` (`{ "entries": [ { "path": "../.claude/skills" } ] }`) or creating a symlink `.agents/skills -> ../.claude/skills`. For legacy Gemini CLI, it falls back to reading the catalog manually.
+- **Gemini / Antigravity** → `.agents/llm/gemini.md` (from `adapters/gemini.md`) + a root `GEMINI.md` with a **"Skills available"** section. For **Gemini CLI**, copy `core/gemini-commands/*.toml` (and any installed module `*/gemini-commands/*.toml`) into `.gemini/commands/` to expose skills as native `/command` slash commands. In Antigravity / modern Gemini environments, skills in `.claude/skills/` are discovered **natively** by registering `.agents/skills.json` (`{ "entries": [ { "path": "../.claude/skills" } ] }`) or creating a symlink `.agents/skills -> ../.claude/skills`.
 - **Codex / others** → `.agents/llm/codex.md` (from `adapters/codex.md`).
 - **Always** → a root `AGENTS.md` (from the kit's `AGENTS.md`, de-templated) as the universal entry-point convention. This is the file a generic agent looks for.
+- **Optional (recommended): Turn the plan gate into a real lock** → copy `core/hooks/require-approved-plan.sh` to `.claude/hooks/require-approved-plan.sh` (chmod +x) and register under `PreToolUse` in `.claude/settings.json`. The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`.
 
 Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub.
 
@@ -230,12 +231,13 @@ Every entry-point stub is short: it names the reading order and points at the ca
 
 Run these before telling the human it is done:
 
-- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude scripts CLAUDE.md GEMINI.md AGENTS.md` returns **nothing** (all placeholders substituted — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
+- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude .gemini scripts CLAUDE.md GEMINI.md AGENTS.md` returns **nothing** (all placeholders substituted — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
 - [ ] `.agents/METHODOLOGY.md`, `.agents/rules/mandatory_planning_rule.md` exist.
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).
 - [ ] `.claude/skills/_index.md` lists exactly the skills you installed (core, plus modules if chosen).
 - [ ] Root entry-point(s) for each chosen agent exist and point at `.agents/METHODOLOGY.md`.
+- [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `.gemini/commands/` populated if targeting Gemini CLI.
 - [ ] If monorepo module installed: `.agents/rules/git_branching_rule.md` + `knowledge_source_of_truth_rule.md` exist; roster checklist done.
 - [ ] If cross-team module installed: `cross-team-handoff` skill present; conventions extended.
 - [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1).

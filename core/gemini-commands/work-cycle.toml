@@ -1,0 +1,17 @@
+description = "Conduct the full task -> plan -> execution -> wiki-sync work cycle"
+
+prompt = """
+You are executing the `/work-cycle` command in this project.
+
+The canonical source of truth is `@.claude/skills/work-cycle/SKILL.md` and `@.agents/METHODOLOGY.md` §4.
+Follow the steps:
+1. Task (`{{project}}_wiki/work/tasks/{ID}.md`) — author/refine with human gate.
+2. Pre-plan analyses — if needed, dispatch focused agents and validate citations.
+3. Plan (`{{project}}_wiki/work/plans/{ID}.md`) — draft following `mandatory_planning_rule.md`.
+4. Human approval gate — NO code modification before explicit plan approval (`status: approved`).
+5. Branch — create per `git_branching_rule.md` (`<type>/<work_id>__<scope>`).
+6. Execution (`{{project}}_wiki/work/executions/{ID}.md`) — maintain live log step by step.
+7. Wrap-up — prompt `/wiki-sync` and knowledge promotion when done.
+
+Arguments: {{args}}
+"""

@@ -1,0 +1,14 @@
+description = "Check wiki health (stale pages, orphans, contradictions, broken citations)"
+
+prompt = """
+You are executing the `/wiki-lint` command in this project.
+
+The canonical source of truth is `@.claude/skills/wiki-lint/SKILL.md` and `@.agents/METHODOLOGY.md` §6.3.
+Analyze:
+1. Knowledge pages: stale pages, orphaned pages, broken file:line citations.
+2. Work pages: stagnant tasks, approved plans lacking execution, stalled executions.
+3. Metadata: consistency with `_meta/index.md`.
+4. Structured health report with actionable findings.
+
+Arguments: {{args}}
+"""

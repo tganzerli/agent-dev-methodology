@@ -1,0 +1,13 @@
+description = "Search past work (executions and frontmatter) by term/topic"
+
+prompt = """
+You are executing the `/work-find` command in this project.
+
+The canonical source of truth is `@.claude/skills/work-find/SKILL.md`.
+Run:
+`python3 .claude/skills/work-find/find.py {{args}} --root .`
+
+Analyze the ranked output, open the top 2-3 relevant executions, and provide a direct answer.
+
+Arguments: {{args}}
+"""

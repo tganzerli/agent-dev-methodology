@@ -1,0 +1,14 @@
+description = "Audit consistency between work trios and the work index"
+
+prompt = """
+You are executing the `/work-audit` command in this project.
+
+The canonical source of truth is `@.claude/skills/work-audit/SKILL.md`.
+1. Validate context (branch should be dev or main).
+2. Collect trio inventory (`work/tasks/`, `work/plans/`, `work/executions/`).
+3. Audit rules: intra-trio consistency, abandoned tasks, status drift.
+4. Output structured report categorized by severity (CRITICAL, WARN, INFO).
+5. If `--fix` is specified, apply only deterministic date normalizations.
+
+Arguments: {{args}}
+"""

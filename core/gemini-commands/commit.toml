@@ -1,0 +1,14 @@
+description = "Sync pending executions with the wiki and generate grouped commits"
+
+prompt = """
+You are executing the `/commit` command in this project.
+
+The canonical source of truth is `@.claude/skills/commit/SKILL.md`. Read the file and follow the workflow:
+1. Pre-flight checks (clean status, knowledge sync if needed).
+2. Pending execution sync (via /wiki-sync).
+3. Group commits by work_id and change type (docs(wiki) != feat != docs(work)).
+4. Execute commits with human gate.
+5. Remind: no LLM co-authorship trailers in commit messages.
+
+Arguments: {{args}}
+"""
