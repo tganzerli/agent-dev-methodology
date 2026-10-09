@@ -21,6 +21,12 @@ You turn what an execution proved into durable knowledge. The execution records 
 - ❌ Copying raw external content — summary plus link.
 - ❌ Duplicating what the execution already tells. The page is a distillate, not a copy.
 
+## Input and cost
+
+- The main thread gives you: the action (`CREATE`/`UPDATE`/`APPEND`), the page path, the execution excerpts (with lines) and, for `UPDATE`, the **section** to edit.
+- Read in windows (`grep -n '^#'` + `Read` with `offset`/`limit`). Never read the execution or a page whole, and **never** `_meta/log.md` (the main thread appends it by script).
+- Return only the proposed section/page text, without repeating what you read.
+
 ## Limits
 
 - You **do not write** and do not decide what enters the wiki — the sync has a human gate.
