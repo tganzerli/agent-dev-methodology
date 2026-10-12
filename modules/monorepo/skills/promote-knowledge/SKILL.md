@@ -48,6 +48,26 @@ The **step 7** checks are **deterministic automatic verifications**: on failure 
 - `git status --short` → must be empty. If dirty, instruct `commit`/`stash`.
 - `git fetch origin main` to refresh refs.
 
+### 1-bis. 🔒 The source branch must not be behind its own remote — aborts
+
+Step 6a copies from **`$SRC_BRANCH` as it exists locally**. A local `dev_<app>` that is behind
+`origin/dev_<app>` promotes content that is already superseded, and nothing downstream notices: the
+diff is clean, the index regenerates, CI is green.
+
+```bash
+git fetch origin "$SRC_BRANCH"
+BEHIND=$(git rev-list --count "$SRC_BRANCH..origin/$SRC_BRANCH")
+[ "$BEHIND" -gt 0 ] && echo "ABORT: $SRC_BRANCH is $BEHIND commit(s) behind origin/$SRC_BRANCH"
+```
+
+**Any output → abort**, tell the human to `git pull --ff-only` on the source branch, and stop. Do not
+promote "the part that is current".
+
+> **Found in use, 2026-09-12, in an installation of this module.** Step 1 fetches `origin main` only —
+> it refreshes the **target** of the promotion and never the **source**. A local `dev_backend` sitting
+> 2 commits behind its remote carried a stale CI workflow, which step 5-bis then flagged as a revert.
+> Two gaps compounding: this one creates the hazard, that one catches it.
+
 ### 2. Detect the knowledge-layer files to promote
 
 The canonical knowledge-layer paths (rule §2) are the **mask** in both modes. Adapt this list to the project's actual filenames at install time:
@@ -130,6 +150,52 @@ git pull --ff-only origin main
 git checkout -b docs/<work_id>__knowledge
 ```
 
+### 5-bis. 🔒 Direction check — MANDATORY, BOTH MODES, aborts
+
+> **This is a gate, not advice.** It runs after step 5 and **before any file is copied**, in scoped
+> mode and in `--all` alike. On any hit the agent **aborts on its own** — no re-approval, no "confirm
+> anyway" — returns to `$SRC_BRANCH`, and reports the list.
+
+Step 6a runs `git checkout "$SRC_BRANCH" -- <list>`, which is **not a merge**: it takes the source
+branch's version whatever its age. A file that is **newer on `main`** is overwritten with the older
+`dev_<app>` version, and the promotion lands as a silent revert. `git diff --name-only` (the `--all`
+detector) lists files that **differ**, in either direction; the scoped detector bounds *how many* files
+the hazard can reach, never *which direction* they travel.
+
+Run this over the **detected list** (the one the step-3 gate showed), not over the whole mask:
+
+```bash
+printf '%s\n' $FILES | while read -r f; do
+  [ -z "$f" ] && continue
+  # Content first: identical content cannot be a revert, whatever the timestamps say.
+  git diff --quiet origin/main "$SRC_BRANCH" -- "$f" && continue
+  LM=$(git log -1 --format=%ct origin/main -- "$f" 2>/dev/null)
+  LD=$(git log -1 --format=%ct "$SRC_BRANCH" -- "$f" 2>/dev/null)
+  [ -n "$LM" ] && [ "${LM:-0}" -gt "${LD:-0}" ] && echo "NEWER ON MAIN — would be reverted: $f"
+done
+```
+
+**Any line printed → abort.** Then either drop those files from the list and re-run, or name the
+promoted files explicitly. Never "promote anyway".
+
+> ⚠ **The content test is not an optimisation; without it the check cries wolf.** Commit time moves for
+> reasons content does not — a file carried along by an unrelated merge is newer on `main` and
+> byte-identical. Exercised on 2026-09-12, the check produced two hits and one was exactly that.
+> **A gate that aborts on harmless hits is a gate people learn to override.**
+
+> **Two measurements from one installation.**
+>
+> **2026-09-11, `--all`, 19 files: 16 were newer on `main`** — every rule, ADR and page written that
+> day. One commit would have reverted a day of work.
+>
+> **2026-09-12, scoped mode:** promoting a two-file sub-trio, the scoped detection also proposed
+> `.github/workflows/checks.yml`, because one commit of that sub-trio had touched it. Copying it would
+> have **deleted a CI step** together with the comment explaining it. Caught by hand only because the
+> list was short enough to read.
+>
+> 🔑 **Scoped mode is narrower, not safer.** A check written as a precondition of one mode does not
+> protect the other.
+
 ### 6. Apply the knowledge-layer files
 
 > ⚠️ `{{project}}_wiki/work/_index.md` and `{{project}}_wiki/work/archive/*` are **GENERATED** (the `work-index` skill). **Never copy or hand-edit the index** — it is **regenerated** in step 6b. This eliminates by construction the multi-agent clobber that once required insert-only logic + an additions-only gate.
@@ -195,6 +261,8 @@ git checkout "$SRC_BRANCH"
 If another `dev_<app>` is active, suggest: "After the PR merges, run `/sync-knowledge` on `dev_<other>` to receive it." (In this setup the CI broadcast usually delivers it automatically — a manual sync is only a fallback.)
 
 ## Anti-patterns
+
+- ❌ Skipping step 1-bis or step 5-bis, or treating either as advice. They abort; they do not warn.
 
 - ❌ Skipping the single gate (step 3).
 - ❌ Introducing a second human gate (e.g. re-asking at step 7) — step 7 is a deterministic self-check.
