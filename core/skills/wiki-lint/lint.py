@@ -284,9 +284,15 @@ def main():
     allp = load_pages(a.root, vault)
     extra = []
     for d in (".agents",):
-        for fp in glob.glob(os.path.join(a.root, d, "**", "*.md"), recursive=True):
-            extra.append(dict(rel=os.path.relpath(fp, a.root), name=os.path.basename(fp)[:-3],
-                              dir=d, top=d, fm={}, body=read(fp)))
+        # os.walk does not follow symlinks: .agents/skills -> ../.claude/skills (the Antigravity
+        # skills link) must not pull every skill body into the wikilink check.
+        for dirpath, _dirs, filenames in os.walk(os.path.join(a.root, d)):
+            for f in sorted(filenames):
+                if not f.endswith(".md"):
+                    continue
+                fp = os.path.join(dirpath, f)
+                extra.append(dict(rel=os.path.relpath(fp, a.root), name=f[:-3],
+                                  dir=d, top=d, fm={}, body=read(fp)))
     ctx = dict(root=a.root, vault=vault, stale_days=a.stale_days, all=allp, extra_sources=extra,
                knowledge=[p for p in allp if p["top"] not in SKIP_TOP and p["dir"] != ""
                           or p["rel"] == "overview.md"],
