@@ -96,7 +96,7 @@ Be aware that this kit's own monorepo module makes the obvious route unavailable
 | Route | What it costs |
 |---|---|
 | A narrow, **named** exception for that one file | A second exception in the branching rule. One installation did this and it is the route with the least friction — see §4.3. |
-| A line that already accepts direct commits from an approved plan (`dev_*`) | Cheap, but only works if that line is a **single** read point for every agent. In a multi-app monorepo it is not. |
+| A line that already accepts direct commits from an approved plan | Cheap, but only works if that line is a **single** read point for every agent. **Unavailable under the monorepo module**, whose `dev_*` lines take PRs only; and in a multi-app monorepo no `dev_*` line is a single read point anyway. |
 | One PR per lock, on a `relay`-scope branch | No rule change, and the measurement above is what it costs: the route existed, was written in two places, and the 17 h lock did not use it. A route documented and unused measures friction, not ignorance. |
 | Machine-local file, outside version control | Lowest friction; loses the history that made this defect measurable in the first place. |
 
