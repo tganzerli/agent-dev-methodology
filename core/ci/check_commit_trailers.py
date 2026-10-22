@@ -38,19 +38,40 @@ import re
 import subprocess
 import sys
 
-MODELS = r"claude|anthropic|gemini|gpt|copilot|openai|codex|opus|sonnet|haiku"
+# An attribution trailer names an agent when its e-mail is an agent's, or when its
+# name is made ONLY of product/model words (plus versions and filler). Whole tokens,
+# so "Claude Opus 4.5 (1M context)" and "Cursor Agent" match, "Dr. Gemini Jones" does not.
+AGENT_EMAIL = re.compile(r"@(anthropic\.com|cursor\.(com|sh)|openai\.com)>?$"
+                         r"|copilot@users\.noreply\.github\.com|noreply@aider", re.I)
+PRODUCT = {"claude", "anthropic", "opus", "sonnet", "haiku", "cursor", "copilot", "gemini",
+           "codex", "openai", "chatgpt", "gpt", "aider", "devin", "windsurf", "codeium"}
+FILLER = {"code", "agent", "assist", "ai", "bot", "github", "google", "cli", "context", "model"}
+TRAILER = re.compile(r"(?im)^\s*(Co-Authored-By|Generated-By|Assisted-By):\s*(.*?)\s*(<[^>]*>)?\s*$")
 BANNED = [
-    (re.compile(r"(?im)^\s*Co-Authored-By:.*\b(" + MODELS + r")\b"), "LLM Co-Authored-By trailer"),
-    (re.compile(r"(?im)^\s*(Generated|Assisted)-By:.*\b(" + MODELS + r")\b"), "LLM attribution trailer"),
     (re.compile(r"(?im)^\s*Claude-Session:"), "Claude-Session trailer"),
     (re.compile(r"(?i)Generated with \[?Claude Code"), '"Generated with Claude Code" footer'),
 ]
+
+
+def agent_trailer(name, email):
+    if email and AGENT_EMAIL.search(email):
+        return True
+    tokens = [w for w in re.split(r"[^a-z0-9.]+", name.lower()) if w]
+    words = [w for w in tokens if not re.fullmatch(r"[\d.]+[a-z]?|v?\d[\w.]*", w)]
+    return bool(words) and any(w in PRODUCT for w in words) and all(
+        w in PRODUCT or w in FILLER for w in words)
+
+
 RULE = 'Rule: .agents/llm/<agent>.md, "No LLM co-authorship on commits (non-negotiable)".'
 
 
 def hits(message):
     body = "\n".join(l for l in message.splitlines() if not l.startswith("#"))
-    return [label for pattern, label in BANNED if pattern.search(body)]
+    found = [label for pattern, label in BANNED if pattern.search(body)]
+    for m in TRAILER.finditer(body):
+        if agent_trailer(m.group(2), m.group(3) or ""):
+            found.append(f"LLM attribution trailer ({m.group(1)}: {m.group(2)})")
+    return found
 
 
 def git(*argv):

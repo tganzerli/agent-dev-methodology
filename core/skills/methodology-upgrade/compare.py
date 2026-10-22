@@ -11,7 +11,8 @@ classifies:
   both           both moved                                   -> merge by hand
   new-in-kit     file added to the kit since the stamp        -> consider installing
   missing        core file not installed                      -> moved, or deliberately dropped
-  not-installed  module/agent file absent (hidden unless --all) -> module skipped at install
+  optional-not-installed   module, agent, hook, CI, MCP or REVIEW.md file absent
+                           (hidden unless --all) -> skipped by choice at install
   same           nothing to do
 
 Read-only: it never writes to the project or the kit. De-templating is heuristic (an
@@ -40,15 +41,24 @@ MAP = [
     (r"core/templates/(task|plan|execution)\.md", r"{vault}/work/\1s/_template.md"),
     (r"core/templates/adr\.md", "{vault}/decisions/_templates/adr.md"),
     (r"core/templates/postmortem\.md", "{vault}/postmortems/_template.md"),
+    (r"core/templates/wiki-page\.md", "{vault}/_meta/_page_template.md"),
+    (r"core/templates/source\.md", "{vault}/sources/external/_template.md"),
+    (r"core/templates/review\.md", "REVIEW.md"),
     (r"core/skills/(.+)", r".claude/skills/\1"),
     (r"modules/[^/]+/skills/(.+)", r".claude/skills/\1"),
     (r"core/agents/(.+)", r".claude/agents/\1"),
     (r"core/hooks/require-approved-plan\.sh", ".claude/hooks/require-approved-plan.sh"),
     (r"core/hooks/commit-msg", ".githooks/commit-msg"),
     (r"core/ci/check_commit_trailers\.py", "scripts/ci/check_commit_trailers.py"),
+    (r"core/ci/methodology-checks\.yml", ".github/workflows/methodology-checks.yml"),
     (r"adapters/(claude|gemini|codex)\.md", r".agents/llm/\1.md"),
     (r"(?:core|modules/[^/]+)/gemini-commands/(.+)", r".gemini/commands/\1"),
 ]
+
+
+# Installed only by choice (a module, an agent, an optional mechanism): absent is not "missing".
+OPTIONAL = re.compile(r"modules/|.*/gemini-commands/|core/hooks/|core/ci/|core/mcp\.md$"
+                      r"|core/agents/|core/templates/review\.md$|adapters/")
 
 
 def git(kit, *argv):
@@ -133,10 +143,10 @@ def main():
         if m is None:
             if head is None:
                 continue
-            if kp.startswith("modules/") or "gemini-commands" in kp:
-                status = "not-installed"  # optional: a skipped module or agent
+            if rev and old is None:
+                status = "new-in-kit"
             else:
-                status = "new-in-kit" if rev and old is None else "missing"
+                status = "optional-not-installed" if OPTIONAL.match(kp) else "missing"
         elif h is not None and m == h:
             status = "same"
         elif h is None:
@@ -165,11 +175,11 @@ def main():
         sys.stdout.writelines(l + "\n" for l in difflib.unified_diff(
             base or [], m or [], f"kit:{kp}@{a.against}", a.diff, lineterm=""))
         return 0
-    order = ["kit-change", "both", "local", "differs", "new-in-kit", "removed-in-kit", "missing", "not-installed", "same"]
+    order = ["kit-change", "both", "local", "differs", "new-in-kit", "removed-in-kit", "missing", "optional-not-installed", "same"]
     print(f"kit HEAD {git(a.kit, 'rev-parse', '--short', 'HEAD').strip()} · stamp {rev or '—'} · vault {vault}")
     for st in order:
         group = [r for r in rows if r[0] == st]
-        if not group or (st in ("same", "not-installed") and not a.all):
+        if not group or (st in ("same", "optional-not-installed") and not a.all):
             continue
         print(f"\n## {st} ({len(group)})")
         for _, kp, ip in group:
