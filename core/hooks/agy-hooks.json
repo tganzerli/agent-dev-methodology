@@ -1,0 +1,16 @@
+{
+  "plan-gate": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "../.claude/hooks/require-approved-plan.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 ---
 name: intra-team
-description: Coordinate with another agent working the SAME repository. Covers five message roles — note (non-blocking heads-up), request (ask an agent to do/decide something), response (answer a request), handoff (transfer ownership of a work item), conflict (resolve a scope collision) — plus the durable coordination board (agreements, history, open items) and the live scope-lock table. Use when the human (or an orchestrator) wants to announce a dependency, lock a scope, hand a work item to another agent/session, or resolve two agents colliding on the same code. Reference-first: cite file:line and [[wikilinks]] — the reader shares the repo. Requires the intra-team module.
+description: "Coordinate with another agent working the SAME repository. Covers five message roles — note (non-blocking heads-up), request (ask an agent to do/decide something), response (answer a request), handoff (transfer ownership of a work item), conflict (resolve a scope collision) — plus the durable coordination board (agreements, history, open items) and the live scope-lock table. Use when the human (or an orchestrator) wants to announce a dependency, lock a scope, hand a work item to another agent/session, or resolve two agents colliding on the same code. Reference-first: cite file:line and [[wikilinks]] — the reader shares the repo. Requires the intra-team module."
 argument-hint: "[note <slug> | request <slug> | response <path> | handoff <slug> | conflict <slug> | board]"
 ---
 

@@ -1,20 +1,33 @@
 <!--
   Installs as: .agents/llm/gemini.md  (plus a root GEMINI.md with a "Skills available"
-  section — see INSTALL.md §6). De-template the {{...}} placeholders at install.
-  This adapter holds Gemini / Antigravity specifics ONLY; the canonical methodology is
-  .agents/METHODOLOGY.md.
+  section — see INSTALL.md §6). De-template the double-brace placeholders at install.
+  This adapter holds Gemini CLI / Antigravity CLI specifics ONLY; the canonical
+  methodology is .agents/METHODOLOGY.md.
 -->
-# Gemini adapter — {{PROJECT}}
+# Gemini / Antigravity adapter — {{PROJECT}}
 
-> Specifics for Gemini agents (Gemini CLI, Gemini Code Assist / Antigravity, direct API). The canonical methodology is `.agents/METHODOLOGY.md` — read it first.
+> Specifics for the two Google agent CLIs — **Gemini CLI** (`gemini`) and **Antigravity CLI** (`agy`) — plus Gemini Code Assist and the direct API. The canonical methodology is `.agents/METHODOLOGY.md` — read it first.
+>
+> **Two CLIs, two loaders.** They share the model family and `GEMINI.md`, and differ on almost everything else. Facts about `agy` below come from its built-in `agy-customizations` guide (agy 1.4.5) and a live probe on 2026-10-22; re-verify after a major `agy` upgrade.
 
-## 1. Entry points per surface
+## 1. What each surface loads
 
-| Surface | How Gemini loads this project |
-|---|---|
-| **Gemini CLI / Antigravity** | Reads `GEMINI.md` at the repo root automatically as initial context. |
-| **Gemini Code Assist (IDE)** | Reads `GEMINI.md` when the workspace opens (enable in the assistant's settings). |
-| **Direct API** | No automatic read — pass `.agents/METHODOLOGY.md` + `{{project}}_wiki/_meta/index.md` in the system prompt. |
+| Project file | Gemini CLI | Antigravity CLI (`agy`) |
+|---|---|---|
+| `GEMINI.md` (root) | ✅ initial context | ✅ rule, always loaded |
+| `AGENTS.md` (root) | only if configured as a context file | ✅ rule, always loaded |
+| `.agents/rules/*.md` (`trigger:` frontmatter) | ❌ (reached through the entry-point's reading order) | ✅ `always_on` loaded unconditionally; `model_decision` loaded progressively |
+| `.agents/skills/<name>/SKILL.md` | ❌ (reads `.claude/skills/_index.md` by hand) | ✅ progressive disclosure — name + description only until activated |
+| `.gemini/commands/*.toml` | ✅ native `/commands` | ❌ not used |
+| `.agents/workflows/` | ❌ | ❌ not used |
+| Hooks | `.gemini/settings.json` | `.agents/hooks.json` (§5.1) |
+| MCP servers | `.gemini/settings.json` (project) | user-level only (§5.2) |
+
+**Gemini Code Assist (IDE)** reads `GEMINI.md` when the workspace opens (enable it in the assistant's settings). **Direct API:** no automatic read — pass `.agents/METHODOLOGY.md` + `{{project}}_wiki/_meta/index.md` in the system prompt.
+
+### 1.1. The `agy` rule budget — keep the always-on prefix lean
+
+`agy` discovers workspace rules by walking from the CWD up to the repo root, and **user and workspace rules share one 20,000-token budget**; a rule that does not fit is **cut on a newline boundary** — silently, mid-rule. Everything `always_on` in `.agents/rules/` plus `GEMINI.md` and `AGENTS.md` is in that budget. This is METHODOLOGY §6.6 with a hard ceiling: keep the gate in the rule and the recipe in a skill, keep the entry-points thin, and measure the always-on set (`wc -w` × ~1.3 is a fair token estimate) whenever a rule grows. A rule cut in half still looks loaded.
 
 ## 2. Strengths to lean on
 
@@ -24,19 +37,18 @@
 
 ## 3. Operation mapping
 
-The methodology defines operations that map to Gemini's surfaces:
-
-| Methodology operation | In Antigravity / Agentic | In Gemini CLI (interactive) |
+| Methodology operation | Antigravity CLI (`agy`) | Gemini CLI (interactive) |
 |---|---|---|
-| Read a file | `view_file` (with start/end line bounds for exact checking) | `@file` reference or `<file path="...">` block |
-| Edit a file | `replace_file_content` (surgical edits — see §4) | produce a unified diff and apply it |
-| Create a file | `write_to_file` | code block for creation |
-| Run a shell command | `run_command` (announce before running) | `!` in interactive mode |
-| Search the repo | `grep_search`, `find_by_name`, `list_dir` | `@workspace` + query |
-| Sub-agents / delegation | `invoke_subagent` (with tiers `pro`, `flash`, `flash_lite`) | parallel prompt dispatch |
-| MCP tools | `call_mcp_tool` | configured in `.gemini/settings.json` |
+| Read a file | `read_file {Path}` | `@file` reference |
+| Edit a file | `edit_file {Path, Target, Replacement}` (surgical — see §4) | the edit tool, or a unified diff |
+| Create a file | `write_file {Path, Content}` | the write tool |
+| Run a shell command | the shell tool (announce before running) | `!` in interactive mode |
+| Sub-agents / delegation | subagents (tiers below) | parallel prompt dispatch |
+| MCP tools | user-level servers (§5.2) | `.gemini/settings.json` |
 
-> 🔒 **Surgical edits:** In agentic environments, prefer targeted editing tools (`replace_file_content` / targeted search-and-replace). Never rewrite an entire file to change a few lines (violates `mandatory_planning_rule.md` §3).
+The `agy` file-tool names and argument keys are the ones observed in the probe; other Antigravity surfaces (the IDE) expose different names — check the surface before writing a hook matcher against them.
+
+> 🔒 **Surgical edits:** prefer the targeted edit tool (`edit_file` / search-and-replace). Never rewrite an entire file to change a few lines (violates `mandatory_planning_rule.md` §3).
 
 ## 3.1. Subagents and model tiers
 
@@ -58,23 +70,42 @@ Just as Claude Code isolates context through role subagents in `.claude/agents/`
 ## 4. Cautions specific to Gemini
 
 - **Verbosity:** Gemini tends to over-produce. Reinforce "follow the `mandatory_planning_rule.md` template strictly, nothing beyond it".
-- **Non-surgical edits:** Gemini tends to rewrite whole files. Reinforce `mandatory_planning_rule.md` §3 "Punctual edits (strict)" using `replace_file_content` for bounded blocks.
-- **`file:line` citations (Strict verification):** Gemini sometimes invents line numbers. **Always validate citations** in plans and wiki pages — open the file via `view_file` or `grep_search` and verify the exact line numbers before citing. Unanchored or guessed citations generate `⚠ unverified` and break `wiki-lint`.
+- **Non-surgical edits:** Gemini tends to rewrite whole files. Reinforce `mandatory_planning_rule.md` §3 "Punctual edits (strict)" using the targeted edit tool for bounded blocks.
+- **`file:line` citations (Strict verification):** Gemini sometimes invents line numbers. **Always validate citations** in plans and wiki pages — open the file (or grep it) and verify the exact line numbers before citing. Unanchored or guessed citations generate `⚠ unverified` and break `wiki-lint`.
 - **Knowledge language:** force **{{KNOWLEDGE_LANG}}** explicitly; Gemini's default drifts with the opening prompt.
 - **Git flags:** Gemini sometimes swaps flags (`-D` vs `--delete`, `--force` vs `--force-with-lease`). **Paste canonical commands** rather than letting it generate them (see §6).
 
-## 5. Skills and Slash Commands
+## 5. Skills and slash commands
 
-Gemini integrates with project skills through two complementary paths:
-
-- **Slash Commands via `.gemini/commands/` (Gemini CLI):**
-  For the Gemini CLI, each operational skill in `.claude/skills/` is exposed as a native `/command` through a `.toml` file in `.gemini/commands/` (e.g. `.gemini/commands/wiki-sync.toml`). Each command is a thin wrapper that directs the agent to read `@.claude/skills/<skill>/SKILL.md`. This delivers 100% command parity with Claude Code without duplicating skill logic.
-- **Native Discovery (Antigravity) & Manual Simulation:**
-  - In Antigravity, skills in `.claude/skills/` are discovered through the **required** symlink `.agents/skills -> ../.claude/skills` (workspace skills live at `.agents/skills/<name>/SKILL.md`); `.agents/skills.json` is a fallback only (see the kit's `INSTALL.md` §6).
-  - When invoking manually: the root `GEMINI.md` carries a **"Skills available"** section (name · path · trigger). Scan that section on entering a conversation and load the corresponding `SKILL.md` when the topic matches.
+- **Antigravity CLI — native discovery through the skills link.** `agy` finds workspace skills at `.agents/skills/<name>/SKILL.md`, so the install creates the **required** symlink `.agents/skills -> ../.claude/skills`. `.agents/skills.json` is a fallback only (relative-path entries have been reported unreliable; a directory entry loads only its direct children) — see the kit's `INSTALL.md` §6. **Quote every `description:`** in a `SKILL.md` frontmatter: an unquoted description containing a colon has failed to load.
+- **Gemini CLI — slash commands.** Each operational skill is exposed as a native `/command` through a `.toml` in `.gemini/commands/` (e.g. `.gemini/commands/wiki-sync.toml`), a thin wrapper that directs the agent to read `@.claude/skills/<skill>/SKILL.md`. `agy` ignores these files.
+- **Manual fallback:** the root `GEMINI.md` carries a **"Skills available"** section (name · path · trigger). Scan it on entering a conversation and load the matching `SKILL.md` when the topic hits.
 - **Lazy-load references:** only read a skill's `references/*.md` when its specific subject comes up.
 - **Do not invent skills.** Use only those listed in `.claude/skills/_index.md`.
 - **`disable-model-invocation: true`** skills run **only** on explicit human request (side effects + human gate). **`user-invocable: false`** skills are background knowledge — load silently when relevant, never announce them as commands.
+
+### 5.1. Hooks — the plan gate as a lock
+
+**Antigravity CLI** reads `.agents/hooks.json`: an object of **named** hooks, each holding event → matcher groups.
+
+```json
+{"plan-gate": {"PreToolUse": [{"matcher": "write_file|edit_file",
+  "hooks": [{"type": "command", "command": "../.claude/hooks/require-approved-plan.sh", "timeout": 10}]}]}}
+```
+
+- A Claude-Code-style top-level `"hooks"` key is **wrong** — it loads as one hook *named* `hooks`.
+- The command runs via `sh -c` with **CWD = the directory holding `hooks.json`** (`.agents/`), hence the `../` path.
+- Input on stdin, camelCase JSON: `{"toolCall": {"name": "write_file", "args": {"Path": "/abs/path", "Content": "…"}}, "workspacePaths": ["/abs/workspace"], "conversationId": …}`.
+- Output on stdout, JSON: `{"decision": "deny" | "ask" | "force_ask" | "allow", "reason": "…"}`. `deny` hard-blocks and the reason reaches the agent (`tool call denied by pre-tool hook: <reason>`). **Empty stdout = no opinion** — the tool proceeds through the normal permission flow.
+- 🔒 **A gate never prints `"allow"`**: that auto-approves the call and skips the human's permission prompt. Allow by printing nothing.
+
+The kit's `require-approved-plan.sh` speaks this protocol when the payload carries `toolCall` (and Claude Code's otherwise); the kit ships the file above as `core/hooks/agy-hooks.json`.
+
+**Gemini CLI** configures hooks in `.gemini/settings.json` — Gemini CLI only; `agy` does not read it. The kit's gate script has not been verified against Gemini CLI's hook protocol (`⚠ unverified`).
+
+### 5.2. MCP servers
+
+`agy` has **no workspace-level MCP config**. Servers live in the user-level `~/.gemini/config/mcp_config.json` (manage them with `agy mcp add|list|remove`) or inside plugins — so a project's MCP intent reaches `agy` only through `.agents/mcp.md`, mirrored by hand on each machine. Gemini CLI keeps the project-level `.gemini/settings.json` (`mcpServers` key).
 
 ## 6. Git workflow
 

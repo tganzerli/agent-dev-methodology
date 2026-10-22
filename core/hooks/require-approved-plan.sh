@@ -10,14 +10,27 @@
 #
 # Escape hatch: SKIP_PLAN_GATE=1
 #
-# Contract: exit 0 allows; exit 2 blocks and prints stderr to the agent.
+# Two protocols, told apart by the stdin payload:
+#   Claude Code (PreToolUse, `tool_input`): exit 0 allows; exit 2 blocks and
+#     prints the reason on stderr.
+#   Antigravity CLI (`.agents/hooks.json`, payload has `toolCall`): always
+#     exit 0; a block prints {"decision":"deny","reason":...} on stdout; an
+#     allow prints NOTHING (no opinion — the normal permission prompt still
+#     runs). Never print "allow": it would auto-approve the tool call.
 set -uo pipefail
 
 exec python3 -c '
 import json, os, re, subprocess, sys
 
-def allow():  sys.exit(0)
+AGY = False
+
+def allow():
+    sys.exit(0)
+
 def block(msg):
+    if AGY:
+        sys.stdout.write(json.dumps({"decision": "deny", "reason": msg}) + "\n")
+        sys.exit(0)
     sys.stderr.write(msg + "\n")
     sys.exit(2)
 
@@ -28,23 +41,48 @@ try:
     payload = json.load(sys.stdin)
 except Exception:
     allow()   # unreadable payload should not wedge development
+if not isinstance(payload, dict):
+    allow()
 
-root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-ti = payload.get("tool_input") or {}
+def git_toplevel(cwd):
+    try:
+        return subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=cwd,
+                              capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        return ""
 
 paths = []
-for key in ("file_path", "notebook_path"):
-    if ti.get(key):
-        paths.append(ti[key])
-for edit in (ti.get("edits") or []):
-    if isinstance(edit, dict) and edit.get("file_path"):
-        paths.append(edit["file_path"])
+if isinstance(payload.get("toolCall"), dict):
+    # Antigravity CLI: {"toolCall": {"name", "args": {"Path", ...}}, "workspacePaths": [...]}
+    AGY = True
+    tc = payload["toolCall"]
+    if str(tc.get("name", "")) in ("read_file", "view_file", "list_dir", "grep_search", "find_by_name"):
+        allow()   # read-only tools are never gated, even if the matcher lets them through
+    args = tc.get("args") or {}
+    for key in ("Path", "TargetFile", "AbsolutePath"):
+        if isinstance(args, dict) and args.get(key):
+            paths.append(args[key])
+    ws = payload.get("workspacePaths") or []
+    root = (ws[0] if ws else "") or git_toplevel(os.getcwd()) or os.getcwd()
+else:
+    # Claude Code: {"tool_name", "tool_input": {"file_path" | "notebook_path" | "edits"}}
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    ti = payload.get("tool_input") or {}
+    for key in ("file_path", "notebook_path"):
+        if ti.get(key):
+            paths.append(ti[key])
+    for edit in (ti.get("edits") or []):
+        if isinstance(edit, dict) and edit.get("file_path"):
+            paths.append(edit["file_path"])
+
+root = os.path.realpath(root)
 
 # Guarded source code prefixes. Customize per project structure (e.g. src/, lib/, apps/, packages/)
 GUARDED = ("src/", "lib/", "apps/", "packages/")
 guarded = []
 for p in paths:
-    rel = os.path.relpath(os.path.abspath(p), root)
+    p = p if os.path.isabs(p) else os.path.join(root, p)
+    rel = os.path.relpath(os.path.realpath(p), root)
     if rel.startswith(GUARDED):
         guarded.append(rel)
 

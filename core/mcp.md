@@ -31,11 +31,12 @@ Mirrored files, one per client. Adding a server means editing **all** of them in
 | Agent / client | Versioned file | Scope |
 |---|---|---|
 | **Claude Code** | `.mcp.json` (repo root) | Project — discovered automatically. |
-| **Gemini CLI / Code Assist / Antigravity** | `.gemini/settings.json` | Project — `mcpServers` key. Add a `.gitignore` exception for this one file; the rest of `.gemini/` is personal state. |
+| **Gemini CLI / Code Assist** | `.gemini/settings.json` | Project — `mcpServers` key. Add a `.gitignore` exception for this one file; the rest of `.gemini/` is personal state. |
+| **Antigravity (CLI `agy` and IDE)** | — (not versioned) | **User only** — `~/.gemini/config/mcp_config.json`, managed with `agy mcp add\|list\|remove`, or bundled in a plugin. There is **no workspace-level MCP config**: each machine mirrors the §1 table by hand. |
 | **Cursor** | `.cursor/mcp.json` | Project — create when someone on the team uses it. |
 | **Codex / others** | — | Configure locally, pointing at the same `command`/`args`. |
 
-**Antigravity IDE** additionally reads a **user-level** file, `~/.gemini/config/mcp_config.json` (remote servers under a `url` key). Mirror the entry there locally; it is not versioned.
+Antigravity is the one client a versioned file cannot reach, so this catalog is its only source of the project's intent; remote servers there go under a `url` key (§3.1).
 
 All files use the same canonical JSON shape for a **local (stdio)** server:
 
@@ -67,7 +68,7 @@ Authenticate interactively (OAuth from the client) where a browser exists; the v
 2. Add the entry to **`.mcp.json`**.
 3. Mirror it into **`.gemini/settings.json`**.
 4. Mirror it into `.cursor/mcp.json` if Cursor is in use.
-5. Update the §1 table with the server's purpose and prerequisite.
+5. Update the §1 table with the server's purpose and prerequisite. Antigravity users add it to their user-level config themselves (`agy mcp add …`) — say so in the PR.
 6. Commit as **one change** — never fragment the mirror across commits, or the repo ships a window where agents disagree about their own capabilities.
 
 ## 5. Removing a server
