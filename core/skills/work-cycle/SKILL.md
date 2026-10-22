@@ -142,7 +142,7 @@ Plan §4.4 must state the **risk tier**, the **verification** command and **how 
 
 Applies whenever `.agents/rules/git_branching_rule.md` is installed — the core ships a single-repo variant by default, and the monorepo module replaces it at the same path. Only a project that deliberately removed the branching rule skips this step and goes straight to §3.
 
-With `plans/{ID}.md` at `status: approved`, create the physical branch **before** starting the execution. Canonical rule: `.agents/rules/git_branching_rule.md`.
+With `plans/{ID}.md` at `status: approved`, create the physical branch **before** starting the execution. Canonical rule: `.agents/rules/git_branching_rule.md`. **If a tool already created a branch or worktree for the session, do not create a second one** — check its base and rename it in place with `git branch -m` (core rule §4.7; monorepo: §4.5 and `git-runbook` §3.1); the validations below still apply.
 
 **Mandatory validations before `git checkout -b`:**
 

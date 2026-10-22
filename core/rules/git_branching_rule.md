@@ -114,9 +114,15 @@ If any check fails: **stop and demand the gate.** Do not invent a branch name; d
 Any tool that creates a branch or worktree for the session (e.g. Claude Code worktrees, desktop agent clients) does so **before** the plan exists, under a name of its own. Then:
 
 1. **Do not create a second branch.** The session's branch is the one the tool made.
-2. **Before approval, commit nothing guarded on it** — drafting the task and plan in the wiki is fine; code is not.
-3. **After approval, rename it in place.** Run §4.6 steps 1–3, announce the command, then `git branch -m <type>/<work_id>__<scope>`. This renames an ephemeral branch, not a permanent one — it is not the destructive rename of §8.
-4. **The base must still be the correct line** — `dev`, or `main` for a `hotfix`. Check with `git fetch origin && git merge-base --is-ancestor origin/dev HEAD` (`origin/main` for a `hotfix`). If it fails, the tool branched from the wrong base (or the line moved): **do not rename** — create the branch from the right base, `git checkout -b <type>/<work_id>__<scope> --no-track origin/dev`, and leave the tool's branch for cleanup.
+2. **Before approval, commit nothing guarded on it.** Drafting the task and plan in the wiki is fine; code is not. Prefer keeping the drafts **uncommitted** until the branch is final (step 4 may replace it).
+3. **After approval, rename it in place.** Run §4.6 steps 1–3, announce the command, then `git branch -m <type>/<work_id>__<scope>`. This renames an ephemeral branch, not a permanent one — it is not the destructive operation of §9.1 / gate 12.
+4. **Before renaming, prove the base is the correct line** — `<line>` is `dev`, or `main` for a `hotfix`. Both must hold:
+   ```bash
+   git fetch origin
+   git merge-base --is-ancestor origin/<line> HEAD   # the line is in HEAD (exit 0)
+   git log --oneline origin/<line>..HEAD             # lists ONLY this session's own commits (nothing, if none)
+   ```
+   Together they mean HEAD = the line's tip + your own commits. Any foreign commit in the second list (unreleased `dev` work under a `hotfix`, another feature's commits) or a failed first check means the tool branched from the wrong base or the line moved: **do not rename** — create the branch from the right base, `git checkout -b <type>/<work_id>__<scope> --no-track origin/<line>`, cherry-pick any task/plan drafts you committed on the tool's branch (`git cherry-pick <sha>…`), and leave the tool's branch for cleanup.
 
 ## 5. Hotfix
 

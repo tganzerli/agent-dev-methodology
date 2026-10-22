@@ -113,20 +113,23 @@ A local `dev_<app>` that stays "ahead" after its content was promoted and broadc
 
 Any tool that creates a branch or worktree for the session (e.g. Claude Code worktrees, desktop agent clients) does so before the plan exists, under a name of its own. The session works on that branch — no second one.
 
-1. **Before approval:** draft the task and plan in the wiki; commit nothing the plan gate guards.
+1. **Before approval:** draft the task and plan in the wiki; commit nothing the plan gate guards. Prefer keeping the drafts uncommitted until the branch is final (step 5 may replace it).
 2. **After approval:** run the creation gate (the rule's §4.5 steps 1–3) on the target name.
-3. **Check the base** against the type's source line (the rule's §4.2: `dev_<app>`, `dev_packages` for `pkg/`, `main` for `hotfix/`, `contract/`, `docs/__knowledge`):
+3. **Check the base** against the type's source line (the rule's §4.2: `dev_<app>`, `dev_packages` for `pkg/`, `main` for `hotfix/`, `contract/`, `docs/__knowledge`). Both must hold:
    ```bash
    git fetch origin
-   git merge-base --is-ancestor origin/<source-line> HEAD && echo base-ok
+   git merge-base --is-ancestor origin/<source-line> HEAD   # the line is in HEAD (exit 0)
+   git log --oneline origin/<source-line>..HEAD             # ONLY this session's own commits (nothing, if none)
    ```
+   Together they mean HEAD = the line's tip + your own commits. The first check alone is not enough: every `dev_<app>` contains `main`, so a branch cut from any `dev_<app>` would pass it for a `hotfix/`/`contract/`/`docs/__knowledge` — the second list then shows that line's unreleased commits.
 4. **Base ok → rename in place** (announce it; this is an ephemeral branch, not the destructive rename of a permanent one):
    ```bash
    git branch -m <type>/<work_id>__<scope>
    ```
-5. **Base wrong** (the tool branched from `main`, or another app's line, or the line moved) → do not rename; create the branch from the right base and leave the tool's branch for cleanup. A worktree cannot check out a line that is checked out elsewhere, so branch from the remote ref:
+5. **Base wrong** (a failed first check, or any foreign commit in the list) → do not rename; create the branch from the right base, cherry-pick any task/plan drafts you committed on the tool's branch, and leave that branch for cleanup. A worktree cannot check out a line that is checked out elsewhere, so branch from the remote ref:
    ```bash
    git checkout -b <type>/<work_id>__<scope> --no-track origin/<source-line>
+   git cherry-pick <draft-sha>...        # only if drafts were committed on the tool's branch
    ```
    Renaming a branch cut from the wrong line is how another app's snapshot rides into `dev_<app>` — the contamination the rule's §4.6 forbids.
 
