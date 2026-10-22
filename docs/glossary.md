@@ -21,6 +21,10 @@
 | **Knowledge layer** | The set of paths whose timeline is canonical in `main` (monorepo module): `.agents/`, `.claude/skills/`, wiki knowledge pages, entry-points. |
 | **Promote / sync knowledge** | Monorepo skills: `promote-knowledge` pushes knowledge from a per-app branch up to `main`; `sync-knowledge` pulls `main`'s knowledge down. |
 | **Broadcast** | Monorepo CI flow that propagates `main`'s knowledge (and package changes) to per-app branches automatically. |
+| **Group A / Group B** | Monorepo knowledge rule §3.6: the partition of the knowledge path list. A conflict confined to Group A (docs, agent config) is reconciled by adopting `main`'s version; one touching Group B (build/CI paths, `scripts/`, `.gitattributes`) aborts for a human. |
+| **Orphan (promotion)** | A knowledge file that diverges from `main` but was not touched by any commit of the work's trio. `promote_detect.py` reports it; the gate shows it; it is never dropped silently. |
+| **Branch scope barrier** | Monorepo check that `apps/<X>` diverges only on X's line and `packages/<P>` only on the packages line, against the cut point of the detected source branch. Advisory by default. |
+| **Transition state (pre-app)** | Optional §1.1 of the monorepo branching rule: work on `main` until the first `dev_<app>` exists; removed at that trigger, enforced by `check-transition-state.sh`. |
 | **Living-contract page** | Cross-team module: a `cross-cutting/` page addressed to a partner team's LLM, holding the current-state contract plus an append-only update history. |
 | **Handoff / response** | Cross-team module doc roles: an outbound spec/questions doc (handoff) and its inbound answer (response), threaded across rounds. |
 | **Intra-team messaging** | Optional module: agent↔agent coordination **inside one repo** (notes / requests / responses / handoffs / conflicts + a coordination board). The mirror of cross-team — **reference-first** (the reader shares the repo), not self-contained. Docs live in `work/relay/`. |
