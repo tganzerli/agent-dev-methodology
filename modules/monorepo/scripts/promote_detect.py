@@ -65,6 +65,18 @@ def lines(s):
     return [x for x in s.splitlines() if x.strip()]
 
 
+def nul(s):
+    """Paths from -z output: exact bytes, no quoting of non-ASCII, spaces kept."""
+    return [x for x in s.split("\0") if x]
+
+
+def parse_mask(raw):
+    """Newline-separated if there is a newline (paths may contain spaces), else whitespace."""
+    if "\n" in raw.strip():
+        return [x.strip() for x in raw.splitlines() if x.strip()]
+    return raw.split()
+
+
 def excluded(path):
     return any(path == n or path.startswith(n) for n in NEVER)
 
@@ -77,13 +89,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("work_id", nargs="?", help="YYYY-MM-DD_slug; without it nothing is attributed")
     ap.add_argument("--mask", default=os.environ.get("KL_PATHS", ""),
-                    help="space-separated knowledge-layer paths (default: $KL_PATHS)")
+                    help="knowledge-layer paths, space- or newline-separated (newlines for paths with spaces; default: $KL_PATHS)")
     ap.add_argument("--base", default="origin/main", help="target ref (default: origin/main)")
     ap.add_argument("--source", default="HEAD", help="source ref (default: HEAD)")
     ap.add_argument("--format", choices=["text", "json"], default="text")
     args = ap.parse_args()
 
-    mask = args.mask.split()
+    mask = parse_mask(args.mask)
     if not mask:
         sys.stderr.write("ERROR: empty mask. Pass --mask \"$KL_PATHS\" (the skill's step 2 list).\n")
         sys.exit(2)
@@ -99,7 +111,7 @@ def main():
 
     # THE TRUTH. Three dots, not two: compared against the merge-base, so the
     # result does not change when the base moves on through other people's work.
-    changed = [p for p in lines(git("diff", "--name-only", f"{args.base}...{args.source}"))
+    changed = [p for p in nul(git("diff", "--name-only", "-z", "--no-renames", f"{args.base}...{args.source}"))
                if not excluded(p)]
 
     divergent = sorted(p for p in changed if in_mask(p, mask))
@@ -114,7 +126,7 @@ def main():
         commits = lines(git("log", "--format=%H", f"{args.base}..{args.source}", "--", *trio_paths))
         touched = set()
         for c in commits:
-            touched.update(lines(git("show", "--name-only", "--format=", c)))
+            touched.update(nul(git("show", "--name-only", "-z", "--no-renames", "--format=", c)))
         # Intersect with DIVERGENT: a file that does not diverge is never copied,
         # which also removes the risk of checkout reverting something newer on the base.
         attributed = sorted(set(divergent) & touched)

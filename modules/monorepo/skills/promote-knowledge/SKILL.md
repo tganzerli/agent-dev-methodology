@@ -91,7 +91,7 @@ python3 scripts/promote_detect.py "$WORK_ID" --mask "$KL_PATHS"                 
 python3 scripts/promote_detect.py "$WORK_ID" --mask "$KL_PATHS" --format=json   # for programs
 ```
 
-`--mask "$KL_PATHS"` is quoted on purpose: the script splits it, so the call behaves the same under
+`--mask "$KL_PATHS"` is quoted on purpose: the script splits it (by newline when the value has one, so a path with spaces fits), so the call behaves the same under
 bash and zsh. The script prints **four partitions**:
 
 | Block | What it is | What to do |

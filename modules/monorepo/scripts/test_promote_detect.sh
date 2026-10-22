@@ -79,6 +79,21 @@ OLDLOGIC=$(git log --format=%H -- "${TRIO}" \
 assert "old logic LOSES probe B"           "$(has "${OLDLOGIC}" "${ADR_ALONE}")" no
 assert "old logic BRINGS the old file"     "$(has "${OLDLOGIC}" "${OLD}")"       yes
 
+echo "== case 5: non-ASCII names, spaces, renames; newline-separated mask"
+git checkout -q -b odd base_ref
+mkdir -p "${WIKI}/decisions" "${WIKI}/my notes"
+printf 'v\n' > "${WIKI}/decisions/café adr.md"
+printf 'v\n' > "${WIKI}/my notes/page.md"
+git add -A; git commit -q -m "odd names"
+git mv "${OLD}" scripts/renamed.sh; git commit -q -m "rename"
+NLMASK=$(printf '%s\n' "${WIKI}/decisions/" "${WIKI}/my notes/" "scripts/")
+OUT=$(python3 "${DET}" --mask "${NLMASK}" --base base_ref --source HEAD --format json)
+DIV=$(field divergent)
+assert "non-ASCII name reported unquoted" "$(has "${DIV}" "${WIKI}/decisions/café adr.md")" yes
+assert "path under a dir with a space"   "$(has "${DIV}" "${WIKI}/my notes/page.md")" yes
+assert "rename target reported"          "$(has "${DIV}" "scripts/renamed.sh")" yes
+assert "rename source reported (deleted)" "$(has "${DIV}" "${OLD}")" yes
+
 echo
 if [ "${FAILED}" -gt 0 ]; then
   echo "FAILED: ${FAILED} assertion(s) failed, ${OK} passed." >&2
