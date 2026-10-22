@@ -63,7 +63,7 @@ agent-dev-methodology/
 │   ├── METHODOLOGY.md         canonical, LLM-agnostic
 │   ├── mcp.md                 MCP server catalog, mirrored across clients (optional)
 │   ├── rules/                 mandatory_planning_rule + git_branching_rule
-│   ├── templates/             task / plan / execution / wiki-page / source / postmortem / REVIEW.md
+│   ├── templates/             task / plan / execution / wiki-page / source / postmortem / REVIEW.md / PR template
 │   ├── skills/                the generic core skills (+ scripts)
 │   ├── agents/                role sub-agents with a pinned model tier (Claude Code)
 │   └── vault/                 Obsidian skeleton (_meta, overview, .obsidian)

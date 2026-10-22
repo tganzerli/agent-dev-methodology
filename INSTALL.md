@@ -83,6 +83,7 @@ core/templates/wiki-page.md            →  {{project}}_wiki/_meta/_page_templat
 core/templates/source.md               →  {{project}}_wiki/sources/external/_template.md
 core/templates/postmortem.md           →  {{project}}_wiki/postmortems/_template.md
 core/templates/review.md               →  REVIEW.md               (repo root — the reviewer's instructions; fill it with the human)
+core/templates/pull_request_template.md →  .github/pull_request_template.md   (other hosts: their PR-template path, answer 7)
 core/skills/*                          →  .claude/skills/*
 core/agents/*                          →  .claude/agents/*        (Claude Code only)
 core/hooks/commit-msg                  →  .githooks/commit-msg    (optional, recommended — §6)
@@ -253,7 +254,7 @@ The methodology is agent-agnostic; each agent just needs a thin stub pointing at
 - **Optional (recommended): Turn the plan gate into a real lock** → copy `core/hooks/require-approved-plan.sh` to `.claude/hooks/require-approved-plan.sh` (chmod +x) and register under `PreToolUse` in `.claude/settings.json`. The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`.
 - **Optional (recommended): mechanize the no-LLM-co-author rule** → copy `core/hooks/commit-msg` to `.githooks/commit-msg` (chmod +x) and `core/ci/check_commit_trailers.py` to `scripts/ci/`, then run `git config core.hooksPath .githooks` (once per clone — put it in the onboarding notes). The hook is early feedback only; the guarantee is the CI step, which runs the same script on the commits each PR adds: `python3 scripts/ci/check_commit_trailers.py origin/<PR base>`, with a full-depth checkout. `core/ci/methodology-checks.yml` is a GitHub Actions template running it plus `/wiki-lint`. Plant a trailer once and watch both layers go red before trusting them (METHODOLOGY §6.7).
 
-Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub.
+Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub. Each stub (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`) also carries the one-line commit/PR convention from the kit's `AGENTS.md` "Non-negotiables" — copy that line as-is.
 
 ## 7. Post-install verification checklist
 
@@ -264,6 +265,7 @@ Run these before telling the human it is done:
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).
 - [ ] `REVIEW.md` at the repo root, with "What failure looks like" and "Always high risk" filled with the human; `{{project}}_wiki/postmortems/_template.md` exists.
+- [ ] `.github/pull_request_template.md` exists (or the host's equivalent) with Summary / Testing / Risk / How to revert, and every root entry-point carries the commit/PR convention line.
 - [ ] `.claude/skills/_index.md` lists exactly the skills you installed (core, plus modules if chosen).
 - [ ] Root entry-point(s) for each chosen agent exist and point at `.agents/METHODOLOGY.md`.
 - [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `.gemini/commands/` populated if targeting Gemini CLI.
