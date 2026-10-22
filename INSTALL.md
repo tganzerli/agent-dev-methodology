@@ -267,6 +267,17 @@ The methodology is agent-agnostic; each agent just needs a thin stub pointing at
 
 Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub. Each stub (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`) also carries the one-line commit/PR convention from the kit's `AGENTS.md` "Non-negotiables" — copy that line as-is.
 
+## 6-bis. Create the `dev` branch (single-repo only)
+
+The core branching rule has two permanent branches, `main` and `dev`, and every ephemeral branch starts from `dev` — so `dev` must exist before the first work cycle. Once the human has committed the install on `main` (the bootstrap commit: the rule cannot be followed before `dev` exists; record it in the install log entry as such), announce and run:
+
+```bash
+git branch dev main
+git push -u origin main dev        # skip if the repo has no remote yet; push both once it does
+```
+
+Then guide the human to protect `main` and `dev` in the git host (rule §3, host neutrality). **Monorepo module installed:** skip this section — that topology has its own permanent branches and bootstrap (`modules/monorepo/README.md`).
+
 ## 7. Post-install verification checklist
 
 Run these before telling the human it is done:
@@ -289,6 +300,7 @@ Run these before telling the human it is done:
 - [ ] If the plan gate was installed: `.claude/hooks/require-approved-plan.sh` is executable, `python3 -m json.tool .claude/settings.json` parses and shows the `Edit|Write|MultiEdit|NotebookEdit` entry, and a guarded write on `main` is refused (`printf '%s' '{"tool_input":{"file_path":"'"$PWD"'/src/x"}}' | CLAUDE_PROJECT_DIR=$PWD .claude/hooks/require-approved-plan.sh; echo $?` prints `2`).
 - [ ] If the trailer check was installed: a planted `Co-Authored-By: Claude …` commit is refused by the hook, and `scripts/ci/check_commit_trailers.py` exits 1 on a branch carrying one.
 - [ ] `.agents/rules/git_branching_rule.md` exists (core single-repo variant, or the monorepo module's variant if installed).
+- [ ] Single-repo: `git rev-parse --verify dev` succeeds and `dev` points at the install commit on `main` (§6-bis); with a remote, `git ls-remote --heads origin main dev` lists both.
 - [ ] If benchmarks module installed: `.agents/rules/benchmark_protocol_rule.md`, `{{project}}_wiki/benchmarks/_template.md`, `run-benchmark` skill, conventions extended.
 - [ ] If contracts module installed: `.agents/rules/contract_change_rule.md`, `{{project}}_wiki/decisions/_templates/adr-contract.md`, conventions extended.
 - [ ] If dev-env module installed: `.agents/rules/dev_environment_rule.md`, `dev-env` skill, `docker/` created + `docker/**/.env` gitignored.
