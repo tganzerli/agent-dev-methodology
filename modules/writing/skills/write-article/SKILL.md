@@ -44,6 +44,7 @@ disable-model-invocation: true
 - **Technical honesty.** State the trade-offs, the limits, and when *not* to use the approach.
 - **Reproducibility.** Where possible, link the commit or tag that reproduces the numbers.
 - **Attribution.** If the idea came from a paper, post, or RFC, cite and link it.
+- **No internal ID, no unintroduced internal term.** A `work_id`, ADR id, file path, wikilink or run id means nothing to this reader: say what it is instead. The project's own jargon appears only after it is introduced. A public link (a released commit, a tag) is fine. See `content/CLAUDE.md`, "Added in writing mode".
 - **Language** — {{KNOWLEDGE_LANG}} by default; another if the human wants a different reach.
 
 ## Anti-patterns
