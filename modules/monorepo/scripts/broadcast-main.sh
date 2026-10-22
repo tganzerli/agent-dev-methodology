@@ -104,8 +104,11 @@ git config user.email "ci-bot@example.invalid"
 git config user.name  "CI Broadcast Bot"
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  echo "[broadcast-main] TARGETS is empty — fill the roster array first. Nothing to do."
-  exit 0
+  # Exit codes: 0 = something propagated (or, packages only, the push changed
+  # nothing under packages/); 1 = any failure, an empty roster, or every roster
+  # branch skipped. A broadcast that reaches no branch is never green.
+  echo "[broadcast-main] ! TARGETS is empty — fill the roster array first. Nothing propagated."
+  exit 1
 fi
 
 echo "[broadcast-main] main@${SHORT_SHA} → ${#TARGETS[@]} branch(es): ${TARGETS[*]}"

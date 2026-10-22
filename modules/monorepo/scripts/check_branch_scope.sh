@@ -32,14 +32,22 @@ BLOCKING="${SCOPE_BARRIER_BLOCKING:-0}"
 # Ephemeral types (rule §4.2) — keep module-registered types in sync with the rule.
 TYPES="feat fix chore docs refactor hotfix pkg tag bench contract"
 
+# A configuration or naming error is reported like a violation: advisory mode
+# exits 0, blocking mode exits 1. Advisory means advisory for every finding.
+fail() { # fail <message...>
+  for line in "$@"; do echo "ERROR: ${line}" >&2; done
+  if [ "${BLOCKING}" = "1" ]; then exit 1; fi
+  echo "[scope] ADVISORY MODE — reported, not blocking." >&2
+  exit 0
+}
+
 cd "$(dirname "$0")/.."
 
 BRANCH="${1:-${SCOPE_BRANCH:-}}"
 REF="${2:-HEAD}"
 
 if [ -z "${BRANCH}" ]; then
-  echo "ERROR: branch name not given (neither \$1 nor \$SCOPE_BRANCH)." >&2
-  exit 1
+  fail "branch name not given (neither \$1 nor \$SCOPE_BRANCH)."
 fi
 
 # ---------------------------------------------------------------------------
@@ -57,9 +65,8 @@ if [ -n "${SCOPE_APPS:-}" ]; then APPS=$(echo "${SCOPE_APPS}" | tr ' ' '\n'); el
 if [ -n "${SCOPE_PKGS:-}" ]; then PKGS=$(echo "${SCOPE_PKGS}" | tr ' ' '\n'); else PKGS=$(roster_pkgs); fi
 
 if [ -z "${APPS}" ]; then
-  echo "ERROR: empty app roster — fill roster_apps (TODO(roster)) in $0." >&2
-  echo "       Without a roster the barrier has nothing to check." >&2
-  exit 1
+  fail "empty app roster — fill roster_apps (TODO(roster)) in $0." \
+       "Without a roster the barrier has nothing to check."
 fi
 
 # ---------------------------------------------------------------------------
@@ -88,12 +95,11 @@ case "${BRANCH}" in
     REST="${BRANCH#*/}"
     case "${REST}" in
       *__*) ;;
-      *) echo "ERROR: '${BRANCH}' lacks the '__' separator (<type>/<work_id>__<scope>)." >&2; exit 1 ;;
+      *) fail "'${BRANCH}' lacks the '__' separator (<type>/<work_id>__<scope>)." ;;
     esac
     SCOPE="${REST##*__}"
     if ! echo "${TYPES}" | tr ' ' '\n' | grep -qx -- "${TYPE}"; then
-      echo "ERROR: branch type '${TYPE}' does not exist. Valid: ${TYPES}" >&2
-      exit 1
+      fail "branch type '${TYPE}' does not exist. Valid: ${TYPES}"
     fi
     if [ "${TYPE}" = "contract" ]; then
       # A contract surface lands in every consumer at once, off main (rule §3.2).
@@ -107,33 +113,31 @@ case "${BRANCH}" in
           elif [ -n "${PKGS}" ] && is_in "${SCOPE}" "${PKGS}"; then
             SCOPE_PKG="${SCOPE}"
           else
-            echo "ERROR: scope '${SCOPE}' is not an app, a package, 'knowledge' or 'tooling'." >&2
-            echo "       Apps:     $(echo "${APPS}" | tr '\n' ' ')" >&2
-            echo "       Packages: $(echo "${PKGS}" | tr '\n' ' ')" >&2
-            exit 1
+            fail "scope '${SCOPE}' is not an app, a package, 'knowledge' or 'tooling'." \
+                 "Apps: $(echo "${APPS}" | tr '\n' ' ')" "Packages: $(echo "${PKGS}" | tr '\n' ' ')"
           fi
           ;;
       esac
     fi
     ;;
   *)
-    echo "ERROR: '${BRANCH}' is neither a permanent branch nor <type>/<work_id>__<scope>." >&2
-    exit 1
+    fail "'${BRANCH}' is neither a permanent branch nor <type>/<work_id>__<scope>."
     ;;
 esac
 
 # Sources compatible with the declared scope (computed here: detect_parent needs it).
 if [ -z "${EXPECTED}" ]; then
   if [ -n "${SCOPE_APP}" ]; then
-    EXPECTED="dev_${SCOPE_APP} staging_${SCOPE_APP} main"
+    EXPECTED="dev_${SCOPE_APP} staging_${SCOPE_APP}"
+    # Only a hotfix branches off main (rule §4.2/§4.6).
+    if [ "${TYPE:-}" = "hotfix" ]; then EXPECTED="${EXPECTED} main"; fi
   elif [ -n "${SCOPE_PKG}" ]; then
     EXPECTED="dev_packages"
   fi
 fi
 
 if [ -n "${SCOPE_APP}" ] && [ "${SCOPE_APP}" != "*" ] && ! is_in "${SCOPE_APP}" "${APPS}"; then
-  echo "ERROR: '${SCOPE_APP}' is not a known app. Apps: $(echo "${APPS}" | tr '\n' ' ')" >&2
-  exit 1
+  fail "'${SCOPE_APP}' is not a known app. Apps: $(echo "${APPS}" | tr '\n' ' ')"
 fi
 
 # ---------------------------------------------------------------------------

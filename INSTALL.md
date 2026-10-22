@@ -249,7 +249,7 @@ Run these before telling the human it is done:
 - [ ] `.claude/skills/_index.md` lists exactly the skills you installed (core, plus modules if chosen).
 - [ ] Root entry-point(s) for each chosen agent exist and point at `.agents/METHODOLOGY.md`.
 - [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `.gemini/commands/` populated if targeting Gemini CLI.
-- [ ] If monorepo module installed: `.agents/rules/git_branching_rule.md` + `knowledge_source_of_truth_rule.md` exist; roster checklist done; `.gitattributes` has `{{project}}_wiki/_meta/log.md merge=union`; `python3 scripts/check-knowledge-paths.py` prints `ok`; `bash scripts/test-broadcast-main.sh` passes; §1.1 kept only if no `dev_*` exists.
+- [ ] If monorepo module installed: `.agents/rules/git_branching_rule.md` + `knowledge_source_of_truth_rule.md` exist; roster checklist done; `.gitattributes` has `{{project}}_wiki/_meta/log.md merge=union`; `python3 scripts/check-knowledge-paths.py` prints `ok`; the five self-tests pass — `bash scripts/test-broadcast-main.sh`, `bash scripts/test-broadcast-packages.sh`, `sh scripts/test_promote_detect.sh`, `sh scripts/test_dev_branch_reset.sh`, `sh scripts/test_check_branch_scope.sh`; §1.1 kept only if no `dev_*` exists.
 - [ ] If cross-team module installed: `cross-team-handoff` skill present; conventions extended.
 - [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1).
 - [ ] `/work-index` runs clean (generates an empty-but-valid `work/_index.md`).

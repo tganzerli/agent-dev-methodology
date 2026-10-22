@@ -30,7 +30,7 @@ If the project is a single repo with one deliverable, **do not install this modu
 | `scripts/check_log_entry_collisions.py` | Reports repeated `_meta/log.md` headers (the detector behind `merge=union`). |
 | `scripts/promote_detect.py` + `test_promote_detect.sh` | Divergence-based detection for `/promote-knowledge`. |
 | `scripts/dev_branch_reset.py` + `test_dev_branch_reset.sh` | The decision behind `/reset-dev-branch`; read-only unless `--apply --expect-head`. |
-| `scripts/check_branch_scope.sh` | Branch scope barrier, **advisory** by default; roster source is a placeholder. |
+| `scripts/check_branch_scope.sh` + `test_check_branch_scope.sh` | Branch scope barrier, **advisory** by default (naming and configuration errors are reported, not blocking); roster source is a placeholder. |
 | `scripts/check-transition-state.sh` | Fails CI if the optional pre-app §1.1 survives the first `dev_*`. |
 
 `ci-examples/github-broadcast.yml` stays in the kit: a reference GitHub Actions wiring (deploy key, full clone, serialized runs) to adapt, not to copy blindly.

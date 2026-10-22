@@ -137,6 +137,19 @@ CODE=$?
 check "exit 0" "$(yes_if [ "${CODE}" -eq 0 ])"
 check "package reached ${D1} through CI_PUSH_REMOTE" "$(yes_if [ -n "$(show "${D1}" packages/core/new_f.txt)" ])"
 
+if [ "${SCRIPT}" != "${SRC_SCRIPT}" ]; then
+  echo "== g) empty roster (the template as shipped) -> exit 1, nothing propagated"
+  setup_base
+  B="$(rev dev_packages)"
+  commit dev_packages packages/core/new_g.txt "new"
+  rm -rf "${TMP}/work"; git clone -q "${REMOTE}" "${TMP}/work" -b dev_packages
+  SHA="$(git -C "${TMP}/work" rev-parse HEAD)"
+  OUT="$(cd "${TMP}/work" && env CI_COMMIT_SHA="${SHA}" CI_BEFORE_SHA="${B}" CI_PUSH_REMOTE="x" BROADCAST_REMOTE="${REMOTE}" bash "${SRC_SCRIPT}" 2>&1)"
+  CODE=$?
+  check "exit 1" "$(yes_if [ "${CODE}" -eq 1 ])"
+  check "says the roster is empty" "$(has "APPS is empty")"
+fi
+
 echo
 echo "result: ${PASS} ok, ${FAIL} failed"
 [ "${FAIL}" -eq 0 ]

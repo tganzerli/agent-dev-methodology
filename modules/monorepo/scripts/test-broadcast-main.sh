@@ -206,6 +206,16 @@ check "exit 1" "$(yes_if [ "${CODE}" -eq 1 ])"
 check "names python3" "$(has "python3 MISSING")"
 check "${T1} unchanged" "$(yes_if [ "$(rev "${T1}")" = "${BEFORE}" ])"
 
+if [ "${SCRIPT}" != "${SRC_SCRIPT}" ]; then
+  echo "== k) empty roster (the template as shipped) -> exit 1, nothing propagated"
+  setup_base
+  clone_work
+  OUT="$(cd "${TMP}/work" && env CI_COMMIT_SHA="${SHA}" CI_PUSH_REMOTE="x" BROADCAST_REMOTE="${REMOTE}" bash "${SRC_SCRIPT}" 2>&1)"
+  CODE=$?
+  check "exit 1" "$(yes_if [ "${CODE}" -eq 1 ])"
+  check "says the roster is empty" "$(has "TARGETS is empty")"
+fi
+
 echo
 echo "result: ${PASS} ok, ${FAIL} failed"
 [ "${FAIL}" -eq 0 ]
