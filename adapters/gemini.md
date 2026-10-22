@@ -124,7 +124,7 @@ The kit's `require-approved-plan.sh` speaks this protocol when the payload carri
 
 **Forbidden** to include `Co-Authored-By: Gemini <…>` — or any trailer/footer identifying the assistant (any Gemini/Google model or product name) — in commits produced via Gemini. Applies to ordinary commits, merge commits, amendments, any trailer/footer, and PR descriptions. The author is the human; the local `git user` already records authorship. If you generate a co-authored message by mistake, fix it before committing; if already committed, do not rebase without human approval. (An equivalent rule holds for every other agent's adapter.)
 
-**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py` in CI on every PR and every push to the default branch (the guarantee) — see the kit's `INSTALL.md` §6.
+**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py` in CI on every PR and every push to a permanent branch (the guarantee) — see the kit's `INSTALL.md` §6.
 
 ## 7. Limits
 

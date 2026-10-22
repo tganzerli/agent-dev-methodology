@@ -12,7 +12,10 @@ name: methodology-checks
 on:
   pull_request:
   push:
-    branches: [main]   # the default branch — rename if yours differs
+    # Every permanent line: commits can reach dev/dev_*/staging_* without a PR (a CI or
+    # manual broadcast, a direct-commit exception), and a later release PR excludes them
+    # as "already on a permanent branch" — so they are checked here, on arrival.
+    branches: [main, dev, 'dev_*', 'staging_*']
 
 concurrency:
   group: methodology-checks-${{ github.event.pull_request.number || github.sha }}
@@ -23,12 +26,8 @@ permissions:
 
 jobs:
   commit-trailers:
-    # PRs, plus pushes to the default branch (`main` above): a direct push is the one
-    # path that skips the PR check. A PR's own merge commit arriving by push is skipped
-    # — that PR was already checked.
-    if: >-
-      github.event_name == 'pull_request' ||
-      !startsWith(github.event.head_commit.message, 'Merge pull request #')
+    # PRs, plus every push to a permanent line. No skip for merge commits: a message is
+    # not proof of a PR, and re-checking a real PR merge passes (its commits were checked).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +45,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           BEFORE: ${{ github.event.before }}
           PUSHED: ${{ github.ref_name }}
+          DEFAULT: ${{ github.event.repository.default_branch }}
         run: |
           git fetch --no-tags --quiet origin \
             '+refs/heads/main:refs/remotes/origin/main' \
@@ -59,14 +59,14 @@ jobs:
           done
           if [ "$EVENT" = pull_request ]; then
             python3 scripts/ci/check_commit_trailers.py "origin/$BASE_REF" $excludes
-          elif [ -z "$(printf '%s' "$BEFORE" | tr -d 0)" ]; then
-            # New branch (`before` is all zeros): there is no range — check the pushed commit.
-            git log -1 --format=%B HEAD > "$RUNNER_TEMP/head-msg"
-            python3 scripts/ci/check_commit_trailers.py --message-file "$RUNNER_TEMP/head-msg"
+          elif [ -n "$(printf '%s' "$BEFORE" | tr -d 0)" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # HEAD is the pushed sha; the range is merge-base(before, HEAD)..sha — before..sha
+            # on a fast-forward, only the new commits after a force-push, empty on a rewind.
+            python3 scripts/ci/check_commit_trailers.py "$BEFORE" $excludes --allow-empty
           else
-            # HEAD is the pushed sha; on a fast-forward merge-base(before, HEAD) = before,
-            # so the range is before..sha.
-            python3 scripts/ci/check_commit_trailers.py "$BEFORE" $excludes
+            # New branch (`before` all zeros) or a `before` no longer fetchable: every commit
+            # not yet on the default branch nor on another permanent line.
+            python3 scripts/ci/check_commit_trailers.py "origin/$DEFAULT" $excludes --allow-empty
           fi
 
   wiki-lint:

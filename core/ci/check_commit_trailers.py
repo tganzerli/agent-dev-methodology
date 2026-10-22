@@ -11,10 +11,9 @@ Two layers, one pattern list (this file):
   - `.githooks/commit-msg` calls `--message-file` — early feedback, but it only runs
     where someone ran `git config core.hooksPath .githooks`, and never on commits made
     through a host API (bots, web merges);
-  - CI calls `<base>` on every PR and on every push to the default branch (base =
-    the push's `before`; a PR's own merge commit is skipped, the PR was checked) — the
-    load-bearing layer, the only one that does not depend on anyone remembering a
-    setup step.
+  - CI calls `<base>` on every PR and on every push to a permanent branch (base =
+    the push's `before`) — the load-bearing layer, the only one that does not depend
+    on anyone remembering a setup step.
 
 Scope: only the commits the PR adds (merge-base(base, HEAD)..HEAD), never the whole
 history. History already on a permanent branch cannot be rewritten without human
@@ -33,9 +32,12 @@ Usage:
   check_commit_trailers.py origin/<base> [--exclude origin/main ...] [--allow <full-sha>]
 
   --message-file F  check one message; everything after git's scissors line
-                 (`# ---- >8 ----`, written by `git commit -v`) is ignored, as git does.
+                 (`# ---- >8 ----`, written by `git commit -v`; the `#` is git's
+                 `core.commentChar`) is ignored, as git does.
   --exclude REF  also skip commits already reachable from REF (a permanent branch whose
                  history cannot be rewritten). Repeatable (`--exclude A --exclude=B`).
+  --allow-empty  an empty range is ok, with a note — for push events only (a rewind
+                 after a force-push, a branch created at an existing commit).
   --allow SHA    exempt one pre-existing commit, by FULL sha (exact match, printed in
                  the output). Each entry needs a recorded human decision. Repeatable.
 """
@@ -72,8 +74,8 @@ def agent_trailer(name, email):
 RULE = 'Rule: .agents/llm/<agent>.md, "No LLM co-authorship on commits (non-negotiable)".'
 
 
-def hits(message):
-    body = "\n".join(l for l in message.splitlines() if not l.startswith("#"))
+def hits(message, comment_chars="#"):
+    body = "\n".join(l for l in message.splitlines() if not (l and l[0] in comment_chars))
     found = [label for pattern, label in BANNED if pattern.search(body)]
     for m in TRAILER.finditer(body):
         if agent_trailer(m.group(2), m.group(3) or ""):
@@ -93,14 +95,25 @@ def cannot_verify(reason):
 
 # `git commit -v` appends the diff below this line; git drops everything after it.
 # Matching the diff would block a commit that merely edits a file quoting a banned
-# string (this one, for instance).
-SCISSORS = re.compile(r"(?m)^# -+ >8 -+$")
+# string (this one, for instance). The line starts with git's comment character:
+# `core.commentChar` (default `#`; `auto` picks the first of these unused in the message).
+AUTO_COMMENT_CHARS = "#;@!$%^&|:"
+
+
+def comment_chars():
+    r = git("config", "core.commentChar")
+    value = r.stdout.strip() if r.returncode == 0 else ""
+    if value == "auto":
+        return AUTO_COMMENT_CHARS
+    return value[:1] or "#"
 
 
 def check_message_file(path):
+    chars = comment_chars()
+    scissors = re.compile(r"(?m)^[" + re.escape(chars) + r"] -+ >8 -+$")
     with open(path, encoding="utf-8", errors="replace") as fh:
-        message = SCISSORS.split(fh.read(), maxsplit=1)[0]
-    found = hits(message)
+        message = scissors.split(fh.read(), maxsplit=1)[0]
+    found = hits(message, chars)
     if not found:
         return 0
     print("BLOCKED: LLM attribution in the commit message:", file=sys.stderr)
@@ -111,7 +124,7 @@ def check_message_file(path):
     return 1
 
 
-def check_range(base, excludes, allow):
+def check_range(base, excludes, allow, allow_empty=False):
     if git("rev-parse", "--verify", "-q", base).returncode != 0:
         return cannot_verify(f"base `{base}` does not resolve (in CI: fetch it, with full depth).")
     git_dir = git("rev-parse", "--git-dir").stdout.strip()
@@ -123,6 +136,10 @@ def check_range(base, excludes, allow):
         return cannot_verify(f"no merge-base between `{base}` and HEAD.")
     rng = f"{mb.stdout.strip()}..HEAD"
     total = [c for c in git("log", "--format=%H", rng).stdout.split() if c]
+    if not total and allow_empty:
+        print(f"ok — nothing new in {base}..HEAD (a rewind or a branch created at an "
+              "existing commit); no commit to check")
+        return 0
     if not total:
         return cannot_verify(f"`{base}..HEAD` is empty — the base is probably wrong.")
     shas = total
@@ -164,6 +181,9 @@ def main():
     ap.add_argument("--message-file")
     ap.add_argument("--exclude", action="append", default=[])
     ap.add_argument("--allow", action="append", default=[])
+    ap.add_argument("--allow-empty", action="store_true",
+                    help="an empty range is ok, with a note (push events: a rewind after a "
+                         "force-push, or a new branch at an existing commit). Never on a PR.")
     a = ap.parse_args()
     if a.message_file:
         return check_message_file(a.message_file)
@@ -173,7 +193,7 @@ def main():
     bad = [s for s in a.allow if not re.fullmatch(r"[0-9a-f]{40}", s)]
     if bad:
         return cannot_verify(f"--allow takes full 40-char SHAs only, got {bad}.")
-    return check_range(a.base, a.exclude, set(a.allow))
+    return check_range(a.base, a.exclude, set(a.allow), a.allow_empty)
 
 
 if __name__ == "__main__":
