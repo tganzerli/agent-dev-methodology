@@ -81,6 +81,7 @@ Wikilinks are recognized by Obsidian and greppable.
 | `contract` | `contracts/` | Contracts with a backend/partner. |
 | `adr` | `decisions/` | Local architecture decision records. |
 | `source` | `sources/external/` or `sources/internal/` | Summaries of ingested sources. |
+| `postmortem` | `postmortems/` | The lesson a costly bug taught: root cause, which layer should have caught it, where the lesson was promoted, and a reviewer replay case (METHODOLOGY §4.4.2). Blameless. Template: `postmortems/_template.md`. |
 | `discovery` | `cross-cutting/` (default) or the owning area | Research/analysis pages that feed a future decision (input for an ADR). Born `draft`, become `stable` when the child ADR is registered, then serve as historical reasoning. |
 | `index` | `_meta/index.md` and `_index.md` per section | Catalogs. |
 
@@ -103,6 +104,7 @@ type: plan                            # task | plan | execution
 work_id: 2026-05-14_diary-schedule-service
 scope: { area: [scheduling] }         # or apps/packages in a monorepo
 status: approved
+risk: medium                          # plan only: low | medium | high (METHODOLOGY §4.4.1)
 updated: 2026-05-14
 summary: One sentence — what the work delivers. Feeds the generated catalog.
 topic: [scheduling, service]          # controlled vocabulary (see below)
@@ -140,6 +142,7 @@ Rules:
 - The **execution** is a chronological historical log — immutable by design, never `stale`, archivable by quarter. Answers "**when/how** was this done".
 - A **knowledge page** is the living, thematic memory — the distilled current state. Answers "**what do we know about X today**".
 - **Rule — a recurring lesson graduates to a knowledge page.** A costly lesson (recurring bug, discarded hypothesis, non-obvious workaround) must not die in the execution: promote it to a thematic page (`cross-cutting/` or `postmortems/`) so "what did we already try?" is answered by reading one page, not chronological archaeology.
+- **Rule — a repeated review finding becomes a rule, not another comment.** A finding that already appeared in earlier work is fixed at the source (check, test, instruction line, rule clause); a `wrong`/`intentional` pattern goes to `REVIEW.md` "Do not flag". See METHODOLOGY §5.6.
 - To **find** old work: `/work-find <term>` (ranked grep over executions+frontmatter) instead of re-reading the index.
 
 ## 5. Recommended page structure

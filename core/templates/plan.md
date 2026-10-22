@@ -19,6 +19,7 @@ scope:
   # apps: []                 # monorepo only
   # packages: []             # monorepo only
 status: draft                # draft | approved | executed
+risk: medium                 # low | medium | high — the change sets it, the human confirms it (METHODOLOGY §4.4.1)
 updated: {YYYY-MM-DD}
 summary: One sentence — what this plan delivers. Feeds the generated work catalog.
 topic: []                    # controlled vocabulary — see conventions.md §"work frontmatter"
@@ -77,6 +78,12 @@ analyses: not needed — {one-line justification}
 
 1. **{Risk}.** Mitigation: {...}
 2. **{Risk}.** Mitigation: {...}
+
+**Risk tier:** `low | medium | high` — {one line: which criterion or `REVIEW.md` "Always high risk" path sets it}. It decides the agent review depth and the human gate depth (METHODOLOGY §4.4.1). Approving this plan confirms the tier.
+
+**Verification:** {the command(s) that prove the change works, and the output that proves it}. Tests derive from the acceptance criteria and cover input combinations and failure paths — not only the happy path. A green suite the agent wrote is not, by itself, evidence.
+
+**Revert:** {how to undo it — revert the commit(s), turn a flag off, run the down migration — and what, if anything, cannot be undone}.
 
 ## §4.5. Execution steps
 

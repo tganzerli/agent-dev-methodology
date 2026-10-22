@@ -7,6 +7,7 @@ It is designed to be driven by **any coding agent** — Claude Code, Codex, Gemi
 ## What you get
 
 - **A work cycle with human gates.** Nothing runs before a plan is approved; nothing reaches the wiki without review. Plans are preceded by optional **parallel-agent analyses** and a **contextual model recommendation** per role.
+- **A clean-context agent review sized by risk.** Before the human gate, a `reviewer` sub-agent that never saw how the code was written checks the diff against the plan's intent and a short `REVIEW.md`. The plan's risk tier (`low`/`medium`/`high`) sets how deep both the agent review and the human review go. Validations need evidence, review rounds are capped at three, and repeated findings become rules.
 - **A knowledge vault.** Obsidian graph linking work ↔ knowledge, mandatory frontmatter, and a strict `file:line` citation discipline (`⚠ unverified` when a claim is not anchored).
 - **Skills** (per the [Agent Skills spec](https://agentskills.io/specification)) that encapsulate the repetitive flows: `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`.
 - **Optional modules** you install only when you need them — see the table below.
@@ -62,7 +63,7 @@ agent-dev-methodology/
 │   ├── METHODOLOGY.md         canonical, LLM-agnostic
 │   ├── mcp.md                 MCP server catalog, mirrored across clients (optional)
 │   ├── rules/                 mandatory_planning_rule + git_branching_rule
-│   ├── templates/             task / plan / execution / wiki-page / source
+│   ├── templates/             task / plan / execution / wiki-page / source / postmortem / REVIEW.md
 │   ├── skills/                the generic core skills (+ scripts)
 │   ├── agents/                role sub-agents with a pinned model tier (Claude Code)
 │   └── vault/                 Obsidian skeleton (_meta, overview, .obsidian)

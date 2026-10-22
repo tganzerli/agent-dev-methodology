@@ -76,12 +76,34 @@ related: []                  # wikilinks to knowledge pages touched
 
 ## Validations
 
-> Tick what ran and its result.
+> Each validation is its **command and the tail of its output** — not a claim. "Passed" without output is `⚠ unverified` (METHODOLOGY §4.4). Paste only the few lines that prove the result. Include the plan's §4.4 **Verification** command.
 
-- [ ] Lint/static analysis — result: ...
-- [ ] Test suite (scope: ...) — result: ...
-- [ ] Build (if applicable) — result: ...
-- [ ] Affected-package/module lint — result: ...
+- [ ] Lint/static analysis — `{command}` → exit {code}
+  ```
+  {last lines of output}
+  ```
+- [ ] Test suite (scope: ...) — `{command}` → exit {code}
+  ```
+  {summary line: N passed, M failed}
+  ```
+- [ ] Build (if applicable) — `{command}` → exit {code}
+- [ ] Plan §4.4 verification — `{command}` → {observed result}
+
+## Agent review
+
+> Clean-context `reviewer` sub-agent, before the human gate (METHODOLOGY §4.4.1). Risk tier `{low | medium | high}` (from the plan). For `low`, review may be skipped — write `skipped — low` and stop here. **At most 3 rounds**; with `Important` findings still open after round 3, stop and return to the human.
+
+| Round | Range reviewed | Important | Nit | Pre-existing |
+|---|---|---|---|---|
+| 1 | `{base}..{head}` (full work diff) | 0 | 0 | 0 |
+
+### Findings and outcome
+
+> One row per finding. Outcome: `fixed` · `wrong` · `intentional` · `nit-ignored`. Last column: where it was **promoted** — a finding seen in earlier work becomes a rule/check/test/instruction line; a `wrong`/`intentional` pattern becomes a `REVIEW.md` "Do not flag" line (METHODOLOGY §5.6). Otherwise `—`.
+
+| # | Round | Tag | `file:line` | Outcome | Promoted to |
+|---|---|---|---|---|---|
+| 1 | 1 | Important | `path/file.ext:NN` | fixed | — |
 
 ## Wiki pages affected
 

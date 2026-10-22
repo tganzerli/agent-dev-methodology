@@ -45,6 +45,7 @@ A complete list of every file to be modified, created, or deleted. Include full 
 
 ### 4.4. Risks and impact
 List potential side effects: architecture, dependencies, performance, breaking changes.
+- 🔒 **Risk tier, verification and revert are declared.** The **risk tier** (`low | medium | high`, also as frontmatter `risk:`), set by what the change touches; the **verification** command and the output that proves it; and **how to revert**. Approving the plan confirms the tier (`.agents/METHODOLOGY.md` §4.4.1).
 
 ### 4.5. Execution steps
 A complete, ordered, granular checklist executable without ambiguity.

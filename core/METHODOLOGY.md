@@ -70,7 +70,7 @@ File: `{{project}}_wiki/work/tasks/{ID}.md`. Template: `{{project}}_wiki/work/ta
 
 **Model per role — move the work between contexts, not the session between models.** Each phase runs on the model that fits it, but **the session itself does not switch models**. On most agent runtimes the prompt cache is keyed by model: switching mid-session discards the cached prefix and the next request re-reads the whole history uncached, at full price and full latency. Extra capability is therefore bought **per unit of work**, by dispatching a sub-agent — which has its own context and its own cache, and so never touches the session's prefix.
 
-The mapping from phase to role is: authoring the task (§4.2), each pre-plan analysis and broad sweep (§4.2.5), writing the plan (§4.3), and drafting wiki pages (§4.5). **The execution (§4.4) stays on the main thread** — its log is live and its gates are interactive, and an isolated sub-agent can do neither. From it you delegate individual **steps**, in both directions: *up* when a step is harder than the average, and *down* when a step is mechanical. That second direction is real saving, not just avoided loss — without a cheaper destination, mechanical work burns the session's model.
+The mapping from phase to role is: authoring the task (§4.2), each pre-plan analysis and broad sweep (§4.2.5), writing the plan (§4.3), reviewing the execution's diff (§4.4.1), and drafting wiki pages (§4.5). **The execution (§4.4) stays on the main thread** — its log is live and its gates are interactive, and an isolated sub-agent can do neither. From it you delegate individual **steps**, in both directions: *up* when a step is harder than the average, and *down* when a step is mechanical. That second direction is real saving, not just avoided loss — without a cheaper destination, mechanical work burns the session's model.
 
 The role's model is a **floor, not a ceiling**. The choice stays **contextual**: it depends on the specific content of the work (reasoning depth, breadth, mechanical vs. exploratory nature, cost/latency, risk), **not** a fixed role→model table. Model line-ups change often — pin **tiers**, never version names, and treat any concrete list as a dated hint. The recommendation to the human is **advisory** (one justification line per point); the human may override.
 
@@ -90,14 +90,14 @@ File: `{{project}}_wiki/work/plans/{ID}.md`. Mandatory structure in `.agents/rul
 - §4.1 Summary and understanding
 - §4.2 Affected files
 - §4.3 Changes and rationale
-- §4.4 Risks and impact
+- §4.4 Risks and impact — including the **risk tier**, the **verification** (the command that proves the change works) and **how to revert** (see §4.4.1)
 - §4.5 Execution steps
 - §4.6 **Scope** (areas / `apps/*` / `packages/*`)
 - §4.7 **Wiki impact** (pages to create/update after execution)
 
 **Gate:** the LLM does **not execute code** until the human approves the plan.
 
-Plan frontmatter must include `type: plan`, `work_id`, `scope`, `status` (`draft|approved|executed`), `related[]` linking the knowledge pages the plan touches.
+Plan frontmatter must include `type: plan`, `work_id`, `scope`, `status` (`draft|approved|executed`), `risk` (`low|medium|high`), `related[]` linking the knowledge pages the plan touches.
 
 ### 4.3.5. Branch (after approval, before execution)
 If the project installs a git branching rule (`.agents/rules/git_branching_rule.md` — the core single-repo rule, or the monorepo module's variant at the same path), the branch for the work is created **after** the plan is `approved` and **before** any code runs. The branch name embeds the `work_id` (`<type>/<work_id>__<scope>`), binding the trio to its branch. The creation gate is the rule's own: no branch without an approved plan; never invent a branch name. In a project with no branching rule installed, skip this sub-step and follow the project's normal flow.
@@ -108,10 +108,31 @@ File: `{{project}}_wiki/work/executions/{ID}.md`. The LLM writes this **during**
 - The plan's checklist with items marked as they advance.
 - Commits involved (`git log` by hash).
 - **Divergences from the plan, with justification** — if anything changed vs. the plan, record it here.
-- Validations run (tests, lint, build) with results.
+- Validations run (tests, lint, build) **with evidence**: the command and the tail of its output.
+- The agent review rounds and the outcome of each finding (§4.4.1).
 - List of wiki pages affected (input for `/wiki-sync`).
 
-**Gate:** the human reviews the execution before calling `/wiki-sync`.
+🔒 **A validation is its command and its output, not a claim.** "Tests pass" without the command run and the tail of what it printed is `⚠ unverified` — the same rule as a wiki claim without `file:line`. Paste only the tail that proves the result (a few lines), not the whole log. *Why:* verification is the single highest-leverage practice in agent-written code — the Claude Code team estimates it makes results 2–3× better ([Solving code review at Anthropic](https://claude.dev/blog/solving-code-review-at-anthropic/), 2026-10-15).
+
+**Gate:** the human reviews the execution before calling `/wiki-sync` — at the depth the risk tier sets (§4.4.1).
+
+### 4.4.1. Agent review (clean context) and the risk tier
+Before the human gate, a **`reviewer` sub-agent** reviews the execution's diff with a **clean context**: it receives the diff, the plan's §4.1 (intent) and §4.4 (risk, verification, revert), the task's acceptance criteria and `REVIEW.md` — **never** the execution's activity log or the reasoning that produced the code. The author's reasoning contaminates a review; the reviewer must judge the change, not the story of it. Findings come back tagged `Important` / `Nit` / `Pre-existing`, each with `file:line` and the literal excerpt; the main thread fixes or answers each one and records its **outcome** in the execution (`fixed · wrong · intentional · nit-ignored`).
+
+**The change sets the tier, not the author.** The planner proposes `risk` in the plan; the human confirms it with the plan approval — no separate classifier. If the execution drifts into a riskier path, the tier goes **up** (never down) and the change is recorded as a divergence.
+
+| Tier | Typical change | Agent review | Human gate |
+|---|---|---|---|
+| `low` | Docs, wiki, copy, tests-only, additive change behind a disabled flag | Optional — skipping is recorded (`skipped — low`) | Read the execution log: validations and divergences |
+| `medium` | Ordinary product change | One pass, plus fix rounds up to the cap | Read the log and the reviewer's findings; open the diff where a finding points |
+| `high` | Auth, payments, data migrations, destructive operations, CI/release workflows, public contracts, anything listed in `REVIEW.md` "Always high risk" | One pass in **deep** mode (the reviewer explores callers and non-local effects; a higher model tier is allowed) | Read the **full diff** |
+
+🔒 **The agent review never replaces the human gate.** It reduces how much the human has to read, it does not remove the human. Every tier still ends in the human gate; only its depth changes.
+
+🔒 **At most three review rounds.** A round is one reviewer pass plus the fixes it causes. Round 1 reviews the whole work diff; rounds 2–3 review **only the diff since the last reviewed commit**, with the previous findings passed in so nothing is reported twice. Nits never open a round on their own. If round 3 still reports `Important` findings, **stop**: record a divergence and return to the human with them — accept the fixes under human review, or rethink the approach. *Why:* with an agent as author every nit becomes a commit and every commit a new review (one PR at Anthropic ran 50+ rounds overnight); the cap plus diff-only re-review cut mean rounds from 2.08 to 1.32 (same source).
+
+### 4.4.2. The reviewer is tested too
+A postmortem (§5.6) whose bug was visible in a diff records a **reviewer replay case** (template: `{{project}}_wiki/postmortems/_template.md`). When the `reviewer` role, `REVIEW.md`'s failure section or the reviewer's model tier change, replay those cases; a change that makes the reviewer miss a case it used to catch is reworked. Replay only on reviewer change, never on a schedule.
 
 ### 4.5. Wiki sync (manual)
 Command: `/wiki-sync {ID}`. The LLM:
@@ -143,6 +164,7 @@ The wiki is a **composable artifact**. Each ingest (external sources, internal e
 ├── <knowledge dirs>/           ← domains/ entities/ services/ flows/ pages/ contracts/
 ├── cross-cutting/              ← subjects that cross boundaries
 ├── decisions/                  ← local ADRs
+├── postmortems/                ← lessons from costly bugs + reviewer replay cases (§5.6, §4.4.2)
 ├── sources/
 │   ├── external/               ← summaries of external sources (e.g. partner-team specs)
 │   └── internal/               ← summaries of relevant executions
@@ -181,6 +203,7 @@ Requires `summary` and `topic` frontmatter on every trio. See conventions §"wor
 - An **execution** is a **historical log** — chronological, immutable by design, never `stale`, archivable by quarter. It answers "**when/how** was this done".
 - A **knowledge page** is the **living, thematic memory** — the distilled current state. It answers "**what do we know about X today**".
 - **Rule — a recurring lesson graduates to a knowledge page.** When work reveals a costly lesson (recurring bug, discarded hypothesis, non-obvious workaround), that lesson **must not die in the execution**: promote it to a thematic knowledge page (`cross-cutting/` or `postmortems/`). Then "this bug came back — what did we already try?" is answered by reading **one** thematic page, not by chronological archaeology.
+- **Rule — a repeated review finding becomes a rule, not another comment.** Fixing the same finding work after work only guarantees it returns. When the reviewer reports something that already appeared in an earlier work (check with `/work-find`), fix it **at the source** that should have prevented it — a lint/check, a test, a skill or agent-instruction line, or a rule clause with provenance (§10.1) — and record where it went in the execution. When the human marks a finding `wrong` or `intentional` and it is a pattern, add it to `REVIEW.md` "Do not flag" with its origin `work_id`, so the reviewer stops paying for it. `CLAUDE.md`/`AGENTS.md` teach how to write here; `REVIEW.md` teaches how to review here.
 - To **find** old work: use `/work-find <term>` (ranked grep over executions+frontmatter) instead of re-reading the index.
 
 ## 6. Operational workflows
@@ -242,6 +265,10 @@ Three failure modes produce a bloated prefix, and all three are structural rathe
 - ❌ Mix content from different areas/apps/packages in one page without it being cross-cutting.
 - ❌ Rewrite an entire plan when the human asks for a punctual adjustment (use surgical edits).
 - ❌ Close an execution without recording divergences from the plan.
+- ❌ Record a validation as passed without its command and output.
+- ❌ Review a diff in the same context that wrote it, or hand the reviewer the execution's reasoning.
+- ❌ Run a fourth review round instead of returning to the human to rethink the approach.
+- ❌ Fix the same review finding a second time without promoting it to a rule, check or `REVIEW.md` line.
 - ❌ Update the wiki automatically in a PR — always go through `/wiki-sync` with a human gate.
 - ❌ Pseudocode in the wiki. If it has no `file:line`, it is `⚠ unverified`.
 

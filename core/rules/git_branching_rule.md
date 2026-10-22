@@ -140,7 +140,7 @@ Each direction has its own preconditions. A PR opened before its row is satisfie
 
 | Direction | When | Preconditions |
 |---|---|---|
-| `<ephemeral> → dev` | The execution is finished (`status: done`) | Execution log links its commits; `/wiki-sync` done (or explicitly deferred, with the reason recorded); the project's validations green — build, tests, lint, and the benchmark when the benchmarks module is installed and the change touches a measured path; human review |
+| `<ephemeral> → dev` | The execution is finished (`status: done`) | Execution log links its commits; `/wiki-sync` done (or explicitly deferred, with the reason recorded); the project's validations green **with their output recorded** — build, tests, lint, and the benchmark when the benchmarks module is installed and the change touches a measured path; agent review closed with no open `Important` finding (or `skipped — low`) — METHODOLOGY §4.4.1; human review at the tier's depth. The PR description states **Testing** (the verification run), **Risk** (the tier) and **How to revert**, taken from plan §4.4 |
 | `dev → main` | `dev` represents a release candidate — a **human decision**, not a fixed cadence | A SemVer tag is cut after the merge (§7) |
 | `hotfix/* → main` **and** `hotfix/* → dev` | The emergency is fixed | **Two** PRs, not one: merge into `main` first, then carry the same fix into `dev` (§5) |
 

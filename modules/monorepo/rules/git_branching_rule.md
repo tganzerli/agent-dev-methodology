@@ -193,6 +193,7 @@ A new app `dev_<newapp>` is born off `main`; its **first action** is `/distribut
 
 ### 6.5. PR conventions
 
+- **Every ephemeral PR** (`<type>/<work_id>__<scope>` into its `dev_*` trunk, including `pkg/`): opened only with the validations green **with their output recorded** in the execution, the agent review closed with no open `Important` finding (or `skipped — low`), and the human review done at the depth the plan's risk tier sets (`.agents/METHODOLOGY.md` §4.4.1). The body states **Testing**, **Risk** and **How to revert**, taken from plan §4.4.
 - **`pkg/<id>__<pkg> → dev_packages`:** title `[pkg] <short description> (work_id: <id>)`. Body links the task + scope. **The only PR in the flow** — downstream broadcast is automatic via CI.
 - **`tag/<pkg>-vX.Y.Z__<pkg> → main`:** title `[tag] <pkg>-vX.Y.Z`. Body includes CHANGELOG + the list of `pkg/` PRs since the previous tag.
 

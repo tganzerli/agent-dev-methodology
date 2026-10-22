@@ -69,6 +69,8 @@ core/templates/execution.md            →  {{project}}_wiki/work/executions/_te
 core/templates/adr.md                  →  {{project}}_wiki/decisions/_templates/adr.md
 core/templates/wiki-page.md            →  {{project}}_wiki/_meta/_page_template.md
 core/templates/source.md               →  {{project}}_wiki/sources/external/_template.md
+core/templates/postmortem.md           →  {{project}}_wiki/postmortems/_template.md
+core/templates/review.md               →  REVIEW.md               (repo root — the reviewer's instructions; fill it with the human)
 core/skills/*                          →  .claude/skills/*
 core/agents/*                          →  .claude/agents/*        (Claude Code only)
 ```
@@ -81,9 +83,11 @@ The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated e
 
 **Core skills to install** (from `core/skills/`): `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, and the skills index `_index.md`. The `work-index`, `work-find` and `wiki-sync` skills ship a small Python script each — copy the whole skill directory. `wiki-sync`'s `sync_bookkeeping.py` appends to `_meta/log.md` without reading it; it auto-detects a single `*_wiki/` vault (pass `--vault` otherwise).
 
-**Role sub-agents (Claude Code only).** `core/agents/` ships five roles — `task-author`, `analyst`, `mechanic`, `planner`, `scribe` — each pinning a model **tier** in its frontmatter. They exist so the right model can be used per phase **without switching the session's model**, which would discard the prompt cache (see `adapters/claude.md` §3). Install them if your agent runtime supports per-sub-agent model selection; skip the directory otherwise — nothing else depends on it. **Adjust the `model:` tier aliases to your runtime's names**, and pin tiers rather than version numbers so the files do not rot.
+**Role sub-agents (Claude Code only).** `core/agents/` ships six roles — `task-author`, `analyst`, `mechanic`, `planner`, `reviewer`, `scribe` — each pinning a model **tier** in its frontmatter. They exist so the right model can be used per phase **without switching the session's model**, which would discard the prompt cache (see `adapters/claude.md` §3). The `reviewer` also exists for a reason beyond cost: its clean context keeps the author's reasoning out of the review (METHODOLOGY §4.4.1). Install them if your agent runtime supports per-sub-agent model selection; skip the directory otherwise — nothing else depends on it (without sub-agents, run the review in a **fresh session** given only the reviewer's inputs). **Adjust the `model:` tier aliases to your runtime's names**, and pin tiers rather than version numbers so the files do not rot.
 
-**Knowledge directory seed.** Create the knowledge subdirs the project will use. For a single-repo project: `{{project}}_wiki/{domains,entities,services,flows,pages,contracts,decisions,cross-cutting,sources/external,sources/internal}/`. For a monorepo, the monorepo module (§4) adds `apps/` and `packages/` layout instead.
+**Seed `REVIEW.md` with the human.** Ask two questions and fill the template's first two sections: *which areas have a failure mode of their own* (what does "broken" look like there?) and *which paths are always high risk*. Keep it short — the reviewer reads it on every review. An empty "Do not flag" section is correct on day one; it grows from review outcomes.
+
+**Knowledge directory seed.** Create the knowledge subdirs the project will use. For a single-repo project: `{{project}}_wiki/{domains,entities,services,flows,pages,contracts,decisions,cross-cutting,postmortems,sources/external,sources/internal}/`. For a monorepo, the monorepo module (§4) adds `apps/` and `packages/` layout instead.
 
 ## 4. Install the MONOREPO module (only if answer 4 = yes)
 
@@ -235,6 +239,7 @@ Run these before telling the human it is done:
 - [ ] `.agents/METHODOLOGY.md`, `.agents/rules/mandatory_planning_rule.md` exist.
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).
+- [ ] `REVIEW.md` at the repo root, with "What failure looks like" and "Always high risk" filled with the human; `{{project}}_wiki/postmortems/_template.md` exists.
 - [ ] `.claude/skills/_index.md` lists exactly the skills you installed (core, plus modules if chosen).
 - [ ] Root entry-point(s) for each chosen agent exist and point at `.agents/METHODOLOGY.md`.
 - [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `.gemini/commands/` populated if targeting Gemini CLI.
