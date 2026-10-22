@@ -1,3 +1,19 @@
+---
+title: {Handoff — human title}
+type: source
+direction: outbound
+doc_role: handoff
+scope:
+  area: []                     # single-repo: free text. Monorepo: apps/packages.
+status: sent                   # sent | answered | resolved | superseded
+updated: {YYYY-MM-DD}
+summary: One sentence — what we are asking the partner team for. Feeds the catalog.
+external_tickets: []           # partner ticket/issue IDs — keep greppable, e.g. [ABC-1234]
+sources: []
+code_refs: []                  # our files cited for PROVENANCE only (partner cannot open them)
+related: []                    # wikilinks — e.g. the living-contract page
+---
+
 <!--
   Installs as: {{project}}_wiki/sources/external/_handoff_templates/handoff.md
   See INSTALL.md §5 and modules/cross-team/README.md.
@@ -40,21 +56,6 @@
   consume byte-for-byte go under {{project}}_wiki/sources/external/_raw/ and are
   linked; sample/binary files under .../artifacts/.
 -->
----
-title: {Handoff — human title}
-type: source
-direction: outbound
-doc_role: handoff
-scope:
-  area: []                     # single-repo: free text. Monorepo: apps/packages.
-status: sent                   # sent | answered | resolved | superseded
-updated: {YYYY-MM-DD}
-summary: One sentence — what we are asking the partner team for. Feeds the catalog.
-external_tickets: []           # partner ticket/issue IDs — keep greppable, e.g. [ABC-1234]
-sources: []
-code_refs: []                  # our files cited for PROVENANCE only (partner cannot open them)
-related: []                    # wikilinks — e.g. the living-contract page
----
 
 # {Handoff title — name the interface and the ask, not just the topic}
 

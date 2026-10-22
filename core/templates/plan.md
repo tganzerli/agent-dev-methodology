@@ -1,15 +1,3 @@
-<!--
-  Installs as: {{project}}_wiki/work/plans/_template.md
-  See INSTALL.md §3 and .agents/rules/mandatory_planning_rule.md §3–4.
-
-  Authored CONTENT (all prose in this plan) is written in {{KNOWLEDGE_LANG}}.
-  Frontmatter keys/values stay English. The section numbering (§4.0–§4.7)
-  mirrors mandatory_planning_rule.md exactly — do not renumber or drop
-  sections when instantiating a real plan.
-
-  GATE: this plan does not authorize code execution until status: approved
-  is set by a human. See METHODOLOGY.md §4.3.
--->
 ---
 title: {YYYY-MM-DD} — {human plan name}
 type: plan
@@ -26,6 +14,19 @@ topic: []                    # controlled vocabulary — see conventions.md §"w
 related:                     # wikilinks to knowledge pages this plan touches
   - work/tasks/{ID}
 ---
+
+<!--
+  Installs as: {{project}}_wiki/work/plans/_template.md
+  See INSTALL.md §3 and .agents/rules/mandatory_planning_rule.md §3–4.
+
+  Authored CONTENT (all prose in this plan) is written in {{KNOWLEDGE_LANG}}.
+  Frontmatter keys/values stay English. The section numbering (§4.0–§4.7)
+  mirrors mandatory_planning_rule.md exactly — do not renumber or drop
+  sections when instantiating a real plan.
+
+  GATE: this plan does not authorize code execution until status: approved
+  is set by a human. See METHODOLOGY.md §4.3.
+-->
 
 # Plan — {Plan title}
 

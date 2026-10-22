@@ -1,15 +1,3 @@
-<!--
-  Installs as: {{project}}_wiki/sources/external/_handoff_templates/living-contract.md
-  See INSTALL.md §5 and modules/cross-team/README.md.
-
-  A LIVING-CONTRACT page is the DURABLE source of truth for an interface shared
-  with a partner team. It lives in {{project}}_wiki/cross-cutting/ (it crosses the
-  boundary between your team and the partner). Copy to
-  {{project}}_wiki/cross-cutting/{subject}-contract.md and fill {...}.
-  Do NOT de-template `{...}` — those are per-contract fill-ins.
-
-  Authored prose is in {{KNOWLEDGE_LANG}}.
--->
 ---
 title: {Subject} — contract with the partner team
 type: contract
@@ -24,6 +12,19 @@ sources:                       # the handoff/response docs that fed this page
 code_refs: []                  # OUR files that implement our side of the contract
 related: []
 ---
+
+<!--
+  Installs as: {{project}}_wiki/sources/external/_handoff_templates/living-contract.md
+  See INSTALL.md §5 and modules/cross-team/README.md.
+
+  A LIVING-CONTRACT page is the DURABLE source of truth for an interface shared
+  with a partner team. It lives in {{project}}_wiki/cross-cutting/ (it crosses the
+  boundary between your team and the partner). Copy to
+  {{project}}_wiki/cross-cutting/{subject}-contract.md and fill {...}.
+  Do NOT de-template `{...}` — those are per-contract fill-ins.
+
+  Authored prose is in {{KNOWLEDGE_LANG}}.
+-->
 
 # {Subject} — living contract
 

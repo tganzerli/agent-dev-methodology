@@ -1,15 +1,3 @@
-<!--
-  Installs as: {{project}}_wiki/sources/external/_handoff_templates/response.md
-  See INSTALL.md §5 and modules/cross-team/README.md.
-
-  A RESPONSE is an INBOUND document: the partner team's LLM answered a handoff,
-  and your side ingests it here. Copy to
-  {{project}}_wiki/sources/external/{YYYY-MM-DD}_{slug}-response.md and fill {...}.
-  Do NOT de-template `{...}` — those are per-doc fill-ins.
-
-  Verbatim payloads the partner sent go under .../_raw/ or .../artifacts/, never
-  inlined in the summary. Authored prose is in {{KNOWLEDGE_LANG}}.
--->
 ---
 title: {Response — human title}
 type: source
@@ -26,6 +14,19 @@ sources:
 code_refs: []                  # OUR files re-checked while ingesting (claims touching our code)
 related: []                    # e.g. the living-contract page
 ---
+
+<!--
+  Installs as: {{project}}_wiki/sources/external/_handoff_templates/response.md
+  See INSTALL.md §5 and modules/cross-team/README.md.
+
+  A RESPONSE is an INBOUND document: the partner team's LLM answered a handoff,
+  and your side ingests it here. Copy to
+  {{project}}_wiki/sources/external/{YYYY-MM-DD}_{slug}-response.md and fill {...}.
+  Do NOT de-template `{...}` — those are per-doc fill-ins.
+
+  Verbatim payloads the partner sent go under .../_raw/ or .../artifacts/, never
+  inlined in the summary. Authored prose is in {{KNOWLEDGE_LANG}}.
+-->
 
 # {Response title}
 

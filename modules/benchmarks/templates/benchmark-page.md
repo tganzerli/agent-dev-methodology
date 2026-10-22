@@ -1,16 +1,3 @@
-<!--
-  Installs as: {{project}}_wiki/benchmarks/_template.md
-  See INSTALL.md §5-ter and modules/benchmarks/rules/benchmark_protocol_rule.md §4–6.
-
-  Authored CONTENT (all prose) is written in {{KNOWLEDGE_LANG}}.
-  Frontmatter keys/values stay English. The section order below mirrors
-  benchmark_protocol_rule.md §5 exactly — do not drop or reorder sections
-  when instantiating a real page; a page without a Verdict is unfinished.
-
-  A benchmark page is evidence: the Exact command (§ "Exact command") plus the
-  versioned Artifacts must let a stranger who clones the repo reproduce the
-  number. If it does not, the claim stays sealed `⚠ unverified <metric>`.
--->
 ---
 title: {Short claim} — {YYYY-MM-DD}
 type: benchmark
@@ -54,6 +41,20 @@ sources: []
 code_refs: []                # code files this page measures — lint uses these to detect `stale`
 related: []
 ---
+
+<!--
+  Installs as: {{project}}_wiki/benchmarks/_template.md
+  See INSTALL.md §5-ter and modules/benchmarks/rules/benchmark_protocol_rule.md §4–6.
+
+  Authored CONTENT (all prose) is written in {{KNOWLEDGE_LANG}}.
+  Frontmatter keys/values stay English. The section order below mirrors
+  benchmark_protocol_rule.md §5 exactly — do not drop or reorder sections
+  when instantiating a real page; a page without a Verdict is unfinished.
+
+  A benchmark page is evidence: the Exact command (§ "Exact command") plus the
+  versioned Artifacts must let a stranger who clones the repo reproduce the
+  number. If it does not, the claim stays sealed `⚠ unverified <metric>`.
+-->
 
 # {Title}
 
