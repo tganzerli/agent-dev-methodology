@@ -109,6 +109,14 @@ The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated e
 
 **Knowledge directory seed.** Create the knowledge subdirs the project will use. For a single-repo project: `{{project}}_wiki/{domains,entities,services,flows,pages,contracts,decisions,cross-cutting,postmortems,sources/external,sources/internal}/`. For a monorepo, the monorepo module (§4) adds `apps/` and `packages/` layout instead.
 
+**Keep empty directories.** Git does not track an empty directory, so `work/archive/`, the knowledge seed dirs, `sources/internal/` and any other directory this install leaves empty (the `content/` tree, `docker/`, `benchmarks/`, …) vanish from the first commit and from every clone. Once all sections are installed, put an empty `.gitkeep` in each:
+
+```bash
+find {{project}}_wiki content docker -type d -empty -not -path '*/.obsidian*' -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev/null
+```
+
+The kit's scripts read only `*.md`, so `.gitkeep` never shows up in a catalog or a lint finding. Delete it when the directory gets its first page, or leave it — both are harmless.
+
 ## 4. Install the MONOREPO module (only if answer 4 = yes)
 
 Adds the machinery for multiple apps/packages on per-app branches. Copy from `modules/monorepo/`:
@@ -287,6 +295,7 @@ Run these before telling the human it is done:
 - [ ] `.agents/METHODOLOGY.md`, `.agents/rules/mandatory_planning_rule.md` exist.
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).
+- [ ] No directory is left empty: `find {{project}}_wiki content docker -type d -empty -not -path '*/.obsidian*' 2>/dev/null` prints nothing (§3, `.gitkeep`).
 - [ ] `REVIEW.md` at the repo root, with "What failure looks like" and "Always high risk" filled with the human; `{{project}}_wiki/postmortems/_template.md` exists.
 - [ ] `.github/pull_request_template.md` exists (or the host's equivalent) with Summary / Testing / Risk / How to revert, and every root entry-point carries the commit/PR convention line.
 - [ ] `.claude/skills/_index.md` lists exactly the skills you installed (core, plus modules if chosen).
