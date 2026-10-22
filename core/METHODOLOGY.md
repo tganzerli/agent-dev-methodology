@@ -301,7 +301,7 @@ This project adopts the [Agent Skills spec](https://agentskills.io/specification
 
 ⚠️ **Know which half of that is a mechanism.** On Claude Code the **body of a skill genuinely does not enter context until the skill is invoked** — that is runtime behaviour, and it is the lever. `references/*.md`, by contrast, is a **naming convention**: the model reads those files because the `SKILL.md` prose tells it to, not because anything defers them. Outside a skill directory, a `references/` folder is indistinguishable from any other path mentioned in prose. Verify this on your own runtime before designing around it — the distinction decides whether "move it to `references/`" buys anything at all.
 
-Core skills (portable to any project): `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`. Skills do not replace METHODOLOGY or rules — they offload material that can live on demand. Catalog in `.claude/skills/_index.md`.
+Core skills (portable to any project): `work-cycle`, `wiki-sync`, `wiki-lint`, `wiki-index`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, `methodology-upgrade`. Skills do not replace METHODOLOGY or rules — they offload material that can live on demand. Catalog in `.claude/skills/_index.md`.
 
 ## 9. For agents new to the project
 

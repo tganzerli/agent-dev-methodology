@@ -34,6 +34,18 @@ Ask these before creating anything. Keep it to one round; propose sensible defau
 
 Record the answers in a short block you will paste into `{{project}}_wiki/_meta/log.md` as the first entry (§6).
 
+**Stamp the kit version.** The install record also carries `kit_commit: <sha>` — the commit of this kit checkout (`git rev-parse HEAD` in the kit). Write the same stamp to `.agents/KIT_VERSION`, one `key: value` per line:
+
+```
+kit_commit: <full sha of the kit checkout>
+project: <answer 1>
+knowledge_lang: <answer 3>
+installed: <YYYY-MM-DD>
+modules: [<installed modules>]
+```
+
+`/methodology-upgrade` reads it to tell kit changes from local evolutions; without it the comparison cannot say who moved. Update it only when the project adopts kit changes up to a newer commit.
+
 ## 2. Placeholder substitution
 
 Every template file in this kit uses `{{...}}` placeholders. When you copy a file into the target project, replace:
@@ -78,13 +90,13 @@ core/ci/check_commit_trailers.py       →  scripts/ci/check_commit_trailers.py 
 core/ci/methodology-checks.yml         →  .github/workflows/methodology-checks.yml   (optional — §6; adapt to the git host)
 ```
 
-Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,executions}/` and `{{project}}_wiki/work/archive/`.
+Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,executions}/` and `{{project}}_wiki/work/archive/`, and write `.agents/KIT_VERSION` (§1).
 
 The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated ephemerals); the monorepo module (§4) replaces it at the same path with the multi-app topology.
 
 **MCP catalog (only if applicable).** If any agent in this repo will use MCP servers, install `core/mcp.md` and fill its §1 table. It is a **catalog consulted on demand**, not part of the mandatory reading prefix — its job is to keep every client's mirrored config (`.mcp.json`, `.gemini/settings.json`, `.cursor/mcp.json`) in agreement, so a capability granted to one agent is not invisible to the others. Skip the file entirely if the project uses no MCP server.
 
-**Core skills to install** (from `core/skills/`): `work-cycle`, `wiki-sync`, `wiki-lint`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, and the skills index `_index.md`. The `work-index`, `work-find` and `wiki-sync` skills ship a small Python script each — copy the whole skill directory. `wiki-sync`'s `sync_bookkeeping.py` appends to `_meta/log.md` without reading it; it auto-detects a single `*_wiki/` vault (pass `--vault` otherwise).
+**Core skills to install** (from `core/skills/`): `work-cycle`, `wiki-sync`, `wiki-lint`, `wiki-index`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, `methodology-upgrade`, and the skills index `_index.md`. `wiki-lint` (`lint.py`, `list_gates.py`), `wiki-index` and `methodology-upgrade` ship scripts too, and `wiki-lint`/`wiki-index`/`work-find` import `work-index`'s parser — keep the skills as siblings. The `work-index`, `work-find` and `wiki-sync` skills ship a small Python script each — copy the whole skill directory. `wiki-sync`'s `sync_bookkeeping.py` appends to `_meta/log.md` without reading it; it auto-detects a single `*_wiki/` vault (pass `--vault` otherwise).
 
 **Role sub-agents (Claude Code only).** `core/agents/` ships six roles — `task-author`, `analyst`, `mechanic`, `planner`, `reviewer`, `scribe` — each pinning a model **tier** in its frontmatter. They exist so the right model can be used per phase **without switching the session's model**, which would discard the prompt cache (see `adapters/claude.md` §3). The `reviewer` also exists for a reason beyond cost: its clean context keeps the author's reasoning out of the review (METHODOLOGY §4.4.1). Install them if your agent runtime supports per-sub-agent model selection; skip the directory otherwise — nothing else depends on it (without sub-agents, run the review in a **fresh session** given only the reviewer's inputs). **Adjust the `model:` tier aliases to your runtime's names**, and pin tiers rather than version numbers so the files do not rot.
 
@@ -249,7 +261,9 @@ Run these before telling the human it is done:
 - [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `.gemini/commands/` populated if targeting Gemini CLI.
 - [ ] If monorepo module installed: `.agents/rules/git_branching_rule.md` + `knowledge_source_of_truth_rule.md` exist; roster checklist done.
 - [ ] If cross-team module installed: `cross-team-handoff` skill present; conventions extended.
-- [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1).
+- [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1), with `kit_commit:`; `.agents/KIT_VERSION` holds the same stamp.
+- [ ] `python3 .claude/skills/wiki-lint/lint.py --root .` exits 0. On an existing vault with debt, run `--init-baseline` once and commit `{{project}}_wiki/_meta/lint-baseline.json` — never start with a red gate.
+- [ ] `.claude/skills/_index.md` §"Modules NOT installed" lists every module left out, why, and what would bring it in (§8).
 - [ ] `/work-index` runs clean (generates an empty-but-valid `work/_index.md`).
 - [ ] If the trailer check was installed: a planted `Co-Authored-By: Claude …` commit is refused by the hook, and `scripts/ci/check_commit_trailers.py` exits 1 on a branch carrying one.
 - [ ] `.agents/rules/git_branching_rule.md` exists (core single-repo variant, or the monorepo module's variant if installed).
@@ -259,6 +273,8 @@ Run these before telling the human it is done:
 - [ ] If writing module installed: `content/CLAUDE.md` override present and naming the safeguards it keeps; the three `write-*` skills registered as manual-only; `content/` tree created; conventions extended; **`write-academic` adapted** — persona filled in and the style section replaced with the actual style authority (a shipped-as-is `write-academic` is an incomplete install).
 
 ## 8. Hand-off to the human
+
+Record the **modules NOT installed** in `.claude/skills/_index.md` (the section the kit's index ships with): one row per module left out, with the interview answer that excluded it and the concrete trigger that would justify installing it later. It stops anyone from looking for a skill that is not there, and turns a later install into a decision instead of an accident.
 
 Report: which modules you installed and why, the language chosen for knowledge content, the entry-points generated, and the reading order for a fresh agent (METHODOLOGY §9). Then stop — the first real task starts the normal work cycle (`work-cycle` skill), which begins with the human authoring a task.
 

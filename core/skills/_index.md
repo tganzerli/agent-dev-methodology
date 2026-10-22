@@ -14,13 +14,23 @@ Implement the work cycle described in `.agents/METHODOLOGY.md`. Portable to any 
 |---|---|---|
 | `work-cycle` | Automatic | Start/drive the task → plan → execution cycle. Includes pre-plan analysis triage (parallel agents) and contextual per-role model recommendation. |
 | `wiki-sync` | Manual: `/wiki-sync {work_id}` | Propagate a finished execution to the knowledge pages. |
-| `wiki-lint` | Manual: `/wiki-lint` | Check wiki health (stale, orphans, contradictions, abandoned work). |
+| `wiki-lint` | Manual: `/wiki-lint` | Check wiki health by script: gates (catalog drift, summaries, wikilinks, frontmatter, index format, rule citations) ratcheting against a baseline; warnings (stale, orphans, stalled work); the 🔒 gate list. |
+| `wiki-index` | Automatic / `/wiki-index <dir>\|--all [--check]` | Generate a knowledge sub-index (`decisions/`, `cross-cutting/`, `sources/external/`, `postmortems/`) from page `summary`. Regenerate > hand-edit. |
 | `ingest-source` | Manual: `/ingest-source {path-or-url}` | Ingest an external source into the wiki. |
 | `commit` | Manual: `/commit [work_id?]` | Close the cycle: sync pending executions + commits grouped by work_id and type. |
 | `sync-context` | Manual: `/sync-context` | Sync the local working tree with the remote before new work (fetch + status + gated pull). |
 | `work-audit` | Manual: `/work-audit [--days N] [--code-check] [--fix]` | Audit drift between trio frontmatter and the generated `{{project}}_wiki/work/_index.md`. Read-only by default; `--fix` applies only deterministic corrections (never fills Commits). |
 | `work-index` | Manual: `/work-index [--check] [--quarter YYYY-Qn]` | Deterministically generate `work/_index.md` (active) + `work/archive/YYYY-Qn.md` (closed by quarter) from the trio frontmatter. Regenerate > hand-edit. |
+| `methodology-upgrade` | Manual: `/methodology-upgrade <kit-path>` | Compare the installed methodology with a kit checkout from the `.agents/KIT_VERSION` stamp: kit changes to adopt, local evolutions to upstream. Proposes only. |
 | `work-find` | Manual: `/work-find <terms> [--topic T] [--status S]` | Ranked full-text search over old work (executions + frontmatter); returns pointers without re-reading the index. For "how was X done" / "has this bug appeared before?". |
+
+## Modules NOT installed
+
+Recorded at install (the kit's `INSTALL.md` §8) so nobody looks for a skill that is not here, and so installing one later is a conscious decision. Modules are additive and independent: install later from the kit's `INSTALL.md`, module section.
+
+| Module | Why it was left out | What would bring it in |
+|---|---|---|
+| `{module}` | {the interview answer that excluded it} | {the concrete trigger — e.g. the first performance claim the project must defend} |
 
 ## Vendored — Obsidian skills
 
@@ -56,5 +66,9 @@ Knowledge about Obsidian formats (wikilinks, callouts, bases, canvas, clean web 
 - **Keep the body short** — loaded skills stay in context for the rest of the session. Extensive material goes to `references/`.
 - **Tool pre-approval:** use `allowed-tools: Bash(git *) Read Grep` if the skill runs commands.
 - **Background/domain skills:** use `user-invocable: false` to hide them from the `/` menu.
-- **Action skills:** use `disable-model-invocation: true` to force manual invocation (e.g. deploy, sync).
+- **Action skills — when to set `disable-model-invocation: true`.** Set it when **at least one** answer is yes:
+  1. Does the skill have an effect **outside the repo, or one that is hard to revert**? (publishes, sends, starts containers, runs an expensive battery, rewrites stable knowledge pages)
+  2. **Is** the skill the human gate of a cycle transition (METHODOLOGY §2, principle 3), rather than a step inside one?
+
+  If both are no, leave it model-invocable. A deterministic, idempotent generator whose output derives from versioned files and reverts with `git checkout` (`work-index`, `wiki-index`) is **not** a case for blocking. *(Origin: deciding by example — "use it for /wiki-sync" — left a generator blocked while other skills told the agent to run its script directly: a gate the norm itself bypassed.)*
 - **Automatic paths:** use `paths: "glob1, glob2"` to load the skill automatically when the agent edits matching files.
