@@ -18,6 +18,7 @@ While this rule is written in English, the generated **plan document** MUST be w
 - **Iterative refinement:** the plan is a living document, refined until there is complete and precise understanding of the task.
 - **Punctual edits (strict):** when the human requests adjustments, perform **targeted, punctual edits** to the existing file. Modify ONLY the requested sections. **DO NOT** rewrite the whole file from scratch.
 - **Execution gate:** you are strictly forbidden from executing the plan until it completely and accurately covers every requirement of the task, and the human has approved it.
+- 🔒 **Never route around the plan gate.** Where a hook mechanizes this rule, it keys on the branch name and a marker file — so never create or switch a branch, or write the marker, to get past a block: stop and ask the human. The branch-scope barrier and human review are the real enforcement.
 
 ## 4. Plan Structure
 

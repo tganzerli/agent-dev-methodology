@@ -101,6 +101,8 @@ Just as Claude Code isolates context through role subagents in `.claude/agents/`
 
 The kit's `require-approved-plan.sh` speaks this protocol when the payload carries `toolCall` (and Claude Code's otherwise); the kit ships the file above as `core/hooks/agy-hooks.json`.
 
+- 🔒 **Known limit:** the gate keys on the branch name / marker file (`.claude/` or `.gemini/active_work.json`). Never create or switch a branch, or write the marker, to get past a `deny` — stop and ask the human. The branch-scope barrier and human review are the real enforcement.
+
 **Gemini CLI** configures hooks in `.gemini/settings.json` — Gemini CLI only; `agy` does not read it. The kit's gate script has not been verified against Gemini CLI's hook protocol (`⚠ unverified`).
 
 ### 5.2. MCP servers

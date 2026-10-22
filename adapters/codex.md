@@ -31,6 +31,7 @@ Codex has **no native** [Agent Skills](https://agentskills.io/specification) dis
 ## 4. Cautions
 
 - **Name the gate** to the human before advancing (Codex honors gates by instruction, not by lock). "Is the plan approved?" precedes any code change.
+- **Never route around a plan-gate block.** Where the project runs the plan-gate hook, it keys on the branch name / marker file: never create or switch a branch, or write the marker, to get past it — stop and ask. The branch-scope barrier and human review are the real enforcement.
 - **Validate `file:line` citations** on the main thread before writing them into a plan or wiki page — especially any produced by a sub-agent/search that did not share your context.
 - **Knowledge language:** author plans and wiki content in **{{KNOWLEDGE_LANG}}**; code and identifiers in English.
 
