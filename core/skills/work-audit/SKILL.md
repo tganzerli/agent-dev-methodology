@@ -1,7 +1,7 @@
 ---
 name: work-audit
-description: Audit consistency between the declared state of the trios (work/tasks/, work/plans/, work/executions/) and the state reflected in {{project}}_wiki/work/_index.md. Detects index drift, trios delivered but not closed (work already on the main branch while the execution says in_progress), executions with no traceable Commits, intra-trio inconsistency, incomplete trios, frontmatter the index cannot validate, stagnant open tasks. Read-only by default; --fix applies only deterministic corrections (normalize dates, regenerate the index) and never fills Commits. Use at the start of a session, before /commit, or when you suspect drift between the wiki and the real code.
-argument-hint: "[--days N] [--code-check] [--fix] [--section <name>]"
+description: Audit consistency between the declared state of the trios (work/tasks/, work/plans/, work/executions/) and the state reflected in {{project}}_wiki/work/_index.md. Detects index drift, trios delivered but not closed (work already on the release line while the execution says in_progress), executions with no traceable Commits, intra-trio inconsistency, incomplete trios, frontmatter the index cannot validate, stagnant open tasks. Read-only by default; --fix applies only deterministic corrections (normalize dates, regenerate the index) and never fills Commits. Use at the start of a session, before /commit, or when you suspect drift between the wiki and the real code.
+argument-hint: "[--days N] [--code-check] [--fix] [--section <name>] [--release <branch>]"
 allowed-tools: Bash(git *), Bash(grep *), Bash(ls *), Bash(find *), Bash(awk *), Read
 ---
 
@@ -28,6 +28,7 @@ Audit of the work cycle: compares each trio's frontmatter with the human-facing 
 | `--code-check` | off | Validates each `📎 path:line` in open tasks (costly — `wc -l`/`test -f` per ref). |
 | `--fix` | off | Applies only **deterministic** corrections (normalize `updated:`, regenerate the index). Never writes `## Commits` — see step 7. |
 | `--section <name>` | all | Restricts to one index section. |
+| `--release <branch>` | remote default branch | The release line R8 searches for delivered commits. |
 
 `--fix` regenerates the index (`/work-index`) when there is drift and normalizes dates. It **never** writes `## Commits`, **never** modifies `status:` in the frontmatter (only a human closes a trio) and never hand-edits `_index.md`/`archive/*` (they are generated).
 
@@ -46,7 +47,7 @@ ls {{project}}_wiki/work/plans/*.md
 ls {{project}}_wiki/work/executions/*.md
 ```
 
-Skip legacy files (no `YYYY-MM-DD_slug.md` pattern) — pre-methodology work keeps legacy names and does not enter this audit.
+Files without the `YYYY-MM-DD_slug.md` pattern (pre-methodology or misnamed) are not parsed by R3–R8, but they are **not silently dropped**: R9 lists each one from the `/work-index` skip warning, so the human decides whether to rename it or leave it as legacy.
 
 ### 3. Parse frontmatter
 
@@ -130,12 +131,15 @@ For each task `status: open`:
 For each trio whose **execution is `in_progress`** (only that status — see the calibration note):
 
 ```bash
-git log origin/main --oneline --grep "<work_id>" | wc -l
+REL=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)  # or --release <branch>
+git log "$REL" --oneline --grep "<work_id>" | wc -l
 ```
 
-- ≥1 commit on the main branch → 🟠, reporting the count and the trio's age.
+- ≥1 commit on the release line → 🟠, reporting the count and the trio's age.
 
-R3–R7 cannot see this: a trio whose whole status fell behind is **internally consistent**. The signal is outside the trio, in the main branch's history. In one installation five such trios made a shared resource look locked, and undoing the mistake ate most of a pre-flight — and would have recurred on every following trio.
+The release line is the remote's default branch (`origin/HEAD`), or the branch passed as `--release <branch>` when work is delivered elsewhere (e.g. a `dev` integration branch). If neither resolves, say so and skip R8 — do not report it clean.
+
+R3–R7 cannot see this: a trio whose whole status fell behind is **internally consistent**. The signal is outside the trio, in the release line's history. In one installation five such trios made a shared resource look locked, and undoing the mistake ate most of a pre-flight — and would have recurred on every following trio.
 
 - ⚠️ **A commit count proves mention, not delivery.** The `work_id` appears in merge, promotion and docs commits. R8 names the candidate; the human confirms by reading the delivered content, and closes the trio — R8 never touches `status:`.
 - ⛔ **Do not widen R8 to `task: open`.** Tried and measured: it fired on 23 of 30 open trios, because every live trio's own documents are committed as soon as they are written. Gated on `execution: in_progress` it fired on 5 of 30 — exactly the known cases.
@@ -208,7 +212,7 @@ After `--fix`, show `git diff --stat` and ask for confirmation. **Does not auto-
 
 - ❌ *(Monorepo module only)* Running on `demo_*` / `staging_*` (no active work cycle).
 - ❌ Treating `--fix` as auto-pilot — always confirm the diff before commit.
-- ❌ Auditing a legacy pre-methodology trio (no standard `status` frontmatter).
+- ❌ Applying R3–R8 to a legacy pre-methodology file (no standard name or `status`) — R9 reports it; the human decides.
 - ❌ Flagging a drift as 🔴/🟠 without citing the rule (R3-R9) violated.
 - ❌ Widening R8 beyond `execution: in_progress`, or filtering commit messages to sharpen it (see R8).
 - ❌ Reintroducing a `## Commits` auto-fill by grep (see step 7).

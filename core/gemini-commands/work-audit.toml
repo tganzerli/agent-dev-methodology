@@ -6,7 +6,7 @@ You are executing the `/work-audit` command in this project.
 The canonical source of truth is `@.claude/skills/work-audit/SKILL.md`.
 1. Validate context (branch should be dev or main).
 2. Collect trio inventory (`work/tasks/`, `work/plans/`, `work/executions/`).
-3. Audit rules R3-R9: intra-trio consistency, Commits traceability (hash or named ephemeral branch), incomplete trios, delivered-but-not-closed (execution in_progress with commits on main), frontmatter the index warns about, stagnation.
+3. Audit rules R3-R9: intra-trio consistency, Commits traceability (hash or named ephemeral branch), incomplete trios, delivered-but-not-closed (execution in_progress with commits on the release line, default origin/HEAD), frontmatter the index warns about, stagnation.
 4. Output structured report categorized by severity (CRITICAL, WARN, INFO).
 5. If `--fix` is specified, apply only deterministic fixes (dates, index regeneration). Never fill `## Commits` and never change `status:`.
 
