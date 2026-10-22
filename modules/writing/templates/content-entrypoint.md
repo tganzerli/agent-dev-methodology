@@ -22,6 +22,11 @@
 - **No bibliographic claim without a real source.** Every author-year citation resolves to a page under `{{project}}_wiki/sources/` or to something the human supplied in this conversation. Anything else is marked `⚠ source needed` and surfaced. **Never** invent an author, a year, or a title.
 - **Human gates.** Outline approval and delivery are the human's, as everywhere else.
 
+**Added in writing mode — the text is read outside the repo:**
+
+- **An internal ID never appears in published text, in any form.** `work_id`s, ADR ids, file paths, wikilinks, benchmark or batch ids, package and machine names mean something only inside this repository. Keep them in the draft's traceability comments (that is where `file:line` and source pointers live); in the text, use a descriptive formulation ("the proposed approach", "the reference run"). A public link (a released commit, a published page) is a source, not an internal ID.
+- **An internal term appears only after it is introduced.** The project's own jargon (its names for artifacts, steps and verdicts) enters the text only once it has been introduced and defined there. If the project keeps a glossary, that is where to find the definition, so the term can be introduced well.
+
 ## Directory layout
 
 ```

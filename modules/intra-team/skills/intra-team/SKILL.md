@@ -142,7 +142,9 @@ File: `{{project}}_wiki/work/relay/_board.md`. Template: `_templates/coordinatio
 
 File: `{{project}}_wiki/work/relay/_locks.md`. Template: `_templates/scope-locks.md`. `scope · owner agent · work_id · state · until · source`. Add a row when a lock is taken; **remove it** when the work lands or is handed off. Overwriting caps growth — no dead rows. A lock is a **social** signal, not OS enforcement.
 
-**Write it through the publication route this project chose**, never by editing the file on your work branch. `modules/intra-team/README.md` §4.2 lists the routes; a project that skipped that choice has a live table on the per-branch route, which is the defect §4 documents — a lock invisible during the whole window it exists for.
+**Write it through the publication route this project chose**, never by editing the file on your work branch. `modules/intra-team/README.md` §4.2 lists the routes; a project that skipped that choice has a live table on the per-branch route, which is the defect §4 documents — a lock invisible during the whole window it exists for. If the project installed the opt-in reference route, write through `/scope-lock` (`.claude/skills/scope-lock/SKILL.md`).
+
+**If the lock could not be published** — harness refusal, rejected push, any reason — record the block in the execution log, naming the intended scope, and tell the human at once. Do not try to diagnose the cause, and do not keep touching the scope without a lock and without a mention: a blocked lock leaves the same empty table as a forgotten one (README §4.4).
 
 **No per-act human gate, and that is deliberate.** A lock only **announces**: it blocks nobody by mechanism and undoes in one row, the same carve-out this skill already makes for `note`. Requiring a person would make a lock's visibility depend on someone being in the session, which is the defect class re-entered. The safeguards are a bounded diff and CI checks (README §4.3, §9) — not a gate.
 

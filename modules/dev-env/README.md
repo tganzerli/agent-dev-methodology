@@ -32,7 +32,7 @@ docker/
     └── README.md                   ← usage, modes, troubleshooting
 ```
 
-One directory per service — never a monolithic root-level compose file covering several unrelated services. Every compose file carries a predictable `container_name`, env via `.env` with `${VAR:-default}`, configurable ports, named volumes (no `./data` bind mounts), and — non-negotiably — a **healthcheck**. The `dev-env` skill's `up --wait` depends on that healthcheck to know the service is actually ready, not just started.
+One directory per service — never a monolithic root-level compose file covering several unrelated services. Every compose file carries an explicit top-level `name:` (otherwise two repositories with a `docker/postgres/` share one Compose project, and a `down -v` in one removes the other's container), a predictable `container_name`, env via `.env` with `${VAR:-default}`, configurable ports, named volumes (no `./data` bind mounts), and — non-negotiably — a **healthcheck**. The `dev-env` skill's `up --wait` depends on that healthcheck to know the service is actually ready, not just started.
 
 ## 4. Lifecycle modes
 
@@ -48,7 +48,7 @@ Before any test or PoC that depends on an external service, its health must be c
 
 ## 6. Adding a new service — checklist
 
-1. `docker/<service>/docker-compose.yml` per rule §4 (healthcheck, named volume, `.env`-driven ports, no `version:`).
+1. `docker/<service>/docker-compose.yml` per rule §4 (top-level `name:`, healthcheck, named volume, `.env`-driven ports, no `version:`).
 2. `docker/<service>/.env.example`, versioned.
 3. `docker/<service>/README.md` — usage, default credentials, troubleshooting.
 4. Update the table in `docker/README.md`.

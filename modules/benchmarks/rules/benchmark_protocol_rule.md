@@ -61,6 +61,20 @@ parallelism:               # optional — only when the workload runs concurrent
   workers: {N}             # isolates / threads / processes
   per_worker: {N}          # concurrent units per worker (connections, sessions, …)
   seed: "{e.g. 42; per-rep = 42 + rep*1000}"
+host_state:                # REQUIRED — the MEASURED state at the start of the run (§4.1)
+  measured_at: "{ISO-8601 with offset}"
+  swap_pct: {int}
+  mem_free_pct: {int}
+  load1: {float}
+  uptime_days: {int}
+  preparation: "{e.g. reboot + idle | none}"
+  # override: true         # only when run outside the floor with BENCH_ALLOW_DIRTY_HOST=1
+# design: sequential-ab    # only when side A is measured, then side B, in one window (§5.6.1)
+# drift_declaration:       # required with design: sequential-ab
+#   order: "{e.g. before, after}"
+#   per_session: true
+#   internal_drift_pct: "{first → last session, per side}"
+#   adjacent_compared: true
 sources: []
 code_refs: []
 related: []
@@ -68,6 +82,20 @@ related: []
 ```
 
 `status`: `draft` (first run, still validating) → `stable` (re-run in ≥2 environments with coherent results, accepted as reference) → `stale` (a `code_refs` file changed after `updated`; the page must be re-run — lint flags it).
+
+### 4.1. Host-state precondition
+
+`host_state` holds what was **measured** at the start of the run, not what was intended. The `run-benchmark` skill's `preflight.sh` measures it and prints the block ready to paste.
+
+**Why it is a field and not prose.** Host preparation is material: in the installation this rule came from, the same binary measured 612.6 → 712.9 → 737.3 TPS depending only on the state of the machine, about 20% on the absolute. A page recorded that preparation in prose, by the author's diligence, and a later battery that followed this protocol to the letter ran with swap at 91% and produced absolutes not comparable with the earlier cell — with nothing flagging it. The value had even been collected; what was missing was a consequence.
+
+**What the precondition claims, and what it does not.** It does **not** claim a causal threshold: two evidence points do not support one. The preflight ceilings (`SWAP_PCT_CEIL`, `MEM_FREE_PCT_FLOOR`) are **provisional and parameterizable**, to be revisited with more measurements. What it claims is procedural:
+
+> **Do not measure absolutes on an unprepared host without saying so in the artifact.**
+
+That is why `BENCH_ALLOW_DIRTY_HOST=1` exists: measuring under bad conditions is a legitimate author decision, and the override **stamps** `override: true` into `host_state`. What is not legitimate is for the condition to disappear.
+
+**Reading consequence.** A page with `override: true` has absolutes valid **within** its window — ranking, significance and before/after comparisons measured back-to-back still stand — and **not** comparable with those of another window.
 
 ## 5. Mandatory body sections
 
@@ -98,6 +126,19 @@ Report the **interval or percentiles**, not a bare mean. The gate is **statistic
 
 ### 5.6. Results
 A markdown table of the numbers with an explicit **delta** (Δ) column versus baseline. Report the dispersion (± σ, or the CI). **Flag tail outliers:** when a tail ratio is large (e.g. `p99 / p50` well above 10) mark the cell `⚠` and investigate the cause in §5.8 — do not hide it by substituting a mean for the tail.
+
+#### 5.6.1. Sequential A/B design — the four drift items
+
+A page that declares `design: sequential-ab` in its frontmatter — it measures side A, then side B, in the same window, instead of interleaving them — **must declare four items**, in the `drift_declaration` frontmatter block and in the Results:
+
+1. **`order`** — the order in which the sides were measured.
+2. **`per_session`** — the result **per session** of each side, not only the mean.
+3. **`internal_drift_pct`** — each side's **internal drift**, from its first session to its last.
+4. **`adjacent_compared`** — the comparison between the **temporally adjacent** sessions of the two sides, when the drift is comparable to the delta.
+
+Not interleaving is a legitimate choice with a declared cost: host drift over the window lands on one side and reads as an effect. The four items are what the page owes in exchange. In the installation this came from, only one of three sequential non-regression pages reported them before they were required.
+
+The field is the **author's declaration**, deliberately, not a text heuristic: detecting "sequential design" from prose errs both ways, and a check that errs teaches people to ignore it. The `run-benchmark` skill's `check_pages.py` fails a `sequential-ab` page that misses any of the four keys.
 
 ### 5.7. Artifacts
 Raw data **and** chart **versioned in git** (never `.gitignore`d), both produced by a **reproducible script** committed alongside the page (a plotting script in the project's own language). The command in §5.3 plus these artifacts are what make the page auditable. On re-run, keep the old raw file (append a dated `*-rerun-YYYY-MM-DD` file) — never overwrite prior evidence.
@@ -145,6 +186,8 @@ The test for whether you need one: if a reader could take a single page as the p
 
 - ❌ Claiming a number in a commit/PR/README/ADR with no benchmark page (cite it and it must not carry `⚠ unverified <metric>`).
 - ❌ A page with no `environment`/version frontmatter — an unreproducible number.
+- ❌ A page with no measured `host_state`, or a run on a host outside the floor without `override: true` stamped (§4.1).
+- ❌ A sequential A/B comparison that does not declare `design: sequential-ab` and its four drift items (§5.6.1).
 - ❌ Comparing against a **stale baseline** — always use the current released version of the thing you compare to.
 - ❌ Hiding threats to validity, or dropping a surprising finding from the analysis.
 - ❌ **Re-running until a favorable number appears** ("p-hacking" of results). Fix the method *before* the run, not the run count after seeing the numbers.

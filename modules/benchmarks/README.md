@@ -8,6 +8,7 @@
 |---|---|---|
 | `benchmark_protocol_rule` | `.agents/rules/benchmark_protocol_rule.md` | `trigger: always_on` rule: every measured claim needs a reproducible page or carries `⚠ unverified <metric>` and cannot be cited. Defines the mandatory sections and the verdict discipline. Registers the `bench` branch type. |
 | `run-benchmark` skill | `.claude/skills/run-benchmark/SKILL.md` | Human-gated (`disable-model-invocation: true`) flow: collect environment → snapshot commit → run the exact command → analyze → generate a reproducible chart → write the page. |
+| `preflight.sh` · `check_pages.py` | `.claude/skills/run-benchmark/` | The host-state precondition (measures the host at run start, aborts outside the floor unless `BENCH_ALLOW_DIRTY_HOST=1`, which is stamped) and the page check (`host_state` present; `design: sequential-ab` declares its four drift items). |
 | Benchmark-page template | `{{project}}_wiki/benchmarks/_template.md` | The full page skeleton: frontmatter + all body sections in order, ending in an explicit verdict. |
 | Frontmatter extension | appended into `{{project}}_wiki/_meta/conventions.md` | The `⚠ unverified <metric>` seal, the `benchmark` page type, and the portable `environment` block. See `conventions-extension.md`. |
 

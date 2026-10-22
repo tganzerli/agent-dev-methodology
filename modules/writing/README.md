@@ -27,7 +27,7 @@ Three failure modes, none of which a folder fixes.
 - **Outline** — one or two lines per paragraph: which idea it defends, which source anchors it. Approved by the human before any prose is written. This is the analogue of the plan gate, and it is the only gate in the cycle that is worth its cost.
 - **Draft** — write the whole piece against the approved outline.
 - **Review** — iterate with the human. Feedback about a paragraph changes that paragraph; rewriting the whole piece in response to local feedback is the anti-pattern, and it is the one that gets a text worse over time by discarding revisions the human already made.
-- **Polish** — resolve every `⚠ source needed` / `⚠ unverified <metric>`, check citation format, strip repo-only markup that will not survive the destination format (wikilinks, callouts).
+- **Polish** — resolve every `⚠ source needed` / `⚠ unverified <metric>`, check citation format, strip repo-only markup that will not survive the destination format (wikilinks, callouts), and check that no internal ID survives in the text and every internal term is introduced before use (entry-point template, "Added in writing mode").
 - **Deliver** — move from `drafts/` to `published/`, record where it went.
 
 ## What survives the override
@@ -39,6 +39,8 @@ Named explicitly in the entry-point template, because an override that does not 
 - **No quantitative claim without its evidence page** (benchmarks module) — in prose the seal is `⚠ unverified <metric>`, exactly as in the wiki.
 - **No bibliographic claim without a real source** — `⚠ source needed`.
 - **Writing does not write to the wiki.** If drafting reveals a gap in the knowledge layer, the agent **signals it** and the human decides; the fix goes through the normal cycle or `/ingest-source`. Prose is downstream of knowledge, never a side door into it.
+
+One rule is **added** rather than kept, because the reader is outside the repo: **internal IDs never appear in published text, and internal terms appear only after they are introduced.** The installation this came from applied the convention for weeks and found it cited in five places without being written down in any; the template now writes it down.
 
 ## `_norms/` vs `sources/` — the distinction that keeps recurring
 

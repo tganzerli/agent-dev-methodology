@@ -39,6 +39,7 @@ disable-model-invocation: true
 - **No emoji** unless the human asks.
 - **No motivational cliché.** "Hard work pays off" says nothing.
 - **Honesty.** If the post cites a result, link its source — the commit, the evidence page, the repo.
+- **No internal ID, no unintroduced internal term.** A `work_id`, ADR id, file path or run id means nothing on a feed; a public link does. The project's jargon appears only after it is introduced, which in a post usually means not at all. See `content/CLAUDE.md`, "Added in writing mode".
 - **Active voice, present tense, first person.**
 - **Language** — the target platform's audience decides, not the repo's default.
 
