@@ -15,6 +15,7 @@ Ensure every piece of work over this repository produces three bound artifacts �
 3. **Human gate at every transition.** A plan does not run without approval. An execution does not close without review. The wiki does not update without an explicit `/wiki-sync`.
 4. 🔒 **Source-of-truth discipline.** Every technical claim in the wiki, in a plan, **and in the rules** carries a `file:line` citation. A claim without a citation is marked `⚠ unverified` until someone anchors it.
    **In the rules this is what makes them verifiable.** A rule that describes code behaviour without pointing at the code **cannot be checked against reality** — it drifts silently and nobody notices, because there is nothing to notice with. Applies to claims that are **new or edited**; it does not demand a backfill of existing text.
+   **A citation is point-in-time.** Never "fix" a `file:line` in a closed trio to match today's file — that erases what the source said when the decision was made; annotate instead (conventions §2).
 5. **Scope attribution.** Every wiki page, plan, and execution declares what it affects. In a single-repo project this is the module/area; in a monorepo it is which `apps/*` and/or `packages/*` (see the optional monorepo module).
 6. **The methodology lives in exactly one place.** This file is the source. Per-LLM entry-point stubs (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`, …) only point here.
 
@@ -62,8 +63,11 @@ File: `{{project}}_wiki/work/tasks/{ID}.md`. Template: `{{project}}_wiki/work/ta
 - **Optionally, stages** when the task is large or spans more than one action. Each stage can have its own plan/execution and be marked done individually.
 
 **Authorship and collaboration:**
-- The task is, by default, **filled in and edited by the human**. The LLM does **not** alter the task on its own initiative.
-- The LLM **may** collaborate on the task **only when the human explicitly asks** (e.g. "create a task covering…", "extend the task scope to…", "add a stage with these steps…").
+- The task is, by default, **filled in and edited by the human**. LLM edits fall in **three tiers**:
+  - **Creating a task** — never without an explicit human order.
+  - **`status`, `updated` and ticking a stage done** — ungated; the LLM updates them as work advances. They report reality, and leaving them stale makes the generated catalog lie.
+  - **Any other body edit** — allowed, but **announced in the same turn**, so the human can have it undone. The announcement is the gate. *(Origin: one installation read the old two-tier wording as forbidding a status tick.)*
+- Substantive collaboration — creating the task, extending its scope, adding a stage — happens **only when the human explicitly asks** (e.g. "create a task covering…", "extend the task scope to…", "add a stage with these steps…").
 - Even after such a request, the LLM **proposes** the change (describes what it intends) and only **applies** it after explicit human approval. The gate here mirrors the plan gate (§4.3).
 - `related[]` is a soft exception: the LLM may populate it when it spots pertinent wikilinks, but should still flag the change.
 - **Additional stages may be proposed by the LLM during execution of a prior stage**, when that better serves the demand. Inclusion follows the same gate: LLM proposes, human approves, then the task is updated.
@@ -260,6 +264,22 @@ Three failure modes produce a bloated prefix, and all three are structural rathe
 
 **Measure before you cut, and measure at section granularity.** A file-level ratio ("the core is ~30%") is misleading: the heavy sections tend to be exactly the ones containing gates, so the movable share is smaller than the average suggests. Cut against a measurement, not an estimate.
 
+## 6.7. Every non-negotiable needs a mechanism
+
+**A copy or a check that nobody runs does not warn that it is wrong.** It does not fail and does not visibly age; it looks correct until someone executes it. Text alone did not hold either: a no-LLM-co-author rule, clearly written, was broken by 16 commits in one installation and by 8 of 8 in one trio of another, and each was found by a human, by accident. (Origin: a cross-project survey; one installation catalogued five occurrences — skills installed before their precondition, a path list kept in four copies, an audit whose rule fit the drift exactly and that nobody invoked.)
+
+A guard that works:
+
+- **Ask "when it finds a violation, what does it return?"** Running and finding are not enough: a CI analyzer printed the planted violation and exited 0, approving the PR. A green log with the violation in its body is worse than no check.
+- **See every guard red once.** Plant a violation, watch it fail, revert. A guard that never failed is one more unexecuted copy.
+- **Give it a trigger** — CI on every PR, or a script step inside a skill that already runs. Manual-only is a suggestion.
+- **Scope it to what the change adds** (the PR's commits, the files it touches). A permanently red pipeline is a pipeline nobody reads.
+- **Start advisory; go blocking with a ratchet or an incremental mode** — fail on a count above a measured baseline, or on touched files only — never on zero from day one.
+- **Never charge a branch for debt it cannot fix** — history already on a permanent branch, pages it did not touch.
+- **Fail loudly when it cannot verify** (base that does not resolve, shallow clone, empty range): green by absence of cases reads as "all good".
+
+The kit's instances: `/work-index --check`, `/wiki-lint` (ratchet), the commit-trailer check (PR range), the plan-gate hook.
+
 ## 7. Anti-patterns (do NOT)
 - ❌ Execute code without plan approval.
 - ❌ Write to the wiki without a `file:line` citation.
@@ -273,6 +293,7 @@ Three failure modes produce a bloated prefix, and all three are structural rathe
 - ❌ Fix the same review finding a second time without promoting it to a rule, check or `REVIEW.md` line.
 - ❌ Update the wiki automatically in a PR — always go through `/wiki-sync` with a human gate.
 - ❌ Pseudocode in the wiki. If it has no `file:line`, it is `⚠ unverified`.
+- ❌ Write a non-negotiable with no mechanism, or ship a guard you never saw fail (§6.7).
 
 ## 8. Agent Skills
 

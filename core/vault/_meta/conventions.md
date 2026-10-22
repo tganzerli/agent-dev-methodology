@@ -56,6 +56,8 @@ A claim without a citation **must** be marked `⚠ unverified` at the end of the
 
 > **Module tags.** Optional modules define specialized uncertainty tags, appended into this file by their `conventions-extension.md` at install: `⚠ unverified <metric>` (benchmarks — a quantitative claim without a reproducible page) and `⚠ contract-drift` (contracts — a contract page out of sync with its definition). They are stricter, scoped variants of `⚠ unverified`.
 
+**Citations are point-in-time.** A `file:line` records what the source said **when the page was written**. In a closed trio (or any dated record) never "fix" a citation against today's file: an audit against the current version accuses every correct historical record and absolves the recent defect. Check against `git show <commit>:<file>` at the document's date; if the source moved on, **annotate** ("correct as of YYYY-MM-DD; the text now lives at …") instead of rewriting. Only a citation that was wrong when written is corrected. *(Origin: three correct records were rewritten to match a source changed since, and had to be restored.)*
+
 **When NOT to cite:** domain definitions (cite the external source/ADR instead of code); process/methodology statements (cite `.agents/METHODOLOGY.md` or a rule).
 
 ## 3. Wikilinks
