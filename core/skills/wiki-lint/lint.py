@@ -286,9 +286,11 @@ def main():
     for d in (".agents",):
         # os.walk does not follow symlinks: .agents/skills -> ../.claude/skills (the Antigravity
         # skills link) must not pull every skill body into the wikilink check.
-        for dirpath, _dirs, filenames in os.walk(os.path.join(a.root, d)):
+        # Dot-dirs and dot-files are pruned, as the recursive glob this replaced skipped them.
+        for dirpath, dirs, filenames in os.walk(os.path.join(a.root, d)):
+            dirs[:] = sorted(x for x in dirs if not x.startswith("."))
             for f in sorted(filenames):
-                if not f.endswith(".md"):
+                if f.startswith(".") or not f.endswith(".md"):
                     continue
                 fp = os.path.join(dirpath, f)
                 extra.append(dict(rel=os.path.relpath(fp, a.root), name=f[:-3],
