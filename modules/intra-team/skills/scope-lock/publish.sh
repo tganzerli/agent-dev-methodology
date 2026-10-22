@@ -40,6 +40,17 @@ DEFAULT_MSG_RELEASE='docs(work): release scope lock on {scope}'
 MSG_TAKE="${SCOPE_LOCK_MSG_TAKE:-$DEFAULT_MSG_TAKE}"
 MSG_RELEASE="${SCOPE_LOCK_MSG_RELEASE:-$DEFAULT_MSG_RELEASE}"
 
+# Replace every `{scope}` in a template. Not `${var//pat/rep}`: its replacement quoting
+# differs across bash versions (3.2 keeps literal quotes; >= 5.2 expands `&` unquoted).
+fill_scope() { # fill_scope <template> <scope>
+  local tmpl="$1" out=""
+  while [[ "$tmpl" == *"{scope}"* ]]; do
+    out="${out}${tmpl%%\{scope\}*}$2"
+    tmpl="${tmpl#*\{scope\}}"
+  done
+  printf '%s' "${out}${tmpl}"
+}
+
 if [[ -n "${SCOPE_LOCK_FILE:-}" ]]; then
   LOCKS_REL="$SCOPE_LOCK_FILE"
 else
@@ -120,7 +131,7 @@ for attempt in 1 2 3; do
 
   # `release` takes no --work-id.
   if [[ "$OP" == "take" ]]; then MSG="$MSG_TAKE"; else MSG="$MSG_RELEASE"; fi
-  MSG="${MSG//\{scope\}/$SCOPE}"
+  MSG="$(fill_scope "$MSG" "$SCOPE")"
   [[ -n "$WORK_ID" ]] && MSG="${MSG} (${WORK_ID})"
 
   git -c user.name="$(git -C "$REPO" config user.name)" \
