@@ -42,6 +42,7 @@ scope:
   # packages: []    # monorepo module only
 status: stable
 updated: {YYYY-MM-DD}
+summary: {one sentence — the line the generated catalog shows}
 sources: []
 code_refs: []
 related: []
@@ -86,9 +87,9 @@ Typically:
 - Update `updated: YYYY-MM-DD`.
 - Add a paragraph/section citing the source (`§X.Y` of the summarized source).
 
-### 6. Update `{{project}}_wiki/_meta/index.md`
+### 6. Update the source catalog
 
-Register the new source under "Sources → External".
+Give the summary page a one-sentence `summary:` in its frontmatter and run `/wiki-index sources/external` — the external-sources catalog is generated, never hand-edited. `_meta/index.md` keeps a single pointer to `[[sources/external/_index]]` instead of repeating the list.
 
 ### 7. Append to the log
 

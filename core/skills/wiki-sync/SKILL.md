@@ -47,12 +47,13 @@ The main thread then:
 
 ### 3. Update indexes
 
-- `{{project}}_wiki/_meta/index.md` — add/update entries for the touched pages (use `grep -n` to find the spot; don't read the whole file needlessly).
+- Pages in a directory with a **generated** catalog (`decisions/`, `cross-cutting/`, `sources/external/`, `postmortems/`): set the page's `summary` and run `/wiki-index <dir>` — never edit that `_index.md` by hand.
+- `{{project}}_wiki/_meta/index.md` — add/update entries for the other touched pages, one line each (use `grep -n` to find the spot; don't read the whole file needlessly).
 - `{{project}}_wiki/work/_index.md` is **generated**; if the execution changed trio frontmatter, regenerate via `/work-index` rather than editing by hand.
 
 ### 4. Mechanical close-out (script)
 
-One command updates the execution's `related[]`, appends to the central log, marks the plan `status: executed`, and runs the project's index-format guard if it has one:
+One command updates the execution's `related[]`, appends to the central log, marks the plan `status: executed`, and runs `/wiki-lint`'s `index-format` check on the hand-kept catalogs:
 
 ```bash
 python3 <skills-dir>/wiki-sync/sync_bookkeeping.py $ARGUMENTS \

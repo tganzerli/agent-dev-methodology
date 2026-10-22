@@ -139,7 +139,7 @@ Command: `/wiki-sync {ID}`. The LLM:
 1. Reads `{{project}}_wiki/work/executions/{ID}.md`.
 2. Updates or creates the knowledge pages listed under "affected wiki pages" (in `{{project}}_wiki/<knowledge dirs>/` — **not** in `{{project}}_wiki/work/`).
 3. Updates `related[]` of the execution with wikilinks to every page it created/touched.
-4. Updates `{{project}}_wiki/_meta/index.md` (knowledge catalog) and `{{project}}_wiki/work/_index.md` (work catalog — generated; see §5.5).
+4. Updates `{{project}}_wiki/_meta/index.md` (knowledge catalog), regenerates the generated sub-indexes it touched (`/wiki-index`) and `{{project}}_wiki/work/_index.md` (work catalog; see §5.5).
 5. Appends an entry to `{{project}}_wiki/_meta/log.md`:
    `## [YYYY-MM-DD] wiki-sync | {ID} | N pages touched`
 
@@ -199,6 +199,8 @@ See `{{project}}_wiki/_meta/conventions.md`. Summary:
 
 Requires `summary` and `topic` frontmatter on every trio. See conventions §"work frontmatter".
 
+> **Corollary — a derivable knowledge catalog is generated too.** `decisions/`, `cross-cutting/`, `sources/external/` and `postmortems/` get their `_index.md` from each page's `summary` via `/wiki-index`; `_meta/index.md` points at them instead of repeating their lists. In one installation every hand-kept sub-index had drifted (`decisions/` missing 10 of 27 ADRs) while the generated work index missed 0 of 108 trios. The defect is always omission, so it is silent: a reader cannot see what is not listed. Derivable from frontmatter → generate it; needs editorial judgement → keep it by hand, with a byte budget and a lint that fails.
+
 ### 5.6. Execution = historical log · Knowledge = living memory
 - An **execution** is a **historical log** — chronological, immutable by design, never `stale`, archivable by quarter. It answers "**when/how** was this done".
 - A **knowledge page** is the **living, thematic memory** — the distilled current state. It answers "**what do we know about X today**".
@@ -225,7 +227,7 @@ See `.claude/skills/ingest-source/SKILL.md`.
 4. If the answer has durable value, offer to archive it as a new page.
 
 ### 6.3. Lint (wiki health)
-Run periodically (`/wiki-lint`). Check: knowledge pages `status: stale`; orphan pages; contradictions; topics mentioned but without a page; broken cross-references; tasks `open` too long without a plan; plans `approved` too long without an execution; executions `in_progress` too long without progress. Lint **ignores** `{{project}}_wiki/work/` for `stale`.
+Run periodically (`/wiki-lint`). Check: knowledge pages `status: stale`; orphan pages; contradictions; topics mentioned but without a page; broken cross-references; tasks `open` too long without a plan; plans `approved` too long without an execution; executions `in_progress` too long without progress. Lint **ignores** `{{project}}_wiki/work/` for `stale`. The unambiguous checks are a script whose gates ratchet against a measured baseline, run in CI on every PR; the rest stays human judgement (`.claude/skills/wiki-lint/SKILL.md`).
 
 ### 6.4. Wiki sync (post-execution)
 See §4.5.
@@ -242,7 +244,7 @@ The fix is not to promote them by hand into a bigger summary, which would drift 
 - The consolidated list is **generated** from those markers, and points back with `file:line`. It is a router, not a digest.
 - Either it has the marker and appears, or it is not a gate. There is no third state.
 
-This is the same verdict as "the work index is generated, not hand-edited" (§5.5): **regenerate beats hand-maintain**, for the same reason.
+This is the same verdict as "the work index is generated, not hand-edited" (§5.5): **regenerate beats hand-maintain**, for the same reason. The generator is `.claude/skills/wiki-lint/list_gates.py`.
 
 > Two traps, both learned the hard way. **Do not mark meta** — a note that *talks about* gates is not one, and self-inclusion inflates the list silently. And **read the generated summary**: if a marked line's summary does not stand on its own, the marker is on the wrong line (a section heading, or the tail of a previous sentence) — that reading is the cheapest correctness check you have.
 

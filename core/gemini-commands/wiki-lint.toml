@@ -1,14 +1,13 @@
-description = "Check wiki health (stale pages, orphans, contradictions, broken citations)"
+description = "Check wiki health by script (catalog drift, summaries, wikilinks, frontmatter, index format, rule citations)"
 
 prompt = """
 You are executing the `/wiki-lint` command in this project.
 
 The canonical source of truth is `@.claude/skills/wiki-lint/SKILL.md` and `@.agents/METHODOLOGY.md` §6.3.
-Analyze:
-1. Knowledge pages: stale pages, orphaned pages, broken file:line citations.
-2. Work pages: stagnant tasks, approved plans lacking execution, stalled executions.
-3. Metadata: consistency with `_meta/index.md`.
-4. Structured health report with actionable findings.
+1. Run `python3 .claude/skills/wiki-lint/lint.py --root . {{args}}` — read-only; exit 1 means a gate rose above its baseline.
+2. If asked for the gate list, run `python3 .claude/skills/wiki-lint/list_gates.py --markdown`.
+3. Report gates first, then warnings, then the judgement checks the script does not do (contradictions, topics without a page).
+4. Never edit pages and never raise a baseline.
 
 Arguments: {{args}}
 """

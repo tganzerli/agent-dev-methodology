@@ -19,6 +19,7 @@ scope:
   packages: []                  # monorepo only — e.g. [core, ui] or []
 status: stub                    # stub | draft | stable | stale
 updated: 2026-05-14             # ISO date — update on every change
+summary: One sentence — the catalog line (required in generated-catalog dirs, ≤250 chars)
 sources:                        # links to sources/ backing this page
   - sources/external/2026-05-13_partner-spec.md
 code_refs:                      # code files this page describes (used by lint for `stale`)
@@ -37,6 +38,7 @@ related:                        # wikilinks
 | `scope` | yes | At least one sub-field filled. Cross-boundary pages live in `cross-cutting/`. |
 | `status` | yes | `stub` → `draft` → `stable` → `stale`. |
 | `updated` | yes | Update manually when the page is touched. |
+| `summary` | in generated-catalog dirs | One sentence, ≤250 chars. It **is** the page's line in the generated sub-index (`/wiki-index`); `/wiki-lint` gates on it. |
 | `sources` | when applicable | Pages in `sources/` that originated the content. |
 | `code_refs` | when applicable | Repo files described. Used by lint to detect `stale`. |
 | `related` | recommended | Manual cross-references. |
@@ -203,4 +205,5 @@ What is still missing to document/implement/decide.
 - ❌ Pseudocode. If it is not a literal citation, it is prose.
 - ❌ Mix scopes: a page whose scope spans two areas belongs in `cross-cutting/`.
 - ❌ Update a page without updating `updated:`.
-- ❌ Create a page without an entry in `{{project}}_wiki/_meta/index.md`.
+- ❌ Create a page without an entry in `{{project}}_wiki/_meta/index.md` — or, in a generated-catalog dir (`decisions/`, `cross-cutting/`, `sources/external/`, `postmortems/`), without a `summary` and a `/wiki-index` run.
+- ❌ Hand-edit a generated `_index.md` (`status: generated` in its frontmatter), or keep a second list of the same pages elsewhere.
