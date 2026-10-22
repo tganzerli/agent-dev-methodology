@@ -97,7 +97,7 @@ File: `{{project}}_wiki/work/plans/{ID}.md`. Mandatory structure in `.agents/rul
 
 **Gate:** the LLM does **not execute code** until the human approves the plan.
 
-Plan frontmatter must include `type: plan`, `work_id`, `scope`, `status` (`draft|approved|executed`), `risk` (`low|medium|high`), `related[]` linking the knowledge pages the plan touches.
+Plan frontmatter must include `type: plan`, `work_id`, `scope`, `status` (`draft|approved|executed|cancelled|aborted`), `risk` (`low|medium|high`), `related[]` linking the knowledge pages the plan touches.
 
 ### 4.3.5. Branch (after approval, before execution)
 If the project installs a git branching rule (`.agents/rules/git_branching_rule.md` — the core single-repo rule, or the monorepo module's variant at the same path), the branch for the work is created **after** the plan is `approved` and **before** any code runs. The branch name embeds the `work_id` (`<type>/<work_id>__<scope>`), binding the trio to its branch. The creation gate is the rule's own: no branch without an approved plan; never invent a branch name. In a project with no branching rule installed, skip this sub-step and follow the project's normal flow.
@@ -184,7 +184,7 @@ See `{{project}}_wiki/_meta/conventions.md`. Summary:
 - Wikilinks `[[path/to/page]]` for cross-reference.
 - Status (knowledge): `stub | draft | stable | stale`.
 - Status (work — task): `open | in_progress | done | cancelled | aborted`.
-- Status (work — plan): `draft | approved | executed`.
+- Status (work — plan): `draft | approved | executed | cancelled | aborted` (terminal: `executed`, `cancelled`, `aborted`).
 - Status (work — execution): `in_progress | done | aborted`.
 
 ### 5.4. Two catalogs, distinct semantics

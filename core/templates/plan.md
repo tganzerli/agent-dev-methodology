@@ -18,7 +18,7 @@ scope:
   area: []                   # single-repo: free text, e.g. [billing, auth]
   # apps: []                 # monorepo only
   # packages: []             # monorepo only
-status: draft                # draft | approved | executed
+status: draft                # draft | approved | executed | cancelled | aborted
 risk: medium                 # low | medium | high — the change sets it, the human confirms it (METHODOLOGY §4.4.1)
 updated: {YYYY-MM-DD}
 summary: One sentence — what this plan delivers. Feeds the generated work catalog.
