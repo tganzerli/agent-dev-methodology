@@ -23,7 +23,7 @@ On the first `up` for a service, if `docker/<service>/.env` is missing, the skil
 
 1. Validate:
    - `docker --version && docker compose version` (≥ 2.20).
-   - `docker/<service>/docker-compose.yml` exists.
+   - `docker/<service>/docker-compose.yml` exists and declares a top-level `name:`. If it does not, stop and report it (rule §4 item 8): without it, the project name is the directory name, shared with any other repository using the same layout.
 2. If `docker/<service>/.env` is absent: `cp .env.example .env`, report it.
 3. Mode:
    - **persistent (default)** — `docker compose up -d --wait`.
@@ -66,6 +66,7 @@ Example: `/dev-env exec postgres psql -U postgres -d app`.
 - ❌ Skipping `--wait` on `up` (race condition in smoke tests).
 - ❌ `down --clean` in `persistent` mode without human confirmation — can delete daily-dev data.
 - ❌ Ignoring healthcheck output — if it is not healthy within 60s, **fail** and print `docker compose logs`. Never proceed as if it succeeded.
+- ❌ `down` (above all `down -v`) on a compose file without a top-level `name:` — it acts on whatever shares the directory-named project, including another repository's container. Use `docker compose -p <name> …` until `name:` is added.
 - ❌ Touching containers/volumes outside the scope of `docker/<service>/` (e.g. `docker rm` on unrelated containers on the host).
 
 ## Fit with the work cycle

@@ -53,6 +53,17 @@ Every compose file is **required** to have:
 5. A **`healthcheck`** that returns success when the service is actually ready. The `dev-env` skill depends on it for `up --wait` — without one, "up" cannot mean "ready."
 6. **Named volumes** (never bind mounts under `./data`). Naming convention: `<project>-<service>-dev-data`.
 7. A **`restart`** policy (e.g. `unless-stopped`) when the service is primarily used in `persistent` mode.
+8. An explicit top-level **`name:`**, equal to the `container_name` (`<project>-<service>-dev`). Without it, Compose uses the directory name (`postgres`, `mongo`, …) as the project name, and `container_name` isolates nothing: Compose identifies a container by project and service. Any other repository on the same machine with the same `docker/<service>/` layout lands in the same project, so a `down -v` there removes the container here. This has happened between two installations of this kit. The `--benchmark` mode of the `dev-env` skill still isolates through `COMPOSE_PROJECT_NAME`, which takes precedence over `name:`.
+
+```yaml
+name: <project>-<service>-dev   # explicit project; never the bare directory name
+
+services:
+  <service>:
+    container_name: <project>-<service>-dev
+```
+
+Migrating a container created before `name:` was added: the next `up` reports `container name ... is already in use`. Bring the old project down **without `-v`** (`docker compose -p <directory-name> -f docker/<service>/docker-compose.yml down`) and run `up` again; the named volume is reused.
 
 ## 5. Lifecycle — three modes
 
@@ -99,7 +110,7 @@ Before running any test, smoke check, or PoC that talks to an external service, 
 
 ## 9. Adding a new service
 
-1. Create `docker/<service>/docker-compose.yml` following §4.
+1. Create `docker/<service>/docker-compose.yml` following §4 (including the top-level `name:`).
 2. Create `docker/<service>/.env.example`.
 3. Create `docker/<service>/README.md` documenting usage, default credentials, and troubleshooting.
 4. Update the table in `docker/README.md`.
@@ -114,6 +125,7 @@ Before running any test, smoke check, or PoC that talks to an external service, 
 - ❌ No healthcheck.
 - ❌ Monolithic compose covering multiple unrelated services.
 - ❌ A `version:` key in the compose file (Compose v2 ignores it; signals a stale file).
+- ❌ A compose file without a top-level `name:` — it shares the Compose project with any same-named directory on the machine.
 - ❌ Hardcoded ports with no `.env` override.
 - ❌ A README that says "install X on your machine" instead of "run `/dev-env up X`."
 
