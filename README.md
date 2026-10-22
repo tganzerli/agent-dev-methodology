@@ -18,7 +18,7 @@ The core is what every project gets. Modules are additive and independent, excep
 
 | Module | Install when | Adds | Requires |
 |---|---|---|---|
-| `monorepo` | Multiple apps and/or shared packages, each on its own long-lived branch | `git_branching_rule` (replaces the core one) + `knowledge_source_of_truth_rule`; skills `promote-knowledge`, `sync-knowledge`, `distribute-packages`; CI broadcast stubs | — |
+| `monorepo` | Multiple apps and/or shared packages, each on its own long-lived branch | `git_branching_rule` (replaces the core one) + `knowledge_source_of_truth_rule`; skills `promote-knowledge`, `sync-knowledge`, `distribute-packages`, `git-runbook`, `reset-dev-branch`; CI broadcast stubs + tests; path-list, scope and transition checkers | — |
 | `cross-team` | A partner team collaborates through **their own LLM**, and they cannot read your repo | skill `cross-team-handoff`; handoff/response/living-contract templates | — |
 | `intra-team` | More than one agent works **your** repo and they must coordinate | skill `intra-team`; message + coordination-board templates; `work/relay/` | — |
 | `peer-relay` | Another project in a **separate repo on the same machine** collaborates; its agent can *read* your files but does not *share* your checkout | skill `peer-relay`; peer registry `.agents/peers.md`; peer-message template | `intra-team` |

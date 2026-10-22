@@ -14,36 +14,37 @@ This rule is **non-negotiable** and complements `mandatory_planning_rule.md` (pl
 
 ## 2. Knowledge layer — covered paths
 
-These paths make up the canonical knowledge layer (versioned, kept aligned across `main` and every `dev_<app>`). Adapt the exact filenames to your host/toolchain at install time:
+These paths make up the canonical knowledge layer (versioned, kept aligned across `main` and every `dev_<app>`). One path per line (a line may group files with commas); after `#`, a comment that starts with the path's **reconcile group** (§3.6): `[A]` or `[B]`. At install, replace each `<placeholder>`, delete lines that do not apply, and mark a path declared but not yet created with `— DECLARED, not yet created` (every unmarked path must match a tracked file — §9.1):
 
 ```
-.agents/                              # methodology + rules + per-LLM specifics + mcp.md
-.claude/skills/                       # Agent Skills (gitignored: local settings, projects/, todos/)
-<per-agent config>                    # e.g. .gemini/settings.json + .gemini/commands/
-.mcp.json                             # MCP server registry (if any)
-<workspace file>                      # e.g. the multi-root editor workspace file
-<root workspace manifest>             # the ROOT dependency/workspace manifest only — app/package manifests are OUT
-scripts/                              # shared CI tooling (broadcast-*.sh) — must stay aligned across branches
-<CI pipeline config>                  # e.g. .github/workflows/*, .gitlab-ci.yml, bitbucket-pipelines.yml
-qa/                                   # shared QA pipeline (if any) — monorepo-wide tooling, aligned across branches
-CLAUDE.md, GEMINI.md, AGENTS.md, README.md   # entry-points
-{{project}}_wiki/_meta/               # conventions, index, log
-{{project}}_wiki/apps/                # per-app knowledge
-{{project}}_wiki/packages/            # per-package knowledge
-{{project}}_wiki/cross-cutting/       # cross-cutting knowledge
-{{project}}_wiki/decisions/           # ADRs
-{{project}}_wiki/sources/             # external/internal source summaries
-{{project}}_wiki/benchmarks/          # evidence pages — if the benchmarks module is installed
-{{project}}_wiki/postmortems/         # thematic lessons graduated from executions (METHODOLOGY §5.6)
-{{project}}_wiki/overview.md          # apps × packages × domains map
-{{project}}_wiki/.obsidian/           # shared vault config (gitignored: workspace*.json)
+.agents/                              # [A] methodology + rules + per-LLM specifics + mcp.md
+.claude/skills/                       # [A] Agent Skills (gitignored: local settings, projects/, todos/)
+.claude/agents/                       # [A] role sub-agents
+.claude/hooks/                        # [A] agent hooks
+.claude/settings.json                 # [A] shared agent settings (settings.local.json is gitignored)
+<per-agent-config>                    # [A] e.g. .gemini/settings.json + .gemini/commands/
+.mcp.json                             # [A] MCP server registry (if any)
+<workspace-file>                      # [A] e.g. the multi-root editor workspace file
+CLAUDE.md, GEMINI.md, AGENTS.md, README.md   # [A] entry-points
+<root-manifest>                       # [B] the ROOT dependency/workspace manifest only — app/package manifests are OUT
+scripts/                              # [B] shared CI tooling — must stay aligned across branches
+<ci-config>                           # [B] e.g. .github/workflows/, .gitlab-ci.yml
+qa/                                   # [B] shared QA pipeline (if any)
+.gitattributes                        # [B] merge attributes (log.md merge=union — §3.6)
+# docker/                             # [B] uncomment when the dev-env module is installed
+{{project}}_wiki/_meta/               # [A] conventions, index, log
+{{project}}_wiki/apps/                # [A] per-app knowledge
+{{project}}_wiki/packages/            # [A] per-package knowledge
+{{project}}_wiki/cross-cutting/       # [A] cross-cutting knowledge
+{{project}}_wiki/decisions/           # [A] ADRs
+{{project}}_wiki/sources/             # [A] external/internal source summaries
+{{project}}_wiki/benchmarks/          # [A] evidence pages — benchmarks module (kit-created)
+{{project}}_wiki/postmortems/         # [A] lessons graduated from executions (METHODOLOGY §5.6, kit-created)
+{{project}}_wiki/overview.md          # [A] apps × packages × domains map
+{{project}}_wiki/.obsidian/           # [A] shared vault config (gitignored: workspace*.json)
 ```
 
-> **Two of these directories are created by this kit, not by the project.** `benchmarks/` comes with
-> the benchmarks module and `postmortems/` is referenced by `METHODOLOGY.md` §5.6 and §10.1 — both are
-> listed here so an install does not have to rediscover them. A project whose knowledge is organized
-> on another axis keeps its own top-level directories and adds them to this list (see the module
-> README, "Vault reorganization").
+A project organized on another axis adds its own top-level knowledge directories here (module README, "Vault reorganization").
 
 **Outside the knowledge layer (per-branch during the trio; promoted on close):**
 - `{{project}}_wiki/work/tasks/`, `plans/`, `executions/` — born on the work branch.
@@ -111,7 +112,16 @@ Periodically, or when you suspect divergence, **invoke** `/sync-knowledge`. The 
 When a knowledge-layer change goes **only** to main (no origin branch), create ephemeral `docs/<work_id>__knowledge` straight off main, change it there, PR to main. Typical: a typo fix in an old ADR, a standalone `_meta/index.md` update.
 
 ### 3.6. Broadcast auto-reconcile (main → dev)
-The `main → dev_<app>` broadcast (CI, `scripts/broadcast-main.sh`) auto-reconciles conflicts **confined to Group A** of the knowledge layer (`KNOWLEDGE_PATHS` in the script: the wiki, `.agents/`, `.claude/skills/`, per-agent config, `.mcp.json`, the entry-point stubs, the workspace file), adopting **main's** version (canonical) and regenerating the derived index. A conflict that touches **Group B** (`<root workspace manifest>`, `qa/`, `<CI pipeline config>`, `scripts/`) **aborts** and requires human resolution via `/sync-knowledge` — those affect build/CI or have non-regenerable derivatives inside the broadcast runner image. Keep a companion ADR (`{{project}}_wiki/decisions/YYYY-MM-DD_knowledge-reconcile-scope.md`).
+§2 tags every path with exactly one group, and the `main → dev_<app>` broadcast (CI, `scripts/broadcast-main.sh`) consumes that partition:
+
+- **Group A — reconciles on its own**, adopting **main's** version (canonical) and regenerating the derived index. Docs and agent configuration. It is `KNOWLEDGE_PATHS` in the script, where `{{project}}_wiki/` enters whole (so `work/` is covered too).
+- **Group B — aborts and calls a human** via `/sync-knowledge`: build, CI, the running dev environment (`docker/`), and `.gitattributes` (git reads merge attributes from the `dev_<app>` side, so adopting main's copy mid-merge protects nothing). `scripts/` in B means the roster is not auto-reconciled (§9).
+
+> 🔒 **Exception: append-only files.** Adopting main's version of a **ledger** is data loss: the `dev_<app>` holds lines written between `/wiki-sync` and `/promote-knowledge` that exist nowhere else. The root `.gitattributes` declares `{{project}}_wiki/_meta/log.md merge=union`, so that conflict never happens.
+>
+> ⛔ `union` is for `_meta/log.md` **only** — never `_meta/index.md`, other catalogs or `work/_index.md`: union keeps both versions of a line edited on both sides. Do not replace it with another strategy. Why, and the refuted "union duplicates entries" claim: `git-runbook` §6.2.
+
+`scripts/check-knowledge-paths.py` verifies the partition and that no Group B path leaks into `KNOWLEDGE_PATHS` (§9.1). Keep a companion ADR (`{{project}}_wiki/decisions/YYYY-MM-DD_knowledge-reconcile-scope.md`).
 
 ## 4. Exceptions
 
@@ -162,6 +172,17 @@ The app/branch roster is **hardcoded in several places** and is **not** auto-rec
 - [ ] `scripts/broadcast-packages.sh` — `APPS` += `<new>` (if it consumes packages).
 - [ ] **CI pipeline config** — add the new per-app parallel step/job.
 - [ ] The permanent-branch list in §3 of `git_branching_rule.md`.
-- [ ] The path list in §2 of this rule (if the new app introduces new knowledge dirs).
+- [ ] The path list in §2 of this rule (if the new app introduces new knowledge dirs) — and its three copies (§9.1).
 
 > Because `scripts/` is not auto-reconciled, these copies **drift between branches** if edited on only one. Keep them aligned via normal promotion. Deriving the roster automatically from the root workspace manifest is a possible future improvement (not implemented).
+
+### 9.1. The §2 path list has four copies
+
+Changed §2? Update **all four in the same work** — none is derived from the others:
+
+- [ ] §2 of this rule — **the authoritative one**, and the only one that carries each path's expected state.
+- [ ] `.claude/skills/promote-knowledge/SKILL.md` — `KL_PATHS`. Equality required.
+- [ ] `.claude/skills/sync-knowledge/SKILL.md` — `KL_PATHS`. Equality required.
+- [ ] `scripts/broadcast-main.sh` — `KNOWLEDGE_PATHS`, which must cover every `[A]` path of §2 (the whole `{{project}}_wiki/` counts) and **nothing** tagged `[B]`.
+
+**Do not trust this checklist alone:** run `python3 scripts/check-knowledge-paths.py` — both skills run it at step 1 and abort on failure; wire it into CI too, since the skills do not run until a `dev_<app>` exists. Why it exists: `git-runbook` §6.3.

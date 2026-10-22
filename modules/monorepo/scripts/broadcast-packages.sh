@@ -24,6 +24,8 @@
 # Conflict strategy: BEST-EFFORT. Abort the problematic dev, continue the others,
 # mark the pipeline failed, log the summary.
 #
+# Test: scripts/test-broadcast-packages.sh (throwaway bare remote).
+#
 # Precondition (configure in your git host UI): branch protection on `dev_*` must
 # grant a push exception to the CI bot identity (repository access token / deploy
 # key with write scope). Humans stay restricted to PRs; only the bot pushes.
@@ -39,16 +41,20 @@ APPS=(
   # "mobile"
 )
 
-# ── TODO(env): map these to your CI's provided variables ──────────────────────
-#   GitHub Actions : ${GITHUB_SHA}, ${GITHUB_TOKEN}
-#   GitLab CI      : ${CI_COMMIT_SHA}, ${CI_JOB_TOKEN}
-#   Bitbucket      : ${BITBUCKET_COMMIT}, ${BITBUCKET_TOKEN}
-SHA="${CI_COMMIT_SHA:?TODO set this to the CI trigger commit SHA}"
+# ── TODO(env): map your CI's variables onto these, in the CI job ──────────────
+# Same contract as broadcast-main.sh: CI_COMMIT_SHA (the dev_packages head),
+# CI_PUSH_REMOTE (the authenticated push URL — no separate token variable), and
+# optionally CI_BEFORE_SHA (below). Keep the mapping in the pipeline config.
+SHA="${CI_COMMIT_SHA:?TODO set CI_COMMIT_SHA to the CI trigger commit SHA}"
 SHORT_SHA="${SHA:0:8}"
-TOKEN="${CI_BOT_TOKEN:?TODO set this to the CI bot write token}"
+PUSH_URL="${CI_PUSH_REMOTE:?TODO set CI_PUSH_REMOTE to the authenticated push URL}"
 
-# TODO(remote): build the authenticated push URL for your host (see broadcast-main.sh).
-REMOTE="${CI_PUSH_REMOTE:?TODO set this to the authenticated push URL}"
+# Test seam: replaces the push target ONLY; the production inputs above are still
+# demanded (see broadcast-main.sh).
+REMOTE="${BROADCAST_REMOTE:-${PUSH_URL}}"
+if [ -n "${BROADCAST_REMOTE:-}" ]; then
+  echo "[broadcast-packages] TEST SEAM: pushing to BROADCAST_REMOTE, not CI_PUSH_REMOTE"
+fi
 
 # ── No-op gate ────────────────────────────────────────────────────────────────
 # If the push to dev_packages introduced no change under packages/, this is a
@@ -56,7 +62,7 @@ REMOTE="${CI_PUSH_REMOTE:?TODO set this to the authenticated push URL}"
 # to avoid purposeless merge commits on the devs.
 # A push may introduce several commits; inspect the whole pushed range, not just
 # the tip. Map CI_BEFORE_SHA to your host's "before" SHA:
-#   GitHub Actions : ${{ github.event.before }}
+#   GitHub Actions : github.event.before (the push event's 'before' SHA)
 #   GitLab CI      : ${CI_COMMIT_BEFORE_SHA}
 # A plain HEAD^..HEAD only sees the tip commit and false-skips a multi-commit push
 # whose package change sits in an earlier commit. Falls back to HEAD^ when no
@@ -76,19 +82,33 @@ git config user.email "ci-bot@example.invalid"
 git config user.name  "CI Broadcast Bot"
 
 if [ ${#APPS[@]} -eq 0 ]; then
-  echo "[broadcast-packages] APPS is empty — fill the roster array first. Nothing to do."
-  exit 0
+  # Exit codes: 0 = something propagated (or, packages only, the push changed
+  # nothing under packages/); 1 = any failure, an empty roster, or every roster
+  # branch skipped. A broadcast that reaches no branch is never green.
+  echo "[broadcast-packages] ! APPS is empty — fill the roster array first. Nothing propagated."
+  exit 1
 fi
 
 echo "[broadcast-packages] dev_packages@${SHORT_SHA} → ${#APPS[@]} app(s): ${APPS[*]}"
 
 OK_APPS=()
 FAIL_APPS=()
+SKIP_APPS=()
 
 for APP in "${APPS[@]}"; do
   TARGET="dev_${APP}"
   echo ""
   echo "[broadcast-packages] === ${TARGET} ==="
+
+  # Absent branch → skipped LOUDLY, never quietly (see broadcast-main.sh).
+  git ls-remote --exit-code --heads origin "refs/heads/${TARGET}" >/dev/null 2>&1
+  RC=$?
+  if [ "${RC}" -eq 2 ]; then
+    echo "[broadcast-packages]   ⊘ ${TARGET} does not exist on the remote yet — SKIPPED (roster declares it)"
+    SKIP_APPS+=("${APP}"); continue
+  elif [ "${RC}" -ne 0 ]; then
+    FAIL_APPS+=("${APP}:ls-remote"); continue
+  fi
 
   # Explicit refspec for shallow CI clones (see broadcast-main.sh).
   if ! git fetch --no-tags origin "+refs/heads/${TARGET}:refs/remotes/origin/${TARGET}" 2>&1 | tail -3; then
@@ -117,10 +137,15 @@ done
 echo ""
 echo "[broadcast-packages] summary:"
 echo "[broadcast-packages]   OK   = ${OK_APPS[*]:-(none)}"
+echo "[broadcast-packages]   SKIP = ${SKIP_APPS[*]:-(none)}"
 echo "[broadcast-packages]   FAIL = ${FAIL_APPS[*]:-(none)}"
 
 if [ ${#FAIL_APPS[@]} -gt 0 ]; then
   echo "[broadcast-packages] ! Pipeline marked FAILED — ${#FAIL_APPS[@]} dev(s) need attention"
+  exit 1
+fi
+if [ ${#OK_APPS[@]} -eq 0 ]; then
+  echo "[broadcast-packages] ! No dev propagated — every roster branch was skipped"
   exit 1
 fi
 echo "[broadcast-packages] done"

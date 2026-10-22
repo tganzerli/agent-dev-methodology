@@ -10,7 +10,7 @@ trigger: always_on
 
 **Every quantitative or empirical claim** — any *measured number* about the system (latency, throughput, cost, accuracy, precision/recall, memory footprint, conversion rate, error rate, cache hit rate, …) — MUST be backed by a **reproducible evidence page** under `{{project}}_wiki/benchmarks/`. Without that page the claim carries the seal `⚠ unverified <metric>` (e.g. `⚠ unverified perf`, `⚠ unverified cost`, `⚠ unverified accuracy`) and **MUST NOT** be cited in a commit message, README, ADR, changelog, or any released document.
 
-This is the empirical counterpart of the core citation discipline. The base `⚠ unverified` marker (see `core/vault/_meta/conventions.md` §2) means "no `file:line` citation yet". This rule adds a second axis: `⚠ unverified <metric>` means "a *number* asserted without a reproducible page". A claim can satisfy one axis and fail the other — an anchored `file:line` does not make a throughput number true.
+This is the empirical counterpart of the core citation discipline. The base `⚠ unverified` marker (see `{{project}}_wiki/_meta/conventions.md` §2) means "no `file:line` citation yet". This rule adds a second axis: `⚠ unverified <metric>` means "a *number* asserted without a reproducible page". A claim can satisfy one axis and fail the other — an anchored `file:line` does not make a throughput number true.
 
 ## 2. When this rule fires
 
@@ -23,15 +23,15 @@ If the number is not yet backed by a page, either **produce the page** (via the 
 
 ## 3. Branch type registered by this module
 
-This module registers the ephemeral branch type **`bench`** with the core branching rule (`core/rules/git_branching_rule.md` §4.3):
+This module registers the ephemeral branch type **`bench`** with the installed branching rule, `.agents/rules/git_branching_rule.md` — its *Module-registered types* section (core variant) or its *Valid types* table (monorepo variant):
 
 ```
 bench/<work_id>__<scope>
 ```
 
-- **Source:** `dev`. **PR target:** `dev`. Same creation gate as every ephemeral branch (approved plan required — `core/rules/git_branching_rule.md` §4.6).
+- **Source and PR target:** `dev` (core variant) or `dev_<app>` (monorepo variant). Same creation gate as every ephemeral branch (approved plan required — the branching rule's *Creation gate* section).
 - Used for benchmark work: authoring the evidence page, its dataset, its command, and its versioned artifacts.
-- The `bench` type is **only valid when this module is installed**. Using it otherwise is rejected by the branching gate (that rule's §9.8).
+- The `bench` type is **only valid when this module is installed**. Using it otherwise is rejected by the branching rule's *LLM gates* (the module-registered-type prohibition).
 
 ## 4. Mandatory frontmatter of the page
 
@@ -159,4 +159,4 @@ The `run-benchmark` skill (`skills/run-benchmark/SKILL.md`, human-gated) encapsu
 
 ## 9. Cross-reference
 
-Part of the broader methodology in `core/METHODOLOGY.md`. It composes with `core/rules/mandatory_planning_rule.md` (the plan gate that precedes any run) and `core/rules/git_branching_rule.md` §4.3 (which registers the `bench` type). On conflict about *what counts as evidence for a number*, this rule prevails.
+Part of the broader methodology in `.agents/METHODOLOGY.md`. It composes with `.agents/rules/mandatory_planning_rule.md` (the plan gate that precedes any run) and `.agents/rules/git_branching_rule.md` (which registers the `bench` type, in either variant). On conflict about *what counts as evidence for a number*, this rule prevails.
