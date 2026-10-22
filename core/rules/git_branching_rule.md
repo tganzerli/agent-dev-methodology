@@ -12,7 +12,7 @@ trigger: always_on
 
 ## 2. Language requirement
 
-New documents generated under this rule (ADRs, wiki pages) are authored in **{{KNOWLEDGE_LANG}}** (the project's knowledge-content language). Branch names, Git commands, commit messages, and Git identifiers stay in **English** and pure ASCII — only `[a-z0-9-_]` and `/`, no accents, spaces, or special characters.
+New documents generated under this rule (ADRs, wiki pages) are authored in **{{KNOWLEDGE_LANG}}** (the project's knowledge-content language). Branch names, Git commands, and Git identifiers (including the Conventional Commits type) stay in **English** and pure ASCII — only `[a-z0-9-_]` and `/`, no accents, spaces, or special characters. Commit messages are written in **{{COMMIT_LANG}}** (the commit language chosen at install).
 
 ## 3. Permanent branches
 
@@ -144,7 +144,7 @@ Hotfixes patch the release line without going through `dev`. They still require 
 
 ### 6.1. Commits
 
-- **Language:** commit messages in **English**.
+- **Language:** commit messages in **{{COMMIT_LANG}}**; the type prefix stays English.
 - **Format (Conventional Commits):** `<type>(<scope>): <short imperative description>` — e.g. `feat(scheduler): add worker pool router`; `fix(transport): close socket on connect failure`.
 - **Granularity:** one commit = one reversible logical unit. Do not amalgamate unrelated changes.
 - **Atomic:** avoid leaving "WIP" commits on ephemeral branches before the final PR; clean up with a local interactive rebase.
@@ -231,7 +231,7 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 7. ❌ Merging an `experiment/*` into `dev` or `main` — they are disposable by design.
 8. ❌ Using a module-registered type (e.g. `bench`, `contract`) when that module is not installed (§4.3).
 9. ❌ `git push --force` (without `--with-lease`) on any branch; any force push on `main`/`dev` without explicit confirmation.
-10. ❌ A commit message in a language other than English.
+10. ❌ A commit message in a language other than {{COMMIT_LANG}} (the Conventional Commits type is always English).
 11. ❌ A tag with an app/scope prefix, or an un-annotated tag.
 12. ❌ Renaming/deleting a permanent branch without `[y/n]` human confirmation.
 13. ❌ Creating a second branch when a tool already created one for the session, or renaming the tool's branch before the plan is approved or onto the wrong base (§4.7).
