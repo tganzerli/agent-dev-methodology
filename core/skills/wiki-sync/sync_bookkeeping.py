@@ -8,8 +8,9 @@ appended straight to the end of the file; its content is never read.
 Does, in order:
   1. adds wikilinks of the touched pages to the execution's `related[]`;
   2. appends the entry to `<vault>/_meta/log.md` (pure append);
-  3. marks the plan `status: executed` (anchored on `^status:`, never on a
-     `# status:` comment);
+  3. marks the plan `status: executed` (anchored on `^status:` inside the
+     frontmatter, never on a `# status:` comment; a trailing `# a | b` comment
+     on the line is kept);
   4. runs `wiki-lint/lint.py --only index-format` on the hand-kept catalogs.
 
 Usage:
@@ -31,6 +32,11 @@ import subprocess
 import sys
 
 KINDS = {"CREATE", "UPDATE", "APPEND"}
+
+# `status: <value>` with an optional trailing YAML comment, as the kit templates write it
+# (`status: approved   # draft | approved | executed`). Group 1 = `status:` + spacing,
+# 2 = the value, 3 = the rest (spacing + comment), kept verbatim on rewrite.
+STATUS_RE = re.compile(r"^(status:[ \t]*)([^\s#]+)([ \t]*(?:#[^\n]*)?)$", re.M)
 
 
 def read(path):
@@ -121,14 +127,17 @@ def main():
 
     ex_text = read(ex)
     fm, body = split_frontmatter(ex_text)
-    if not re.search(r"^status:\s*done\s*$", fm, re.M):
+    m = STATUS_RE.search(fm)
+    if not m or m.group(2) != "done":
         sys.exit("✗ execution is not `status: done` — confirm with the human first (premature sync)")
     new_fm = add_related(fm, [wikilink(p, vault) for p, _, _ in pages])
 
     plan_text = read(plan)
-    new_plan, n = re.subn(r"^status:\s*\S+\s*$", "status: executed", plan_text, count=1, flags=re.M)
+    plan_fm, plan_body = split_frontmatter(plan_text)
+    new_plan_fm, n = STATUS_RE.subn(lambda m: m.group(1) + "executed" + m.group(3), plan_fm, count=1)
     if n != 1:
         sys.exit("✗ plan has no `status:` line in its frontmatter")
+    new_plan = "---\n" + new_plan_fm + "---\n" + plan_body
 
     n_pages = len(pages)
     if not pages:
