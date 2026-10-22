@@ -10,6 +10,25 @@ trigger: always_on
 
 **STOP.** Before creating any branch, opening a Pull Request, or running `git push` in this repository, you MUST validate that the operation respects this rule. This rule is **non-negotiable** for any LLM agent operating in the repo and is the Git-layer counterpart of `mandatory_planning_rule.md`.
 
+<!-- OPTIONAL §1.1 — keep it at install ONLY if no dev_<app> exists yet; otherwise delete this whole section. -->
+## 1.1. Transition state — before the first `dev_<app>` (IN FORCE)
+
+> ⚠ **Read this first.** While this section is present, the rest of this rule describes the **future** topology, not the current one.
+
+**In force:** from install until the first `dev_<app>` branch is created.
+
+With zero apps this rule deadlocks: `staging_<app>` and `dev_<app>` presuppose an `<app>` that does not exist, trios "are born on the work branch" (`knowledge_source_of_truth_rule.md` §2) with no line to be born on, and §4 allows a branch only after an approved plan — whose files must be committed somewhere first. The only line that exists is `main`, which §3.2 forbids.
+
+**Rule in force meanwhile:** *all work happens directly on `main`.* A direct commit to `main` is **allowed** and is the normal flow; §3.2's prohibition is **suspended for `main`** until the trigger. A local `docs/…` branch merged with `--no-ff` is not a substitute: with no remote and no reviewer it keeps the rule's form without its gate, and makes the history claim a review that never happened.
+
+**The trigger that ends it:** the creation of the first `dev_<app>`. From that moment, with no grace period, §3.2 applies in full, the topology from §3 on is mandatory, and **this section is deleted** from the file — not marked expired. The trigger needs no judgement: `git branch --list 'dev_*'`. `scripts/check-transition-state.sh` fails CI if a `dev_*` exists while this section is still here; the plan that creates the first `dev_<app>` lists this rule under "Rules affected".
+
+**What it does NOT relax:** the plan gate. `mandatory_planning_rule.md` is independent of this rule — no code change before an `approved` plan, on `main` as anywhere. This section relaxes **where a commit may land**, never **whether the work was planned and approved**.
+
+> **Genesis commit.** The very first commit of a repository lands on `main` directly even without this section: `main` does not exist before it, and no PR can target a branch with no commits. Record it in `_meta/log.md` as an ordering exception, not a precedent — that circumstance does not repeat.
+>
+> **Bootstrap without `dev_<app>`.** `/promote-knowledge`, `/sync-knowledge` and `/distribute-packages` abort outside a `dev_<app>` by design, so before the first one exists they never run — one installation did seven promotions by hand during bootstrap, and its path-list copies drifted unnoticed because nothing executed them. Until then, knowledge lands per `knowledge_source_of_truth_rule.md` §3.5 (a `docs/<id>__knowledge` branch off `main`, or directly on `main` under this section), and `scripts/check-knowledge-paths.py` runs in CI rather than inside the skills.
+
 ## 2. Language requirement
 
 New documents generated under this rule (ADRs, wiki pages) are authored in **{{KNOWLEDGE_LANG}}** (the project's knowledge-content language). Branch names, Git commands, and Git identifiers stay in **English** and pure ASCII — only `[a-z0-9-_]` and `/`, no accents, spaces, or special characters.
@@ -69,6 +88,7 @@ pkg/<id>__<pkg>  →  dev_packages  ──(CI: direct auto-merge)──▶  dev_
 - **PR into `dev_packages`** requires: source is `pkg/<work_id>__<pkg>` with an approved plan. Diff restricted to `packages/*` + shared knowledge/tooling.
 - **Commit into `demo_<app>`** requires: explicit human confirmation and justification (this branch is frozen).
 - **Direct commit into `main` or `staging_*` is FORBIDDEN** — no exception.
+  (Before the first `dev_<app>` exists, the optional §1.1 suspends this for `main`, and the genesis commit is an ordering case — both described there.)
 - **PR into `main` via `docs/<id>__knowledge`** is allowed **only** for knowledge-layer changes. Gate: the diff must not touch `apps/*/lib/`, `packages/*/lib/`, or any other code path.
 - **PR into `main` via `contract/<id>__<surface>`** is allowed **only** for a change to a versioned cross-boundary contract, and **only** when the diff is atomic in the sense of `contract_change_rule.md`: the contract, the implementation, **every** in-repo consumer, the tests and the knowledge page, together.
 
@@ -147,6 +167,26 @@ Before running `git checkout -b <branch>`, the LLM MUST:
 4. **Announce** the command to the human before executing.
 
 If any check fails: **stop and demand the gate.** Do not invent a branch name; do not skip the plan.
+
+### 4.6. Branch scope barrier — what each branch may write
+
+The branch name (§4.1) is not a label: it is a **scope declaration**, and CI checks it. The invariant:
+
+> 🔒 **`apps/<X>` diverges only on X's line** — `dev_X`, `staging_X` and ephemerals `__<X>`.
+> **`packages/<P>` diverges only on the packages line** — `dev_packages` and ephemerals `__<P>`.
+> On every other branch those paths are identical to what the branch **received** from its source.
+
+Three operational rules follow:
+
+1. **Derivation.** To change `apps/<X>` a branch must come from `dev_<X>` (or `staging_<X>`, or `main` for a `hotfix`). To change `packages/<P>` it must come from `dev_packages`. A `contract/` branch comes from `main` and may touch every consumer (§3.2).
+2. **No contamination.** No branch writes to an app outside its scope — by edit, or by a merge that carries another app's snapshot.
+3. **Single distribution path.** App code reaches other branches only via `staging_<X> → main` and then the broadcast (§6). No lateral shortcut.
+
+**How it is checked.** `scripts/check_branch_scope.sh`, on every PR and on push to `dev_<app>`. The roster comes from the root workspace manifest (a placeholder to fill at install), so a new app enters the barrier on its own. The baseline is the **cut point of the source branch**, not the tip of `main`: an ephemeral legitimately carries what its `dev_<app>` has ahead of `main`. The source is **detected** (among the permanent branches, the one with the most recent merge-base by DAG ancestry), which also makes rule 1 checkable.
+
+**Advisory first.** The script ships reporting and exiting 0 (`SCOPE_BARRIER_BLOCKING=1` makes it block). Flip the default only after it has run clean across real releases; the installation it came from never flipped it. And a check on push **reports**, it does not prevent — the commit is already there; hard prevention is branch protection requiring PRs on `dev_*` (§9).
+
+> **Why it exists.** In the installation it came from, three incidents in one day had this cause: an app's change leaked into every `dev_*` through `apps/` on `dev_packages`; a release PR carried 254 files to `main` instead of 8, 189 of them another app; and a `dev_<app>` carried a stale copy of another app with code already removed from the store. Nobody edited the wrong app on purpose — every case was a **snapshot carried by a merge**. The rule already forbade it in text; it lacked enforcement.
 
 ## 5. Hotfix
 
