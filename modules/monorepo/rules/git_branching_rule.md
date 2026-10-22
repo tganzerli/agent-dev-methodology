@@ -29,7 +29,7 @@ Genesis commit and bootstrap without a `dev_<app>` (the monorepo skills abort un
 
 ## 2. Language requirement
 
-New documents generated under this rule (ADRs, wiki pages) are authored in **{{KNOWLEDGE_LANG}}** (the project's knowledge-content language). Branch names, Git commands, and Git identifiers (including the Conventional Commits type) stay in **English** and pure ASCII — only `[a-z0-9-_]` and `/`, no accents, spaces, or special characters. Commit messages are written in **{{COMMIT_LANG}}** (the commit language chosen at install).
+New documents generated under this rule (ADRs, wiki pages) are authored in **{{KNOWLEDGE_LANG}}** (the project's knowledge-content language). Branch names, Git commands, and Git identifiers (including the Conventional Commits type) stay in **English** and pure ASCII — only `[a-z0-9-_]` and `/`, no accents, spaces, or special characters. Commit messages and PR titles/bodies are written in **{{COMMIT_LANG}}** (the commit language chosen at install).
 
 ## 3. Permanent branches
 

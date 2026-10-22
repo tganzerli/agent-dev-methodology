@@ -29,7 +29,7 @@ Ask these before creating anything. Keep it to one round; propose sensible defau
 | 11 | **Does the project depend on external services** (DB, broker, cache, …) that must be reproducible across machines and CI? | installs `modules/dev-env/` | no |
 | 12 | **Does the project deliver long-form prose** for people outside the repo (thesis/dissertation, paper, technical articles, posts), derived from the work it does? | installs `modules/writing/` | no |
 | 13 | **Does this project coordinate with another project in a separate repo on the same machine**, whose agent can read your files but does not share your checkout? | installs `modules/peer-relay/` (requires answer 8 = yes) | no |
-| 14 | **Commit messages in the knowledge language?** Only the description; the Conventional Commits type (`feat:`, `docs:` …), branch names, tags and identifiers stay ASCII English either way. | `{{COMMIT_LANG}}` — `English`, or answer 3 | no (English) |
+| 14 | **Commit messages and PR text in the knowledge language?** Only the commit description and the PR title/body; the Conventional Commits type (`feat:`, `docs:` …), branch names, tags and identifiers stay ASCII English either way. | `{{COMMIT_LANG}}` — `English`, or answer 3 | no (English) |
 
 > **Never guess question 3.** If the human does not state a knowledge language, ask explicitly. Everything the methodology generates (plans, wiki pages) is in that language; getting it wrong means rewriting the vault.
 
@@ -58,7 +58,7 @@ Every template file in this kit uses `{{...}}` placeholders. When you copy a fil
 | `{{project}}` | vault slug (answer 2) — the vault dir is `{{project}}_wiki` |
 | `{{repo}}` | target repo folder name |
 | `{{KNOWLEDGE_LANG}}` | knowledge-content language (answer 3) |
-| `{{COMMIT_LANG}}` | commit-message language (answer 14): `English`, or the knowledge language |
+| `{{COMMIT_LANG}}` | commit-message and PR language (answer 14): `English`, or the knowledge language |
 | `{{ABS_PATH_TO_THIS_REPO}}` | absolute path of the target repo (peer-relay module only) |
 
 Do a final grep for `{{` after install — **no placeholder may remain** in the target project (§7 checklist). Two kinds of double braces are **not** placeholders and must stay as shipped: `{{args}}` in the Gemini CLI command files (`.gemini/commands/*.toml` — Gemini CLI substitutes it at run time) and Go-template format strings such as `{{.State.Health.Status}}` in the dev-env skill (Docker reads them). CI workflow files use `${{ … }}` expressions for the same reason; the checklist grep does not scan them.

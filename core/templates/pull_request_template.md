@@ -2,7 +2,8 @@
   Installs as: .github/pull_request_template.md  (see INSTALL.md §3; other hosts:
   their own PR-template path). De-template the vault slug at install.
 
-  Write the PR in English. No LLM attribution anywhere in it: no Co-Authored-By,
+  Write the PR title and body in {{COMMIT_LANG}}, the same language as the commit
+  messages (section headings, paths and identifiers stay English). No LLM attribution anywhere in it: no Co-Authored-By,
   no "Generated with ..." footer, no model or product name. The author is the human.
   Every section comes from the plan's §4.4 — copy, do not re-derive.
 -->
