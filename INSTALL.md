@@ -86,6 +86,9 @@ core/templates/review.md               →  REVIEW.md               (repo root �
 core/templates/pull_request_template.md →  .github/pull_request_template.md   (other hosts: their PR-template path, answer 7)
 core/skills/*                          →  .claude/skills/*
 core/agents/*                          →  .claude/agents/*        (Claude Code only)
+core/hooks/require-approved-plan.sh    →  .claude/hooks/require-approved-plan.sh   (optional, recommended — §6; chmod +x)
+core/hooks/claude-settings.json        →  .claude/settings.json   (with the plan gate, Claude Code; MERGE into an existing file — §6)
+core/hooks/agy-hooks.json              →  .agents/hooks.json      (with the plan gate, Antigravity CLI — §6)
 core/hooks/commit-msg                  →  .githooks/commit-msg    (optional, recommended — §6)
 core/ci/check_commit_trailers.py       →  scripts/ci/check_commit_trailers.py   (optional, recommended — §6)
 core/ci/methodology-checks.yml         →  .github/workflows/methodology-checks.yml   (optional — §6; adapt to the git host)
@@ -254,7 +257,12 @@ The methodology is agent-agnostic; each agent just needs a thin stub pointing at
   - **Antigravity CLI (`agy`)** → install the plan gate (next bullets) and copy `core/hooks/agy-hooks.json` to `.agents/hooks.json`. `agy` runs the hook with CWD `.agents/`, so its command is `../.claude/hooks/require-approved-plan.sh` — the same script Claude Code uses, which detects the `agy` payload. What `agy` loads, and its 20,000-token rule budget: `adapters/gemini.md` §1.
 - **Codex / others** → `.agents/llm/codex.md` (from `adapters/codex.md`).
 - **Always** → a root `AGENTS.md` (from the kit's `AGENTS.md`, de-templated) as the universal entry-point convention. This is the file a generic agent looks for.
-- **Optional (recommended): Turn the plan gate into a real lock** → copy `core/hooks/require-approved-plan.sh` to `.claude/hooks/require-approved-plan.sh` (chmod +x) and register under `PreToolUse` in `.claude/settings.json`. The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`. It speaks two protocols: Claude Code's (exit 2 + stderr) and Antigravity CLI's (`.agents/hooks.json`, above: a JSON `deny` on stdout to block, **empty** stdout to allow — never `"allow"`, which would skip the permission prompt). Gemini CLI hooks live in `.gemini/settings.json` (Gemini CLI only); the kit has not verified the script against that protocol.
+- **Optional (recommended): Turn the plan gate into a real lock** → copy `core/hooks/require-approved-plan.sh` to `.claude/hooks/require-approved-plan.sh` (chmod +x), adapt its `GUARDED` prefixes to the project's code directories, and register it for Claude Code by copying `core/hooks/claude-settings.json` to `.claude/settings.json` — or, if that file exists, **merging** this entry into its `hooks.PreToolUse` array (keep every other key):
+  ```json
+  {"hooks": {"PreToolUse": [{"matcher": "Edit|Write|MultiEdit|NotebookEdit",
+    "hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/require-approved-plan.sh"}]}]}}
+  ```
+  The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`. It speaks two protocols: Claude Code's (exit 2 + stderr) and Antigravity CLI's (`.agents/hooks.json`, above: a JSON `deny` on stdout to block, **empty** stdout to allow — never `"allow"`, which would skip the permission prompt). Gemini CLI hooks live in `.gemini/settings.json` (Gemini CLI only); the kit has not verified the script against that protocol.
 - **Optional (recommended): mechanize the no-LLM-co-author rule** → copy `core/hooks/commit-msg` to `.githooks/commit-msg` (chmod +x) and `core/ci/check_commit_trailers.py` to `scripts/ci/`, then run `git config core.hooksPath .githooks` (once per clone — put it in the onboarding notes). The hook is early feedback only; the guarantee is the CI step, which runs the same script on the commits each PR adds: `python3 scripts/ci/check_commit_trailers.py origin/<PR base>`, with a full-depth checkout. `core/ci/methodology-checks.yml` is a GitHub Actions template running it plus `/wiki-lint`. Plant a trailer once and watch both layers go red before trusting them (METHODOLOGY §6.7).
 
 Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub. Each stub (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`) also carries the one-line commit/PR convention from the kit's `AGENTS.md` "Non-negotiables" — copy that line as-is.
@@ -278,6 +286,7 @@ Run these before telling the human it is done:
 - [ ] `.claude/skills/_index.md` §"Modules NOT installed" lists every module left out, why, and what would bring it in (§8).
 - [ ] `/work-index` runs clean (generates an empty-but-valid `work/_index.md`).
 - [ ] `python3 .claude/skills/wiki-lint/lint.py --root .` exits 0 (after `/work-index`, above). On an existing vault with debt, run `--init-baseline` once and commit `{{project}}_wiki/_meta/lint-baseline.json` — never start with a red gate.
+- [ ] If the plan gate was installed: `.claude/hooks/require-approved-plan.sh` is executable, `python3 -m json.tool .claude/settings.json` parses and shows the `Edit|Write|MultiEdit|NotebookEdit` entry, and a guarded write on `main` is refused (`printf '%s' '{"tool_input":{"file_path":"'"$PWD"'/src/x"}}' | CLAUDE_PROJECT_DIR=$PWD .claude/hooks/require-approved-plan.sh; echo $?` prints `2`).
 - [ ] If the trailer check was installed: a planted `Co-Authored-By: Claude …` commit is refused by the hook, and `scripts/ci/check_commit_trailers.py` exits 1 on a branch carrying one.
 - [ ] `.agents/rules/git_branching_rule.md` exists (core single-repo variant, or the monorepo module's variant if installed).
 - [ ] If benchmarks module installed: `.agents/rules/benchmark_protocol_rule.md`, `{{project}}_wiki/benchmarks/_template.md`, `run-benchmark` skill, conventions extended.
