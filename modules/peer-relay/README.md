@@ -25,6 +25,7 @@ Both existing rules fail in the middle case, and they fail in opposite direction
 | Artifact | Path | Purpose |
 |---|---|---|
 | `peer-relay` skill | `.claude/skills/peer-relay/SKILL.md` | Four flows: `absorb` (orient in the peer's repo), `send` (author + deliver by PR), `read` (our inbox), `board`. |
+| `inbox.py` | `.claude/skills/peer-relay/inbox.py` | The `read` flow's reader: inbound messages merged **and** in open PRs; exit `2` when open PRs were not checked (§9). |
 | Peer registry | `.agents/peers.md` | Where each peer is, what to read to orient, what may be written. **The absorption mechanism.** |
 | Peer message template | `{{project}}_wiki/work/relay/_templates/peer-message.md` | Extends intra-team's `message.md` with two namespaces, an Orientation section, and a third closing ask. |
 | Frontmatter extension | appended into `{{project}}_wiki/_meta/conventions.md` | `peer`, `peer_work_refs`, the qualified-citation rule, claim-state with origin. |
@@ -78,8 +79,35 @@ A peer that should answer needs this module installed and a **mirrored** registr
 
 This module registers a **`relay` branch scope**, the way the benchmarks module registers the `bench` type and the contracts module registers `contract` (`core/METHODOLOGY.md` §11). Add it to whichever branching rule the project installed, next to `knowledge` and `tooling`:
 
-> **`relay`** — for `docs/` branches carrying **only** relay messages under `<vault>/work/relay/`: an inbound delivery from a peer repository, or your own outbound copy.
+> **`relay`** — for `docs/` branches carrying **one** relay message under `<vault>/work/relay/`: an inbound delivery from a peer repository, or your own copy of an outbound one. A relay branch is **based on `main` and lands in `main`**, because the peer reads your `main` and coordination must be visible to every agent. Gate: the diff adds **exactly one new file** under `<vault>/work/relay/` and touches nothing else.
+
+If the rule has a PR-requirements list and a branch-type table, add the matching lines there too:
+
+```markdown
+- `docs/<id>__relay` (one cross-repository coordination message). Gate: the diff adds **exactly one** new file under `{{project}}_wiki/work/relay/` and touches nothing else.
+
+| `docs` (relay) | One cross-repository coordination message (scope `relay`) — `{{project}}_wiki/work/relay/` only | `main` | `main` |
+```
+
+If your topology makes `main` unavailable for this, name the **one** line every peer reads instead, and record it in the peer's inbound delivery table (`.agents/peers.md`). What matters is that it is a single read point: a message landing on one of several development lines is invisible to a reader on another, the same defect the live lock table has its own route for (`modules/intra-team/README.md` §4).
 
 **Why it needs to be its own scope.** It is neither `knowledge` — the monorepo module's `knowledge_source_of_truth_rule.md` §2 does not list `work/relay/` in the knowledge layer — nor `tooling`, which is developed on a `dev_<app>`. Without registering it, a relay delivery has **no correct branch name available**, and the agent either invents one or misfiles it under `knowledge`.
 
 Found the first time two installations exchanged messages (2026-09-07): the receiving agent named its branch `docs/<id>__relay` on instinct, and the scope did not exist in the target repo's rule.
+
+## 8. Entry-point additions
+
+Add one line to the non-negotiables of the project's entry point (`AGENTS.md`, and any per-agent entry point generated from it):
+
+> - **Writing into a peer repository is an external action** — gate it with the human in the act, every time, and only once the counterpart is installed on the other side (`.agents/peers.md` §Channel state). Reading is free.
+
+**Why it belongs in the entry point, not only in the skill.** The skill's double gate binds an agent that invoked `send`. An agent that writes into a sibling repo by other means — a fix it noticed while absorbing, a "quick" edit to the peer's registry — never reads the skill. The entry point is the one file every agent reads.
+
+## 9. Reading the inbox — `inbox.py`
+
+The `read` flow runs `skills/peer-relay/inbox.py <peer>`, which reads the peer's inbound messages in **both** states delivery by PR creates: merged into `origin/main`, and still in an **open PR**. Reading the working tree sees neither reliably. One installation read a delivered answer as missing because it sat in an open PR, and the false negative nearly became a request to chase the peer.
+
+- **Exit `0`** — both states checked; an empty list means empty.
+- **Exit `2`** — the open PRs were **not** checked (or the `fetch` failed). Never report "no messages" on a `2`.
+- Open PRs are read with the GitHub CLI (`gh`). On another host, replace the script's `list_prs()` with that host's CLI; until then it exits `2`, which is the honest answer.
+- It also lists relay files in open PRs **not** stamped `inbound`/`<peer>`: a peer that delivered its own outbound copy unchanged is otherwise invisible. This has happened, four messages in a row.

@@ -1,117 +1,124 @@
 ---
 name: peer-relay
-description: Coordenar com o agente de OUTRO projeto no mesmo computador — repositórios distintos que conseguem ler um ao outro. Cobre absorção (orientar-se no repo do peer sem varrê-lo), envio de mensagem à caixa de entrada dele, leitura da nossa caixa, e o board compartilhado. Use quando precisar pedir, responder, avisar ou transferir trabalho para um projeto declarado em .agents/peers.md. Não use para agentes deste mesmo repositório (é `intra-team`) nem para times sem acesso ao nosso código (é `cross-team-handoff`).
+description: Coordinate with the agent of ANOTHER project on the same machine — separate repositories that can read each other. Covers absorption (orienting in the peer's repo without sweeping it), sending a message to its inbox, reading our inbox, and the shared board. Use when you need to ask, answer, warn or hand work to a project declared in .agents/peers.md. Do not use it for agents of this same repository (that is `intra-team`) or for teams with no access to our code (that is `cross-team-handoff`).
 argument-hint: "[absorb <peer> | send <peer> <slug> | read <peer> | board]"
 ---
 
-# Peer-relay — coordenação entre projetos na mesma máquina
+# Peer-relay — coordination between projects on the same machine
 
-Terceiro valor de um eixo que os outros dois módulos tratam como binário. `modules/intra-team/README.md` o enuncia: *"they differ on one axis — does the reader share your repository?"*
+The third value of an axis the other two modules treat as binary. `modules/intra-team/README.md` states it: *"they differ on one axis — does the reader share your repository?"*
 
 | | `cross-team` | `intra-team` | **`peer-relay`** |
 |---|---|---|---|
-| O leitor **compartilha** seu repo | não | sim | **não** |
-| O leitor **consegue ler** seu repo | não | sim | **sim** |
-| Regra | self-contained | reference-first | **reference-first qualificado** |
+| The reader **shares** your repo | no | yes | **no** |
+| The reader **can read** your repo | no | yes | **yes** |
+| Rule | self-contained | reference-first | **qualified reference-first** |
 
-Ele **importa a maquinaria do `intra-team`** — os cinco `msg_role` (`note`/`request`/`response`/`handoff`/`conflict`), a tabela de asks com IDs estáveis, o round log, o board. Leia `.claude/skills/intra-team/SKILL.md` para todos eles; **não são repetidos aqui.** O que segue é só o delta.
+It **imports the `intra-team` machinery** — the five `msg_role`s (`note`/`request`/`response`/`handoff`/`conflict`), the stable-ID ask table, the round log, the board. Read `.claude/skills/intra-team/SKILL.md` for all of them; **they are not repeated here.** What follows is only the delta.
 
-## Pré-requisitos
+## Prerequisites
 
-- `.agents/peers.md` declara o peer: caminho, prefixo, política de escrita, caixa de entrada, pontos de entrada de absorção.
-- `{{project}}_wiki/work/relay/` existe, com `_board.md` e `_templates/peer-message.md`.
-- Prosa em {{KNOWLEDGE_LANG}}.
+- `.agents/peers.md` declares the peer: path, prefix, write policy, inbox, absorption entry points.
+- `{{project}}_wiki/work/relay/` exists, with `_board.md` and `_templates/peer-message.md`.
+- Prose in {{KNOWLEDGE_LANG}}.
 
-## Delta 1 — a regra de citação
+## Delta 1 — the citation rule
 
-O motivo de o módulo existir. Num universo de dois repositórios, `router.dart:9` existe **nos dois** e significa coisas diferentes.
+The reason the module exists. In a two-repository universe, `router.dart:9` exists **in both** and means different things.
 
-1. 🔒 **Toda citação de arquivo carrega prefixo de repo.** `{peer}:lib/src/decoder/_decoder.dart:56`, `{{project}}:packages/domain/lib/src/value/enums.dart:1-3`. O prefixo vem de `.agents/peers.md`. Um `file:line` sem prefixo é **erro de formato**, não estilo.
-2. **Citação ao repo do leitor: reference-first puro.** Ele abre o arquivo. Não re-cole.
-3. **Citação ao nosso repo: reference-first *com resumo inline suficiente*.** Ele *pode* abrir, mas está em outro checkout com outro contexto carregado e **não vai**. A afirmação se sustenta sozinha no corpo; a citação fica como proveniência verificável. É o meio-termo que nenhum dos outros dois módulos oferece — e é o erro mais fácil de cometer, porque "reference-first" convida a só apontar.
-4. **`[[wikilinks]]` só para páginas do repo do leitor.** Vaults são distintos: um wikilink para o nosso vault vira link morto no Obsidian dele. Para páginas nossas, caminho de arquivo com prefixo.
-5. **`work_id` é namespaced na travessia:** `{{project}}:2026-09-06_backend-foundations-track`. Os dois projetos usam `YYYY-MM-DD_slug`; a colisão é questão de tempo.
-6. **Claim-state ganha um eixo.** O `intra-team` distingue `✅ landed` / `⚠ in-flight` / `🔒 intent`. Aqui `landed` sozinho não diz nada — landed **onde**? Formato: `✅ landed ({{project}}@main)`, `⚠ in-flight ({{project}}@docs/…__knowledge)`.
+1. 🔒 **Every file citation carries a repo prefix.** `{peer}:lib/src/decoder/_decoder.dart:56`, `{{project}}:packages/domain/lib/src/value/enums.dart:1-3`. The prefix comes from `.agents/peers.md`. A `file:line` without a prefix is a **format error**, not style.
+2. **Citing the reader's repo: pure reference-first.** They open the file. Do not re-paste.
+3. **Citing our repo: reference-first *with a sufficient inline summary*.** They *can* open it, but they are in another checkout with another context loaded and **will not**. The claim stands alone in the body; the citation stays as verifiable provenance. It is the middle ground neither of the other two modules offers, and the easiest mistake, because "reference-first" invites you to just point.
+4. **`[[wikilinks]]` only for pages in the reader's repo.** Vaults are separate: a wikilink into our vault is a dead link in their Obsidian. For our pages, a prefixed file path.
+5. **A `work_id` is namespaced on crossing:** `{{project}}:2026-09-06_backend-foundations-track`. Both projects use `YYYY-MM-DD_slug`; a collision is a matter of time.
+6. **Claim-state gains an axis.** `intra-team` distinguishes `✅ landed` / `⚠ in-flight` / `🔒 intent`. Here `landed` alone says nothing — landed **where**? Format: `✅ landed ({{project}}@main)`, `⚠ in-flight ({{project}}@docs/…__knowledge)`.
 
-## Delta 2 — os quatro fluxos
+## Delta 2 — the four flows
 
-### `absorb <peer>` · autônomo
+### `absorb <peer>` · autonomous
 
-Orienta você no repo do peer **lendo apenas os pontos de entrada declarados**, na ordem em que estão, parando quando a pergunta em mãos estiver respondida.
+Orients you in the peer's repo **reading only the declared entry points**, in their order, stopping when the question at hand is answered.
 
-🔒 **Nunca varra o repositório do peer.** O registro existe para evitar isso: um `grep -r` no repo alheio queima contexto e produz um mapa que o `overview.md` dele já dá em uma página.
+🔒 **Never sweep the peer's repository.** The registry exists to avoid that: a `grep -r` in someone else's repo burns context and produces a map their `overview.md` already gives in one page.
 
-🔒 **Não faça pattern-match em nome de seção.** Um peer pode escrever o conhecimento noutro idioma —
-`## Em andamento` em vez de `## In progress`. Um recorte ancorado no cabeçalho errado devolve vazio, e
-vazio lê-se como "não há nada", que é uma conclusão falsa e silenciosa. **Liste os cabeçalhos primeiro**
-(`grep -n '^#'`) e recorte pelo que existe.
+🔒 **Do not pattern-match on a section name.** A peer may write its knowledge in another language — `## Em andamento` instead of `## In progress`. A cut anchored on the wrong heading returns empty, and empty reads as "there is nothing", a false and silent conclusion. **List the headings first** (`grep -n '^#'`) and cut by what exists.
 
-Leia também as **peculiaridades** do peer no registro antes de concluir qualquer coisa — elas são exatamente os pontos em que um índice mente (um `_index.md` desatualizado, uma tag local, um lock morto).
+Also read the peer's **quirks** in the registry before concluding anything — they are exactly the points where an index lies (a stale `_index.md`, a local tag, a dead lock).
 
-Saída: um resumo de estado — o que o projeto é, o que está em voo, o que está travado, e o que na sua pergunta continua sem resposta.
+Output: a state summary — what the project is, what is in flight, what is locked, and what in your question is still unanswered.
 
-### `send <peer> <slug>` · **GATE HUMANO DUPLO**
+### `send <peer> <slug>` · **DOUBLE HUMAN GATE**
 
-Redige a mensagem em `{{project}}_wiki/work/relay/{YYYY-MM-DD}_{slug}.md` (template `peer-message.md`) e a **entrega por Pull Request** no repositório do peer.
+Drafts the message in `{{project}}_wiki/work/relay/{YYYY-MM-DD}_{slug}.md` (template `peer-message.md`) and **delivers it by Pull Request** in the peer's repository.
 
-🔒 **A entrega é um PR, nunca um arquivo solto na árvore de trabalho do peer.** Depositar o arquivo direto no diretório dele parece mais simples e é pior de três jeitos: ele **chega em silêncio** (nada avisa o agente de lá que existe), pode ser **varrido para o commit de outra pessoa** por um `git add` amplo, e some num `git clean`. Um PR tem revisor, histórico, notificação e reversão. *(Origem: revisão do mecanismo antes do primeiro envio real de uma instalação.)*
+🔒 **Delivery is a PR, never a loose file in the peer's working tree.** Dropping the file straight into their directory looks simpler and is worse in three ways: it **arrives in silence** (nothing tells the agent there it exists), it can be **swept into someone else's commit** by a broad `git add`, and it disappears on a `git clean`. A PR has a reviewer, history, notification and reversal. *(Origin: review of the mechanism before an installation's first real send.)*
 
-🔒 **O PR obedece à regra de branch do repositório que RECEBE, não à do que envia.** Os dois repositórios podem ter topologias diferentes — um com conhecimento canônico em `main`, outro com `main` de release e efêmeras desembocando em `dev`. Presumir a nossa topologia produz um PR que viola a regra do leitor logo na primeira mensagem. O registro (`.agents/peers.md`) declara, por peer: **branch-base**, **alvo do PR**, **tipo** e **escopo** do nome da branch. Se o registro não declara, **pare e pergunte** — não deduza da nossa regra.
+🔒 **The PR obeys the branching rule of the repository that RECEIVES it, not the one that sends.** The two repositories may have different topologies — one with knowledge canonical in `main`, another with `main` as a release line and ephemerals landing in `dev`. Assuming our topology produces a PR that violates the reader's rule on the first message. The registry (`.agents/peers.md`) declares, per peer: **base branch**, **PR target**, **type** and **scope** of the branch name. If the registry does not declare them, **stop and ask** — do not deduce them from our rule.
 
-🔒 **Nunca mergear o PR no repositório do peer.** Abrir é entrega; mergear é decidir pelo outro projeto. O merge é do lado de lá, por quem revisa.
+🔒 **The delivered copy is stamped for the reader.** In the file you deliver, `direction: inbound` and `peer: {{project}}`; our own copy stays `direction: outbound`, `peer: <peer>`. A delivery carrying our outbound frontmatter is invisible to the peer's inbox reader. This has happened, four times in a row, before anyone noticed.
 
-🔒 **Dois gates, não um.** (a) o humano aprova o **texto**; (b) o humano aprova a **abertura do PR no repositório do outro projeto**. São decisões diferentes: a segunda é ação externa e cria branch e commit num repositório que não é nosso.
+🔒 **Never merge the PR in the peer's repository.** Opening it is delivery; merging it is deciding for the other project. The merge belongs to the other side, to whoever reviews.
 
-🔒 **Antes de redigir, leia o board do peer** (`<peer>:…/work/relay/_board.md`) e o nosso. Escrever sobre um escopo travado sem reconhecer o lock é exatamente o atropelo que o board existe para evitar.
+🔒 **Two gates, not one.** (a) the human approves the **text**; (b) the human approves **opening the PR in the other project's repository**. They are different decisions: the second is an external action and creates a branch and a commit in a repository that is not ours.
 
-🔒 **O diff do PR é um arquivo só**, sob o diretório de relay declarado no registro. Nenhum arquivo fora dali, nenhuma alteração de código, nenhum commit em branch permanente do peer.
+🔒 **Before drafting, read the peer's board** (`<peer>:…/work/relay/_board.md`) and ours. Writing about a locked scope without acknowledging the lock is exactly the clobbering the board exists to prevent.
 
-**Procedimento:**
+🔒 **The PR diff is a single new file**, under the relay directory declared in the registry. No file outside it, no code change, no commit on a permanent branch of the peer.
 
-1. Ler no registro a configuração de entrega do peer (base, alvo, tipo, escopo).
-2. Verificar que a base está atualizada (`git -C <caminho> fetch`), e criar a branch efêmera a partir dela.
-3. Commitar **só** o arquivo da mensagem, com mensagem de commit no idioma que o peer usa em commits.
-4. `push` + abrir o PR, com corpo que diga em uma linha o que é e que a decisão de incorporar é de quem revisa.
-5. **Não mergear.**
+**Procedure:**
 
-Depois de entregue: append em `{{project}}_wiki/_meta/log.md` (`## [YYYY-MM-DD] peer-relay | {slug} | to {peer} | PR <url>`) e, se a mensagem cria lock ou acordo, atualize o board. Registre a **URL do PR** — é o que torna a entrega auditável depois.
+1. Read the peer's delivery configuration in the registry (base, target, type, scope, frontmatter).
+2. Check that the base is up to date (`git -C <path> fetch`), and create the ephemeral branch from it — through a `git worktree`, never `git checkout` in their working tree.
+3. Commit **only** the message file, with the commit message in the language the peer uses for commits.
+4. `push` + open the PR, with a body that says in one line what it is and that the decision to incorporate belongs to the reviewer.
+5. **Do not merge.**
 
-### `read <peer>` · autônomo
+After delivery: append to `{{project}}_wiki/_meta/log.md` (`## [YYYY-MM-DD] peer-relay | {slug} | to {peer} | PR <url>`) and, if the message creates a lock or an agreement, update the board. Record the **PR URL** — it is what makes the delivery auditable later.
 
-Lê `{{project}}_wiki/work/relay/` procurando `direction: inbound` daquele peer, e resume o que exige resposta — priorizando asks com flag 🔴.
+### `read <peer>` · autonomous
 
-Uma mensagem lida vira `status: read`; respondida, `answered`. **Não** feche um ask sem que a resposta exista de fato.
+Run `python3 .claude/skills/peer-relay/inbox.py <peer>`. It lists the peer's `direction: inbound` messages in **two states**: merged into `origin/main` (pending, `status: sent|read`; `--all` shows all) and **delivered in an open PR** against `main`, not merged yet. Peers deliver by PR, so a new message passes through the second state first. Reading the working tree is not enough: it does not see the PR, and it shows the session's branch, not `main`. It also lists relay files in open PRs that are **not** stamped `inbound`/`<peer>` — a peer that delivered its outbound copy unchanged.
 
-### `board` · gate humano
+🔒 **Empty counts only with exit `0`.** Exit `2` means the open PRs were not checked (`gh` missing or failing, or a host other than GitHub) or the `fetch` failed; tell the human that, not "there are no messages".
 
-Mantém `{{project}}_wiki/work/relay/_board.md`. Locks cujo escopo vive no repo do peer levam o **prefixo dele** na coluna Escopo (`{peer}:lib/`).
+🔒 **Never conclude the peer did not deliver** without exit `0`. A false negative on an open PR, read as absence, once turned into a request to chase the peer for a reply it had already sent.
 
-Um lock aqui é sinal **social**, não trava de sistema de arquivos — e entre repositórios é ainda mais frágil, porque o outro agente pode nem ter olhado. Ao travar escopo que atravessa a fronteira, **diga isso na mensagem**; não confie no board sozinho.
+Then summarize what needs an answer, prioritizing asks flagged 🔴. A message in an open PR is read from the PR; to move it to `status: read` or `answered`, the commit goes **on the PR's branch**, before the merge.
 
-## Delta 3 — o que a mensagem carrega a mais
+A message read becomes `status: read`; answered, `answered`. **Do not** close an ask unless the answer actually exists.
 
-O template `peer-message.md` estende o `message.md` do `intra-team` em três pontos:
+### `board` · human gate
 
-- **Frontmatter:** `peer` (nome no registro), `peer_work_refs` (work_ids do lado deles) e `work_refs` (os nossos) — **separados**, porque há dois espaços de nomes.
-- **Seção "Orientação"**, logo após o Contexto: onde, **no repo do leitor**, ficam as coisas que a mensagem discute. É o que evita uma rodada inteira gasta em "onde isso fica?".
-- **Terceiro closing ask:** onde depositar a resposta (nossa caixa, caminho absoluto). Diferente do `intra-team`, não existe um lugar compartilhado óbvio.
+Maintains `{{project}}_wiki/work/relay/_board.md`. Locks whose scope lives in the peer's repo carry **its prefix** in the Scope column (`{peer}:lib/`).
 
-## Anti-padrões
+A lock here is a **social** signal, not a filesystem lock — and across repositories it is even more fragile, because the other agent may not have looked. When you lock a scope that crosses the boundary, **say so in the message**; do not rely on the board alone.
 
-- ❌ `file:line` sem prefixo de repo.
-- ❌ `[[wikilink]]` apontando para o nosso vault numa mensagem que sai daqui.
-- ❌ Varrer o repositório do peer em vez de usar os pontos de entrada.
-- ❌ Escrever no repo do peer sem o segundo gate, ou fora da política do registro.
-- ❌ **Depositar o arquivo direto na árvore de trabalho do peer.** A entrega é PR.
-- ❌ **Aplicar a NOSSA regra de branch ao PR que entra no repo dele.** Vale a dele.
-- ❌ **Mergear o PR no repositório do peer.** Abrir é entrega; mergear é decidir pelo outro projeto.
-- ❌ Só apontar `{{project}}:arquivo:linha` sem o resumo inline — o leitor não vai abrir.
-- ❌ Usar este módulo para um agente **deste** repo (é `intra-team`) ou para um time sem acesso ao nosso código (é `cross-team-handoff`).
-- ❌ Marcar um acordo como `A` no board antes do ack real do outro lado.
+## Delta 3 — what the message carries in addition
 
-## Referências
+The `peer-message.md` template extends `intra-team`'s `message.md` in three places:
 
-- `.agents/peers.md` — o registro.
-- `.claude/skills/intra-team/SKILL.md` — a maquinaria herdada.
-- `.claude/skills/cross-team-handoff/SKILL.md` — o caso sem acesso ao código.
+- **Frontmatter:** `peer` (name in the registry), `peer_work_refs` (their work_ids) and `work_refs` (ours) — **separate**, because there are two namespaces.
+- **"Orientation" section**, right after Context: where, **in the reader's repo**, the things the message discusses live. It saves a whole round spent on "where is that?".
+- **Third closing ask:** where to deposit the answer (our inbox, absolute path). Unlike `intra-team`, there is no obvious shared place.
+
+## Anti-patterns
+
+- ❌ `file:line` without a repo prefix.
+- ❌ A `[[wikilink]]` pointing into our vault in a message that leaves here.
+- ❌ Sweeping the peer's repository instead of using the entry points.
+- ❌ Writing into the peer's repo without the second gate, or outside the registry's policy.
+- ❌ **Dropping the file straight into the peer's working tree.** Delivery is a PR.
+- ❌ **Applying OUR branching rule to the PR that enters their repo.** Theirs applies.
+- ❌ **Merging the PR in the peer's repository.** Opening is delivery; merging is deciding for the other project.
+- ❌ Delivering our outbound copy unchanged (`direction: outbound`, `peer: <them>`). Their inbox reader will not list it.
+- ❌ Only pointing at `{{project}}:file:line` without the inline summary — the reader will not open it.
+- ❌ Using this module for an agent of **this** repo (that is `intra-team`) or for a team with no access to our code (that is `cross-team-handoff`).
+- ❌ Marking an agreement as `A` on the board before the other side's real ack.
+- ❌ Concluding "the peer did not deliver" from the working tree alone, without checking open PRs (`inbox.py`, exit `0`).
+
+## References
+
+- `.agents/peers.md` — the registry.
+- `.claude/skills/intra-team/SKILL.md` — the inherited machinery.
+- `.claude/skills/cross-team-handoff/SKILL.md` — the case without code access.
 - `{{project}}_wiki/_meta/conventions.md` §"Peer-relay frontmatter".
