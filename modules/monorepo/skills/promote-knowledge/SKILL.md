@@ -47,6 +47,7 @@ The **step 7** checks are **deterministic automatic verifications**: on failure 
 - `git branch --show-current` → must be `dev_<app>`. If `demo_*`/`staging_*`/`main`, **abort** with a clear message.
 - `git status --short` → must be empty. If dirty, instruct `commit`/`stash`.
 - `git fetch origin main` to refresh refs.
+- `python3 scripts/check-knowledge-paths.py` → must print `ok`. If it fails, **abort**: the mask below has drifted from rule §2, and a drifted mask promotes the wrong set silently (rule §9.1).
 
 ### 1-bis. 🔒 The source branch must not be behind its own remote — aborts
 
@@ -70,15 +71,17 @@ promote "the part that is current".
 
 ### 2. Detect the knowledge-layer files to promote
 
-The canonical knowledge-layer paths (rule §2) are the **mask** in both modes. Adapt this list to the project's actual filenames at install time:
+The canonical knowledge-layer paths (rule §2) are the **mask** in both modes. Adapt this list to the project's actual filenames at install time; it must stay **equal** to rule §2 (rule §9.1 — `scripts/check-knowledge-paths.py` verifies it):
 
 ```bash
-KL_PATHS=".agents/ .claude/skills/ <per-agent config> .mcp.json \
-  CLAUDE.md GEMINI.md AGENTS.md README.md <workspace file> \
+KL_PATHS=".agents/ .claude/skills/ .claude/agents/ .claude/hooks/ .claude/settings.json \
+  <per-agent-config> .mcp.json <workspace-file> <root-manifest> \
+  scripts/ <ci-config> qa/ .gitattributes \
+  CLAUDE.md GEMINI.md AGENTS.md README.md \
   {{project}}_wiki/_meta/ {{project}}_wiki/apps/ {{project}}_wiki/packages/ \
   {{project}}_wiki/cross-cutting/ {{project}}_wiki/decisions/ {{project}}_wiki/sources/ \
-  {{project}}_wiki/overview.md {{project}}_wiki/.obsidian/ \
-  scripts/ <CI pipeline config> <root workspace manifest> qa/"
+  {{project}}_wiki/benchmarks/ {{project}}_wiki/postmortems/ \
+  {{project}}_wiki/overview.md {{project}}_wiki/.obsidian/"
 ```
 
 **Default mode — scoped to `<work_id>`** (only files touched by the trio's commits):
@@ -100,7 +103,11 @@ If no commits touched the trio → **abort** with instructions (never fall silen
 **`--all` mode — total divergence vs `main`** (legacy):
 
 ```bash
-git diff --name-only origin/main HEAD -- $KL_PATHS
+# `$KL_PATHS` unquoted does NOT word-split under zsh: the whole mask becomes ONE
+# pathspec that matches nothing, and the command reports 0 files while a real
+# divergence exists (found in use: 0 reported against 19 real). Pipe through
+# xargs so the split is explicit and identical under bash and zsh.
+echo "$KL_PATHS" | xargs git diff --name-only origin/main HEAD --
 ```
 
 If `--trio <id>`, add (either mode):
@@ -115,7 +122,7 @@ If `--trio <id>`, add (either mode):
 **Filter gitignored** explicitly (do not promote): local agent settings, `.claude/projects/`, `.claude/todos/`, `{{project}}_wiki/.obsidian/workspace*.json`.
 
 **Edge cases:**
-- **Work with no trio** (default) → abort with instructions.
+- **Work with no trio** (default) → abort with instructions. ⚠ This includes the case where the trio is **real but lives on `main`** while the code lives on `dev_<app>`: the scoped detection runs `git log` on the *current* branch, so a trio authored on `main` is invisible to it and the skill aborts as if the work had none. Falling back to `--all` there is the unsafe direction step 5-bis guards; promote the named files instead.
 - **Work spread across commits** → `git log -- <trio>` already catches every commit that touched the trio; the union covers the work.
 - **A knowledge file touched in a commit that did NOT touch the trio** → out of scope; the gate (step 3) shows the list and the human may request `--all` or name the range.
 

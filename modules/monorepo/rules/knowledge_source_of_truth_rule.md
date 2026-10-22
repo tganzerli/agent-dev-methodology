@@ -14,18 +14,23 @@ This rule is **non-negotiable** and complements `mandatory_planning_rule.md` (pl
 
 ## 2. Knowledge layer — covered paths
 
-These paths make up the canonical knowledge layer (versioned, kept aligned across `main` and every `dev_<app>`). Adapt the exact filenames to your host/toolchain at install time:
+These paths make up the canonical knowledge layer (versioned, kept aligned across `main` and every `dev_<app>`). One path per line (a line may group files with commas); everything after `#` is a comment. At install time, replace each `<placeholder>` with the project's real path, delete the lines that do not apply, and mark a path that is declared but not created yet with `— DECLARED, not yet created` in its comment (§9.1):
 
 ```
 .agents/                              # methodology + rules + per-LLM specifics + mcp.md
 .claude/skills/                       # Agent Skills (gitignored: local settings, projects/, todos/)
-<per-agent config>                    # e.g. .gemini/settings.json + .gemini/commands/
+.claude/agents/                       # role sub-agents (reviewer, …)
+.claude/hooks/                        # agent hooks (e.g. the plan-gate hook)
+.claude/settings.json                 # shared agent settings (settings.local.json is gitignored)
+<per-agent-config>                    # e.g. .gemini/settings.json + .gemini/commands/
 .mcp.json                             # MCP server registry (if any)
-<workspace file>                      # e.g. the multi-root editor workspace file
-<root workspace manifest>             # the ROOT dependency/workspace manifest only — app/package manifests are OUT
-scripts/                              # shared CI tooling (broadcast-*.sh) — must stay aligned across branches
-<CI pipeline config>                  # e.g. .github/workflows/*, .gitlab-ci.yml, bitbucket-pipelines.yml
+<workspace-file>                      # e.g. the multi-root editor workspace file
+<root-manifest>                       # the ROOT dependency/workspace manifest only — app/package manifests are OUT
+scripts/                              # shared CI tooling (broadcast-*.sh, checkers) — must stay aligned across branches
+<ci-config>                           # e.g. .github/workflows/, .gitlab-ci.yml, bitbucket-pipelines.yml
 qa/                                   # shared QA pipeline (if any) — monorepo-wide tooling, aligned across branches
+.gitattributes                        # merge attributes (log.md merge=union — §3.6)
+# docker/                             # add (uncommented) when the dev-env module is installed — Group B, §3.6
 CLAUDE.md, GEMINI.md, AGENTS.md, README.md   # entry-points
 {{project}}_wiki/_meta/               # conventions, index, log
 {{project}}_wiki/apps/                # per-app knowledge
@@ -44,6 +49,11 @@ CLAUDE.md, GEMINI.md, AGENTS.md, README.md   # entry-points
 > listed here so an install does not have to rediscover them. A project whose knowledge is organized
 > on another axis keeps its own top-level directories and adds them to this list (see the module
 > README, "Vault reorganization").
+>
+> **Declared ≠ existing, and the difference is machine-read.** A line marked
+> `— DECLARED, not yet created` is a target (a mask does not match a directory that does not exist,
+> so declaring it early costs nothing). Every line **without** the mark must match at least one
+> tracked file; `scripts/check-knowledge-paths.py` fails otherwise (§9.1).
 
 **Outside the knowledge layer (per-branch during the trio; promoted on close):**
 - `{{project}}_wiki/work/tasks/`, `plans/`, `executions/` — born on the work branch.
@@ -111,7 +121,74 @@ Periodically, or when you suspect divergence, **invoke** `/sync-knowledge`. The 
 When a knowledge-layer change goes **only** to main (no origin branch), create ephemeral `docs/<work_id>__knowledge` straight off main, change it there, PR to main. Typical: a typo fix in an old ADR, a standalone `_meta/index.md` update.
 
 ### 3.6. Broadcast auto-reconcile (main → dev)
-The `main → dev_<app>` broadcast (CI, `scripts/broadcast-main.sh`) auto-reconciles conflicts **confined to Group A** of the knowledge layer (`KNOWLEDGE_PATHS` in the script: the wiki, `.agents/`, `.claude/skills/`, per-agent config, `.mcp.json`, the entry-point stubs, the workspace file), adopting **main's** version (canonical) and regenerating the derived index. A conflict that touches **Group B** (`<root workspace manifest>`, `qa/`, `<CI pipeline config>`, `scripts/`) **aborts** and requires human resolution via `/sync-knowledge` — those affect build/CI or have non-regenerable derivatives inside the broadcast runner image. Keep a companion ADR (`{{project}}_wiki/decisions/YYYY-MM-DD_knowledge-reconcile-scope.md`).
+§2 splits into **two groups with no remainder** — every §2 path is in exactly one — and the `main → dev_<app>` broadcast (CI, `scripts/broadcast-main.sh`) consumes that partition. Classification is by prefix.
+
+**Group A — reconciles on its own**, adopting **main's** version (canonical) and regenerating the derived index on top. Docs and agent configuration, with no effect on build or CI. It is `KNOWLEDGE_PATHS` in the script:
+
+```
+{{project}}_wiki/
+.agents/
+.claude/skills/
+.claude/agents/
+.claude/hooks/
+.claude/settings.json
+<per-agent-config>
+.mcp.json
+CLAUDE.md, GEMINI.md, AGENTS.md, README.md
+<workspace-file>
+```
+
+`{{project}}_wiki/` enters whole, so `KNOWLEDGE_PATHS` is **wider than §2**: it also covers `{{project}}_wiki/work/` (closed trios and the generated index), for which `main` is canonical too. §2 defines what is **promoted**; Group A defines what is safe to **reconcile**.
+
+**Group B — aborts and calls a human** via `/sync-knowledge`. Affects build, CI, or the environment of someone already running it, or has non-regenerable derivatives inside the broadcast runner image:
+
+```
+<root-manifest>
+scripts/
+<ci-config>
+qa/
+.gitattributes
+# docker/          ← here, not in Group A, when the dev-env module is installed
+```
+
+- **`docker/`** (dev-env module) is Group B because `dev_environment_rule.md` governs services that stay **up** on the developer's machine: silently adopting main's version swaps a port, volume or image under a running environment. Changes there are rare, so aborting is cheap and guessing is not.
+- **`.gitattributes`** is knowledge layer but deliberately **not** Group A. Git reads merge attributes from the **ours** side (the `dev_<app>`), and a `--theirs` resolution happens **after** `git merge` has already merged everything else with the *old* file — a new directive arriving from `main` does not apply retroactively to the current merge. Putting it in Group A would give false protection. It takes effect from the merge **after** the one that brings it.
+- **`scripts/`** in Group B has the consequence §9 records: the roster is **not** auto-reconciled and drifts between branches if edited on one side only.
+
+> 🔒 **Exception: append-only files.** "Adopt main's version" is right for a **page**, whose canonical
+> content lives in `main`. It is **wrong** for a **ledger**, where the `dev_<app>` legitimately holds
+> lines `main` has not seen yet — the ones written between `/wiki-sync` and `/promote-knowledge`. In
+> that window the `dev_<app>` is the **only** place that content exists, and adopting `main` is
+> **data loss**, not reconciliation: pipeline green, `git status` clean, no warning.
+>
+> This applies to **`{{project}}_wiki/_meta/log.md`**, declared in the root `.gitattributes`:
+>
+> ```
+> {{project}}_wiki/_meta/log.md merge=union
+> ```
+>
+> With `union` the conflict stops existing — git keeps both sides, for every merge (broadcast,
+> `/sync-knowledge`, promote, manual), and the auto-resolve block is never reached.
+>
+> ⛔ **Do not extend `union` to `_meta/index.md` or other catalogs**: their existing lines are
+> **edited**, not only appended, and `union` over a line changed on both sides keeps **both**
+> versions — a count `10 → 11` on dev and `10 → 12` on main becomes two contradictory lines. That
+> trades silent loss for silent corruption, which is worse because absence does not reveal it.
+> `{{project}}_wiki/work/_index.md` and `work/archive/*` stay out for another reason: they are
+> regenerated right after reconciliation, so a clobber there is harmless by construction.
+>
+> ⛔ **Refuted: "`union` is not idempotent / duplicates log entries".** Measured in a synthetic repo
+> by the installation that first adopted it: an **identical** append on both sides is recognised as
+> the same change and not duplicated; a dev append plus other appends on main resolves cleanly. The
+> one repetition found in its real log (238 entries) came from two **different** commits with
+> different bodies — two legitimate syncs whose header (`[date] wiki-sync | work_id | N pages`) did
+> not disambiguate. Do not replace `union` on that assumption: the loss it prevents is measured, the
+> duplication feared from it is not. `scripts/check_log_entry_collisions.py` reports repeated
+> headers, so if merge duplication ever happens it shows up there.
+
+**The partition is verified, not trusted:** `scripts/check-knowledge-paths.py` fails on a §2 path outside both groups, a path in both, and a Group B path that leaked into the script's `KNOWLEDGE_PATHS` — the dangerous leak, because it turns a planned abort into blind adoption (§9.1).
+
+Keep a companion ADR (`{{project}}_wiki/decisions/YYYY-MM-DD_knowledge-reconcile-scope.md`).
 
 ## 4. Exceptions
 
@@ -162,6 +239,23 @@ The app/branch roster is **hardcoded in several places** and is **not** auto-rec
 - [ ] `scripts/broadcast-packages.sh` — `APPS` += `<new>` (if it consumes packages).
 - [ ] **CI pipeline config** — add the new per-app parallel step/job.
 - [ ] The permanent-branch list in §3 of `git_branching_rule.md`.
-- [ ] The path list in §2 of this rule (if the new app introduces new knowledge dirs).
+- [ ] The path list in §2 of this rule (if the new app introduces new knowledge dirs) — and its three copies (§9.1).
 
 > Because `scripts/` is not auto-reconciled, these copies **drift between branches** if edited on only one. Keep them aligned via normal promotion. Deriving the roster automatically from the root workspace manifest is a possible future improvement (not implemented).
+
+### 9.1. The §2 path list has four copies
+
+Changed §2? Update **all four in the same work** — none is derived from the others:
+
+- [ ] §2 of this rule — **the authoritative one**, and the only one that carries each path's expected state.
+- [ ] `.claude/skills/promote-knowledge/SKILL.md` — `KL_PATHS`. Equality required.
+- [ ] `.claude/skills/sync-knowledge/SKILL.md` — `KL_PATHS`. Equality required.
+- [ ] `scripts/broadcast-main.sh` — `KNOWLEDGE_PATHS`, which must equal Group A of §3.6 (plus extras under `{{project}}_wiki/`), and must contain **nothing** from Group B.
+
+**Do not trust this checklist alone.** `python3 scripts/check-knowledge-paths.py` verifies the four copies: the two skill masks equal §2; §2 is partitioned by Groups A and B with no overlap and no leftover; no Group B path leaks into `KNOWLEDGE_PATHS` and every Group A path is there; and every §2 path matches at least one tracked file unless marked `— DECLARED, not yet created`. Both skills run it at step 1 and abort if it fails; wire it into CI too, since the skills do not run until a `dev_<app>` exists.
+
+> **Why this exists.** An installation found `{{project}}_wiki/benchmarks/` missing from §2 — a
+> directory the kit itself creates. Both skill masks had the same hole, plus four install placeholders
+> never filled in and three paths that did not exist in that repository. Nobody had decided to ignore
+> them: **neither skill had ever run there**, because both abort outside `dev_<app>` and no `dev_*`
+> existed yet. A copy nobody executes does not warn that it is wrong — so the checklist got a checker.

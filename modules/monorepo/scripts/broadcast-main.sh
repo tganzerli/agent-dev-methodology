@@ -52,15 +52,22 @@ TARGETS=(
 # ANY Group-B path ABORTS and requires a human via /sync-knowledge.
 # (See knowledge_source_of_truth_rule.md §3.6.)
 #
-# TODO(paths): adapt to your project's actual filenames.
+# .gitattributes is knowledge layer but NOT Group A: git reads merge attributes
+# from the ours side, so adopting main's copy mid-merge protects nothing.
+#
+# TODO(paths): adapt to your project's actual filenames. Must equal Group A of
+# knowledge_source_of_truth_rule.md §3.6 — scripts/check-knowledge-paths.py checks it.
 KNOWLEDGE_PATHS=(
   "{{project}}_wiki/"          # whole wiki: knowledge pages + work/ (trios + generated index)
   ".agents/"
   ".claude/skills/"
-  # "<per-agent config>"       # e.g. .gemini/settings.json + .gemini/commands/
+  ".claude/agents/"
+  ".claude/hooks/"
+  ".claude/settings.json"
+  "<per-agent-config>"         # TODO(paths): e.g. .gemini/settings.json + .gemini/commands/
   ".mcp.json"
   "CLAUDE.md" "GEMINI.md" "AGENTS.md" "README.md"
-  # "<workspace file>"         # e.g. the multi-root editor workspace file
+  "<workspace-file>"           # TODO(paths): e.g. the multi-root editor workspace file
 )
 
 # ── TODO(env): map these to your CI's provided variables ──────────────────────

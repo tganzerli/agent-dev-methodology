@@ -102,6 +102,10 @@ modules/monorepo/scripts/*                              →  scripts/          (
 
 Then reorganize the vault knowledge dirs under `{{project}}_wiki/apps/<app>/` and `{{project}}_wiki/packages/<pkg>/` per `modules/monorepo/README.md`, and follow its **roster checklist** for wiring each app/package into the branch topology and CI.
 
+**Append-only log.** Add to the root `.gitattributes` (create it if absent): `{{project}}_wiki/_meta/log.md merge=union`. Without it, the broadcast auto-reconcile adopts `main`'s log and silently drops the `dev_<app>` entries not yet promoted. Do **not** add `_meta/index.md` or `work/_index.md` — `union` corrupts lines edited on both sides (`knowledge_source_of_truth_rule.md` §3.6).
+
+**Path list.** Adapt the knowledge-layer path list in `knowledge_source_of_truth_rule.md` §2 and §3.6 (replace each `<placeholder>`, drop lines that do not apply, mark not-yet-created paths `— DECLARED, not yet created`), mirror it into the two skills' `KL_PATHS` and `scripts/broadcast-main.sh` `KNOWLEDGE_PATHS`, then run `python3 scripts/check-knowledge-paths.py` until it prints `ok` (rule §9.1).
+
 **If answer 4 = no:** skip this module entirely. In a single-repo project these skills collapse to no-ops (there is no second branch to promote to). Do not install them.
 
 ## 5. Install the CROSS-TEAM module (only if answer 6 = yes)
