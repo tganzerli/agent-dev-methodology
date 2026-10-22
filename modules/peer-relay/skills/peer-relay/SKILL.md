@@ -24,13 +24,13 @@ It **imports the `intra-team` machinery** — the five `msg_role`s (`note`/`requ
 
 ## Delta 1 — the citation rule
 
-The reason the module exists. In a two-repository universe, `router.dart:9` exists **in both** and means different things.
+The reason the module exists. In a two-repository universe, `src/router.ext:9` exists **in both** and means different things.
 
-1. 🔒 **Every file citation carries a repo prefix.** `{peer}:lib/src/decoder/_decoder.dart:56`, `{{project}}:packages/domain/lib/src/value/enums.dart:1-3`. The prefix comes from `.agents/peers.md`. A `file:line` without a prefix is a **format error**, not style.
+1. 🔒 **Every file citation carries a repo prefix.** `{peer}:src/parser.ext:56`, `{{project}}:src/model/types.ext:1-3`. The prefix comes from `.agents/peers.md`. A `file:line` without a prefix is a **format error**, not style.
 2. **Citing the reader's repo: pure reference-first.** They open the file. Do not re-paste.
 3. **Citing our repo: reference-first *with a sufficient inline summary*.** They *can* open it, but they are in another checkout with another context loaded and **will not**. The claim stands alone in the body; the citation stays as verifiable provenance. It is the middle ground neither of the other two modules offers, and the easiest mistake, because "reference-first" invites you to just point.
 4. **`[[wikilinks]]` only for pages in the reader's repo.** Vaults are separate: a wikilink into our vault is a dead link in their Obsidian. For our pages, a prefixed file path.
-5. **A `work_id` is namespaced on crossing:** `{{project}}:2026-09-06_backend-foundations-track`. Both projects use `YYYY-MM-DD_slug`; a collision is a matter of time.
+5. **A `work_id` is namespaced on crossing:** `{{project}}:YYYY-MM-DD_slug`. Both projects use `YYYY-MM-DD_slug`; a collision is a matter of time.
 6. **Claim-state gains an axis.** `intra-team` distinguishes `✅ landed` / `⚠ in-flight` / `🔒 intent`. Here `landed` alone says nothing — landed **where**? Format: `✅ landed ({{project}}@main)`, `⚠ in-flight ({{project}}@docs/…__knowledge)`.
 
 ## Delta 2 — the four flows
