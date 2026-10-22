@@ -56,8 +56,9 @@ Every template file in this kit uses `{{...}}` placeholders. When you copy a fil
 | `{{project}}` | vault slug (answer 2) — the vault dir is `{{project}}_wiki` |
 | `{{repo}}` | target repo folder name |
 | `{{KNOWLEDGE_LANG}}` | knowledge-content language (answer 3) |
+| `{{ABS_PATH_TO_THIS_REPO}}` | absolute path of the target repo (peer-relay module only) |
 
-Do a final grep for `{{` after install — **no placeholder may remain** in the target project (§7 checklist).
+Do a final grep for `{{` after install — **no placeholder may remain** in the target project (§7 checklist). Two kinds of double braces are **not** placeholders and must stay as shipped: `{{args}}` in the Gemini CLI command files (`.gemini/commands/*.toml` — Gemini CLI substitutes it at run time) and Go-template format strings such as `{{.State.Health.Status}}` in the dev-env skill (Docker reads them). CI workflow files use `${{ … }}` expressions for the same reason; the checklist grep does not scan them.
 
 ## 3. Install the CORE (always)
 
@@ -282,7 +283,7 @@ Then guide the human to protect `main` and `dev` in the git host (rule §3, host
 
 Run these before telling the human it is done:
 
-- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude .gemini scripts CLAUDE.md GEMINI.md AGENTS.md` returns **nothing** (all placeholders substituted — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
+- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude .gemini scripts CLAUDE.md GEMINI.md AGENTS.md REVIEW.md .github/pull_request_template.md 2>/dev/null | grep -vE '\{\{(args|\.State\.Health\.Status)\}\}'` returns **nothing** (all placeholders substituted; the two exclusions are run-time templates, §2 — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
 - [ ] `.agents/METHODOLOGY.md`, `.agents/rules/mandatory_planning_rule.md` exist.
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).

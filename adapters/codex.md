@@ -1,6 +1,6 @@
 <!--
   Installs as: .agents/llm/codex.md  (Codex reads the root AGENTS.md natively — see
-  INSTALL.md §6). De-template the {{...}} placeholders at install. This adapter holds
+  INSTALL.md §6). De-template the double-brace placeholders at install. This adapter holds
   Codex specifics ONLY; the canonical methodology is .agents/METHODOLOGY.md.
 -->
 # Codex adapter — {{PROJECT}}
