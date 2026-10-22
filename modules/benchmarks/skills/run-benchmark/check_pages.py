@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check benchmark pages for the two declarations benchmark_protocol_rule.md requires.
 
-  host-state        every page carries a `host_state:` block (rule §4.1)
+  host-state        every page carries a `host_state:` block with the measured keys (rule §4.1)
   drift-declaration a page with `design: sequential-ab` declares the four keys of
                     `drift_declaration:` (rule §5.6.1)
 
@@ -21,6 +21,7 @@ import re
 import sys
 
 DRIFT_KEYS = {"order", "per_session", "internal_drift_pct", "adjacent_compared"}
+HOST_KEYS = {"measured_at", "swap_pct", "mem_free_pct", "load1", "uptime_days"}
 
 
 def frontmatter_lines(text):
@@ -58,8 +59,13 @@ def check(path, skip):
     with open(path, encoding="utf-8") as f:
         fm = frontmatter_lines(f.read())
     found = []
-    if "host-state" not in skip and block_keys(fm, "host_state") is None:
-        found.append(("host-state", "no `host_state` block (rule §4.1)"))
+    if "host-state" not in skip:
+        keys = block_keys(fm, "host_state")
+        if keys is None:
+            found.append(("host-state", "no `host_state` block (rule §4.1)"))
+        elif HOST_KEYS - keys:
+            found.append(("host-state", "`host_state` without the measured keys (rule §4.1): "
+                          + ", ".join(sorted(HOST_KEYS - keys))))
     if "drift-declaration" not in skip and top_value(fm, "design") == "sequential-ab":
         miss = sorted(DRIFT_KEYS - (block_keys(fm, "drift_declaration") or set()))
         if miss:
@@ -88,6 +94,10 @@ def main():
         else:
             vault = os.path.join(args.root, vault)
         pages = sorted(glob.glob(os.path.join(vault, "benchmarks", "*.md")))
+    missing = [p for p in pages if not os.path.isfile(p)]
+    if missing:
+        print("error: no such page: " + ", ".join(missing), file=sys.stderr)
+        return 2
     pages = [p for p in pages if not os.path.basename(p).startswith("_")]
 
     n = 0
