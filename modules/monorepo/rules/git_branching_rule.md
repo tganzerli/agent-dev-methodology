@@ -128,6 +128,8 @@ The **`__` (double underscore)** separator between `<work_id>` and `<scope>` is 
 | `bench` | Benchmark work (`benchmark_protocol_rule.md`) — evidence page, dataset, command, versioned artifacts | `dev_<app>` | `dev_<app>` |
 | `contract` | Change to a versioned cross-boundary contract (`contract_change_rule.md`) — **atomic**: contract + implementation + every consumer + tests + knowledge page | `main` | `main` (§3.2) |
 
+**Variant — the contract is a shared package.** A project whose versioned contract *is* a package (`packages/<contract>`) may instead cut `contract/<id>__<pkg>` off `dev_packages` and PR it into `dev_packages`, consumers following on their own branches — only if this rule names the variant in place of the `contract` row above (trade-off, and `SCOPE_CONTRACT_LINE=dev_packages` for the barrier: `git-runbook` §5.3).
+
 **Module-registered types.** `bench` (benchmarks module) and `contract` (contracts module) are valid **only while their module is installed**; delete the row of a module the project did not install. The module's own rule owns what must ride on the branch; this table owns where the branch starts and lands.
 
 ### 4.3. Valid examples
