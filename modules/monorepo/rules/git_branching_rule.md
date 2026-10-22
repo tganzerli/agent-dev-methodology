@@ -17,17 +17,15 @@ trigger: always_on
 
 **In force:** from install until the first `dev_<app>` branch is created.
 
-With zero apps this rule deadlocks: `staging_<app>` and `dev_<app>` presuppose an `<app>` that does not exist, trios "are born on the work branch" (`knowledge_source_of_truth_rule.md` §2) with no line to be born on, and §4 allows a branch only after an approved plan — whose files must be committed somewhere first. The only line that exists is `main`, which §3.2 forbids.
+Why: with zero apps the plan gate, the trio rule and §3.2 deadlock (`git-runbook` §5.1).
 
-**Rule in force meanwhile:** *all work happens directly on `main`.* A direct commit to `main` is **allowed** and is the normal flow; §3.2's prohibition is **suspended for `main`** until the trigger. A local `docs/…` branch merged with `--no-ff` is not a substitute: with no remote and no reviewer it keeps the rule's form without its gate, and makes the history claim a review that never happened.
+**Rule in force meanwhile:** *all work happens directly on `main`.* A direct commit to `main` is **allowed** and is the normal flow; §3.2's prohibition is **suspended for `main`** until the trigger.
 
-**The trigger that ends it:** the creation of the first `dev_<app>`. From that moment, with no grace period, §3.2 applies in full, the topology from §3 on is mandatory, and **this section is deleted** from the file — not marked expired. The trigger needs no judgement: `git branch --list 'dev_*'`. `scripts/check-transition-state.sh` fails CI if a `dev_*` exists while this section is still here; the plan that creates the first `dev_<app>` lists this rule under "Rules affected".
+**The trigger that ends it:** the creation of the first `dev_<app>`. From that moment, with no grace period, §3.2 applies in full, the topology from §3 on is mandatory, and **this section is deleted** from the file — not marked expired. Check: `git branch --list 'dev_*'`; `scripts/check-transition-state.sh` fails CI if a `dev_*` exists while this section is here; the plan creating the first `dev_<app>` lists this rule under "Rules affected".
 
 **What it does NOT relax:** the plan gate. `mandatory_planning_rule.md` is independent of this rule — no code change before an `approved` plan, on `main` as anywhere. This section relaxes **where a commit may land**, never **whether the work was planned and approved**.
 
-> **Genesis commit.** The very first commit of a repository lands on `main` directly even without this section: `main` does not exist before it, and no PR can target a branch with no commits. Record it in `_meta/log.md` as an ordering exception, not a precedent — that circumstance does not repeat.
->
-> **Bootstrap without `dev_<app>`.** `/promote-knowledge`, `/sync-knowledge` and `/distribute-packages` abort outside a `dev_<app>` by design, so before the first one exists they never run — one installation did seven promotions by hand during bootstrap, and its path-list copies drifted unnoticed because nothing executed them. Until then, knowledge lands per `knowledge_source_of_truth_rule.md` §3.5 (a `docs/<id>__knowledge` branch off `main`, or directly on `main` under this section), and `scripts/check-knowledge-paths.py` runs in CI rather than inside the skills.
+Genesis commit and bootstrap without a `dev_<app>` (the monorepo skills abort until one exists; run `scripts/check-knowledge-paths.py` in CI meanwhile): `git-runbook` §5.1.
 
 ## 2. Language requirement
 
@@ -84,7 +82,7 @@ pkg/<id>__<pkg>  →  dev_packages  ──(CI: direct auto-merge)──▶  dev_
 - **PR into `staging_<app>`** requires: source is `dev_<app>`; the affected app's manifest got a **version bump** (patch/minor/major); CI green. On merge, the `<app>-vX.Y.Z` tag is cut.
 - **PR into `dev_<app>`** requires one of: an ephemeral branch with a valid `work_id` (`feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `hotfix/`, or a module-registered type — §4.2); a CI auto-merge (top-down broadcast per §6 — the bot token has a branch-protection exception, humans stay restricted).
 
-  > **There is no direct commit into `dev_<app>`, not even from an approved plan.** An earlier version of this line and of the §3 table allowed one, while §10 gate 12 forbade any human push to `dev_<app>`: two sections authorised what a third banned. An installation found it by walking into it — an agent committed a work log straight to a `dev_<app>`, then checked and got both answers; the missing host-side protection (§6, admin precondition) let it pass in silence instead of failing. Resolved toward the stricter reading: **one flow, always a PR.** An approved plan authorises the work, never the push path.
+  > **There is no direct commit into `dev_<app>`, not even from an approved plan** (why: `git-runbook` §5.2).
 - **PR into `dev_packages`** requires: source is `pkg/<work_id>__<pkg>` with an approved plan. Diff restricted to `packages/*` + shared knowledge/tooling.
 - **Commit into `demo_<app>`** requires: explicit human confirmation and justification (this branch is frozen).
 - **Direct commit into `main` or `staging_*` is FORBIDDEN** — no exception.
@@ -92,7 +90,7 @@ pkg/<id>__<pkg>  →  dev_packages  ──(CI: direct auto-merge)──▶  dev_
 - **PR into `main` via `docs/<id>__knowledge`** is allowed **only** for knowledge-layer changes. Gate: the diff must not touch `apps/*/lib/`, `packages/*/lib/`, or any other code path.
 - **PR into `main` via `contract/<id>__<surface>`** is allowed **only** for a change to a versioned cross-boundary contract, and **only** when the diff is atomic in the sense of `contract_change_rule.md`: the contract, the implementation, **every** in-repo consumer, the tests and the knowledge page, together.
 
-  > **Why `contract/` goes straight to `main`.** `main` is the only branch where every app and every package coexist, so it is the only place a simultaneous change across all consumers can be expressed. `dev_packages` refuses `apps/*` (§10 gate 11) and each `dev_<app>` covers one app: a PR into either leaves the other consumers speaking the old shape until the broadcast arrives. The accepted cost is that a contract change reaches `main` without passing `staging_<app>`. The trade is asymmetric — diverging package copies between apps are recoverable (the broadcast exists for that), a consumer speaking the old shape at runtime is a production break.
+  Why `main`: `git-runbook` §5.3.
 
 > **Host neutrality.** These gates are enforced two ways: (a) this rule, which every agent obeys; and (b) **branch-protection / merge-check settings configured in your git host's UI** (GitHub, GitLab, Bitbucket, …) — see §9. Neither replaces the other.
 
@@ -182,11 +180,7 @@ Three operational rules follow:
 2. **No contamination.** No branch writes to an app outside its scope — by edit, or by a merge that carries another app's snapshot.
 3. **Single distribution path.** App code reaches other branches only via `staging_<X> → main` and then the broadcast (§6). No lateral shortcut.
 
-**How it is checked.** `scripts/check_branch_scope.sh`, on every PR and on push to `dev_<app>`. The roster comes from the root workspace manifest (a placeholder to fill at install), so a new app enters the barrier on its own. The baseline is the **cut point of the source branch**, not the tip of `main`: an ephemeral legitimately carries what its `dev_<app>` has ahead of `main`. The source is **detected** (among the permanent branches, the one with the most recent merge-base by DAG ancestry), which also makes rule 1 checkable.
-
-**Advisory first.** The script ships reporting and exiting 0 (`SCOPE_BARRIER_BLOCKING=1` makes it block). Flip the default only after it has run clean across real releases; the installation it came from never flipped it. And a check on push **reports**, it does not prevent — the commit is already there; hard prevention is branch protection requiring PRs on `dev_*` (§9).
-
-> **Why it exists.** In the installation it came from, three incidents in one day had this cause: an app's change leaked into every `dev_*` through `apps/` on `dev_packages`; a release PR carried 254 files to `main` instead of 8, 189 of them another app; and a `dev_<app>` carried a stale copy of another app with code already removed from the store. Nobody edited the wrong app on purpose — every case was a **snapshot carried by a merge**. The rule already forbade it in text; it lacked enforcement.
+Checked by `scripts/check_branch_scope.sh` on every PR and on push to `dev_<app>` — **advisory** by default (`SCOPE_BARRIER_BLOCKING=1` blocks; flip only after clean runs across real releases); hard prevention is branch protection requiring PRs on `dev_*` (§9). How it works and why: `git-runbook` §5.4.
 
 ## 5. Hotfix
 
@@ -208,12 +202,13 @@ The manifest version bump (patch — e.g. `1.0.1 → 1.0.2`) is still required i
 
 *(Install this section only if the repo has shared packages — see §3.)*
 
-Changes to `packages/<pkg>` live on the permanent `dev_packages` trunk; apps receive them by broadcast. **The step-by-step recipe** — change flow, contents of `dev_packages`, release to `main`, bootstrap, PR titles, both broadcasts — lives in the **`git-runbook`** skill. Invoke it **before** opening a `pkg/` or `tag/` branch or touching `dev_packages`. The gates stay here:
+Packages live on the permanent `dev_packages` trunk; apps receive them by broadcast. Invoke the **`git-runbook`** skill (the recipe) **before** opening a `pkg/` or `tag/` branch or touching `dev_packages`. The gates:
 
-- 🔒 **`pkg/<work_id>__<pkg>` branches off `dev_packages` and has a single PR into `dev_packages`.** The human review gate happens **once**, there; the CI broadcast (`scripts/broadcast-packages.sh`) then merges into each consuming `dev_<app>` with no intermediate PR. Twin PRs into several `dev_<app>` are forbidden (§10 gate 5) — do not reintroduce the retired N-PR model.
+- 🔒 **`pkg/<work_id>__<pkg>` branches off `dev_packages` and has a single PR into `dev_packages`.** The human review gate happens **once**, there; the CI broadcast (`scripts/broadcast-packages.sh`) then merges into each consuming `dev_<app>` with no intermediate PR. Twin PRs into several `dev_<app>` are forbidden (§10 gate 5).
 - 🔒 **`dev_packages` does not contain `apps/*`** (§10 gate 11).
 - 🔒 **A package release** is a `tag/<pkg>-vX.Y.Z__<pkg>` branch off `dev_packages` with a SemVer bump and a CHANGELOG entry, PR into `main` (§3.2); the tag is cut by hand on the merge commit (§7.2).
 - 🔒 **New app bootstrap:** the first action on a fresh `dev_<newapp>` (born off `main`) is `/distribute-packages`, to sync with the current `dev_packages` snapshot.
+- 🔒 **PR titles:** `pkg/` → `[pkg] <description> (work_id: <id>)`; `tag/` → `[tag] <pkg>-vX.Y.Z`, body = the CHANGELOG + the `pkg/` PRs since the previous tag.
 - 🔒 **Every ephemeral PR** (`<type>/<work_id>__<scope>` into its `dev_*` trunk, including `pkg/`): opened only with the validations green **with their output recorded** in the execution, the agent review closed with no open `Important` finding (or `skipped — low`), and the human review done at the depth the plan's risk tier sets (`.agents/METHODOLOGY.md` §4.4.1). The body states **Testing**, **Risk** and **How to revert**, taken from plan §4.4.
 - 🔒 **Broadcast failures are resolved by hand, never forced:** `/distribute-packages` for `dev_packages → dev_<app>`, `/sync-knowledge` for `main → dev_*` (knowledge-layer conflicts in Group A are auto-reconciled per `knowledge_source_of_truth_rule.md` §3.6; everything else aborts).
 - 🔒 **Admin precondition:** `dev_*` carries branch protection with a push exception for the CI identity only (a deploy key or bot token with write scope). Humans stay restricted to PRs. Configured in the host (§9).
@@ -238,7 +233,7 @@ Global tags (e.g. a bare `v1.0.0`) are **forbidden** — they collide in a monor
 - **App tag** — on the `dev_<app> → staging_<app>` merge (or `staging → main` for a hotfix).
 - **Package tag** — on the `tag/<pkg>-vX.Y.Z__<pkg> → main` merge.
 
-**Tags are MANUAL — the CI creates none** (unless the project adds and documents a tagging job). Whoever merges the release PR cuts the tag. While this rule said a tag "is cut on merge", agents assumed it appeared on its own and never cut it; one installation also found a release tag on the wrong commit. Before tagging, verify the **target commit**: it is the merge commit on `main` (or `staging_<app>`), never the `HEAD` of your local tree.
+**Tags are MANUAL — the CI creates none** (unless the project adds and documents a tagging job). Whoever merges the release PR cuts the tag. Before tagging, verify the **target commit**: it is the merge commit on `main` (or `staging_<app>`), never the `HEAD` of your local tree.
 
 ### 7.3. Manifest bump
 
@@ -252,35 +247,31 @@ The canonical commands (create, sync, rebase staging, tag, delete) are in the **
 
 ## 9. Host configuration — who may change it, and how
 
-Some operations live in the git host's **control panel**, not in `git`: branch protection, required checks, merge settings, a bot's push exception. **By default the agent guides the human through the panel and does not touch them itself.** The **`git-runbook`** skill lists the concepts to configure (protection, approvals, required checks, the CI push exception, PR template, merge strategy, force-push block) and where each host keeps them.
+Some operations live in the git host's **control panel**, not in `git`: branch protection, required checks, merge settings, a bot's push exception. **By default the agent guides the human through the panel and does not touch them itself.** The **`git-runbook`** skill lists the settings and where each host keeps them.
 
 When guiding the human, **describe the path for their specific host** and the expected result.
 
-⚠ **Require a status check on a branch only once CI actually fires there.** A required check that no event produces does not fail — it **waits forever**, and every PR into that branch hangs. One installation armed `staging_*` with protection but deliberately without the required checks, because its CI ran on PRs into `main` and `dev_*` only; adding the checks belongs to the work that extends CI to that branch. Protection that blocks a legitimate merge becomes the reason someone turns protection off.
+⚠ **Require a status check on a branch only once CI actually fires there.** A required check that no event produces does not fail — it **waits forever**, and every PR into that branch hangs. Add the required checks in the same work that extends CI to that branch.
 
 ### 9.1. The gate is the authorisation, not the tool
 
-🔒 **An agent never changes host configuration on its own initiative.** That — and only that — is the prohibition. The API is not what is banned: the host's REST API configures **every one of those settings**, so *"not doable via `git`"* was never the same as *"cannot be automated"*. The principle underneath is narrower and holds either way: **access control is the repository owner's to grant, not an agent's to assume.**
+🔒 **An agent never changes host configuration on its own initiative.** That — and only that — is the prohibition. The API is not what is banned: **access control is the repository owner's to grant, not an agent's to assume.**
 
-With **explicit, per-task human authorisation**, an agent MAY apply the change through the API. Three obligations ride with it, and they are what make the permission auditable instead of a blank cheque:
+With **explicit, per-task human authorisation**, an agent MAY apply the change through the API. Three obligations ride with it:
 
 1. 🔒 **Scoped.** The authorisation covers the named change, in the named work. It does **not** carry to the next task, the next session, or a second change nobody mentioned.
 2. 🔒 **Recorded.** The execution log states what changed, **from what to what**, and quotes the authorisation in the human's own words.
 3. 🔒 **Read back.** Verify with a fresh read of the host's state — **never trust the exit code of the write.**
 
-**Prefer the panel whenever the agent would have to guess an identifier** — an actor id, an app id, a role name. The panel shows the real list; a wrong guess grants the wrong thing to the wrong actor, and a bypass handed to a repository-admin role instead of the CI identity quietly dissolves the funnel §10.1 depends on.
+**Prefer the panel whenever the agent would have to guess an identifier** — an actor id, an app id, a role name. A wrong guess — e.g. a bypass handed to a repository-admin role instead of the CI identity — dissolves the funnel §10 gate 1 depends on.
 
-> **Why this section says "authorisation" instead of "never".** It said "never" until 2026-09-11. In the project this kit came from, the human authorised **three** exceptions to it **on one day** — creating the permanent-branch ruleset, then a repository setting plus a second ruleset, then a CI bypass actor. Each was legitimate, each was scoped in the human's own words, and **not one violated what the section actually protects**: the owner granted, the agent did not assume.
->
-> The second of those carried a written trigger — *"if a third arrives, stop writing notes and rewrite this section"* — on the reasoning that a policy suspended every time it binds is not a policy but a ritual with a waiver attached. The third arrived the same day.
->
-> This rewrite is deliberately **not** a loosening. The control that was actually in force all three times is now what the text says, plus two obligations (record, read back) that used to be habit and are now required. The failure it avoids is the one catalogued in the kit's own lesson on unexecuted copies: a clause that everybody waives becomes a clause nobody reads.
+Why "authorisation" and not "never": `git-runbook` §5.7.
 
 ## 10. LLM gates (explicit prohibitions)
 
 These are **forbidden** for any LLM agent. Violations require immediate reversal.
 
-1. ❌ Direct push to `main`, `staging_*` or `dev_*` — always. Every change enters a permanent branch through a PR from an ephemeral branch with a valid `work_id` in an approved plan, or through the CI bot token's auto-merge. An approved plan authorises the **work**, never the **push path** (see the note in §3.2).
+1. ❌ Direct push to `main`, `staging_*` or `dev_*` — always, except `main` while the optional §1.1 is present. Every change enters a permanent branch through a PR from an ephemeral branch with a valid `work_id` in an approved plan, or through the CI bot token's auto-merge. An approved plan authorises the **work**, never the **push path** (see the note in §3.2).
 2. ❌ Creating a branch with no `work_id` matching a plan in `{{project}}_wiki/work/plans/`.
 3. ❌ Creating a dual-scope branch (`feat/x__web__mobile`). Use `pkg/` if it affects multiple apps' shared code.
 4. ❌ `git push --force` (without `--with-lease`) on any branch.
@@ -290,7 +281,6 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 8. ❌ Renaming/deleting a permanent branch without human confirmation.
 9. ❌ A `docs/<id>__knowledge` branch that touches **code** (`apps/*/lib/`, `apps/*/test/`, `packages/*/lib/`, `packages/*/test/`, any app/package manifest, lockfiles). Everything else covered by `knowledge_source_of_truth_rule.md` §2 may be touched: the knowledge layer itself, **and the trio files under `{{project}}_wiki/work/` that §2 defines as a third category** (`tasks/`, `plans/`, `executions/`, and the generated `work/_index.md`). The root workspace manifest, `scripts/`, CI pipeline config, and `qa/` **are** knowledge layer and may be touched here.
 
-   > **Why this wording.** An earlier version demanded the diff be "100% inside the knowledge layer". That contradicted §3.2 of this rule, which asks only that the diff *"must not touch `apps/*/lib/`, `packages/*/lib/`, or any other code path"* — and, worse, forbade what this rule's own procedure produces: `/promote-knowledge --trio <id>` (`knowledge_source_of_truth_rule.md` §3.4) promotes a closed trio by creating exactly a `docs/<id>__knowledge` branch carrying trio files. §2 of that rule lists **three** categories, not two, and trio files are the middle one. Found in use by an installation on 2026-09-07; the fix restricts nothing that §3.2 did not already allow.
 10. ❌ Editing the knowledge layer on `demo_*`/`staging_*` without explicit human confirmation + justification.
 11. ❌ Editing `apps/*` on `dev_packages`, or creating a `pkg/<id>__<app>` branch. `dev_packages` is packages-only.
 12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). The CI auto-merge has a branch-protection exception; humans stay restricted to PRs.

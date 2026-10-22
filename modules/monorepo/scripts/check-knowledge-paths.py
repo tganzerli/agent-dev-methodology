@@ -2,17 +2,18 @@
 """Verify the four copies of the knowledge-layer path list.
 
 Authoritative source: the fenced block of section 2 of
-.agents/rules/knowledge_source_of_truth_rule.md. Operational copies:
+.agents/rules/knowledge_source_of_truth_rule.md, where every path's comment starts
+with its reconcile group, [A] or [B] (section 3.6). Operational copies:
   - .claude/skills/promote-knowledge/SKILL.md  (KL_PATHS)         -- equal to section 2
   - .claude/skills/sync-knowledge/SKILL.md     (KL_PATHS)         -- equal to section 2
-  - scripts/broadcast-main.sh                  (KNOWLEDGE_PATHS)  -- equal to Group A of
-    section 3.6, tolerating extras under the wiki (the work/ dir section 2 does not cover)
+  - scripts/broadcast-main.sh                  (KNOWLEDGE_PATHS)  -- covers every [A] path
+    (by prefix: the whole wiki counts), nothing else outside the wiki
 
 Four checks:
   1. both skill masks equal section 2;
-  2. section 2 is partitioned by Groups A and B of section 3.6 -- no leftover, no overlap;
-  3. no Group B path leaks into KNOWLEDGE_PATHS (a planned abort turning into blind
-     adoption of main's version is the dangerous failure), and every Group A path is there;
+  2. every section 2 path carries exactly one group tag -- [A] or [B];
+  3. no KNOWLEDGE_PATHS entry covers a [B] path (a planned abort turning into blind
+     adoption of main's version is the dangerous failure), and every [A] path is covered;
   4. every section 2 path matches >= 1 tracked file, unless marked
      "DECLARED, not yet created".
 
@@ -55,36 +56,24 @@ def _entries(line):
     return [p.strip() for p in path_part.split(",") if p.strip()], comment
 
 
+GROUP_TAG = re.compile(r"^\s*\[(A|B)\]")
+
+
 def source_paths():
-    """(all, declared_without_file) from the first fenced block of section 2."""
+    """(paths, declared_without_file, {path: group or None}) from section 2's block."""
     text = RULE.read_text(encoding="utf-8")
     section = text.split("## 2. Knowledge layer", 1)[1]
     block = section.split("```", 2)[1]
-    paths, declared = [], set()
+    paths, declared, group = [], set(), {}
     for line in block.splitlines():
         entries, comment = _entries(line)
-        paths += entries
+        tag = GROUP_TAG.match(comment)
+        for e in entries:
+            paths.append(e)
+            group[e] = tag.group(1) if tag else None
         if DECLARED_MARK in comment:
             declared.update(entries)
-    return paths, declared
-
-
-def groups():
-    """(A, B) -- the two fenced blocks of section 3.6."""
-    text = RULE.read_text(encoding="utf-8")
-    section = text.split("### 3.6", 1)[1].split("\n## 4.", 1)[0]
-    parts = section.split("```")
-    fenced = [parts[i] for i in range(1, len(parts), 2)]
-    fenced = [f for f in fenced if "merge=union" not in f]
-    if len(fenced) != 2:
-        raise SystemExit(f"section 3.6: expected 2 fenced blocks (Group A and B), found {len(fenced)}")
-    out = []
-    for block in fenced:
-        paths = []
-        for line in block.splitlines():
-            paths += _entries(line)[0]
-        out.append(set(paths))
-    return out[0], out[1]
+    return paths, declared, group
 
 
 def mask_paths(path, anchor="KL_PATHS="):
@@ -126,7 +115,7 @@ def tracked(path):
 
 def main():
     errors = []
-    src, declared = source_paths()
+    src, declared, group = source_paths()
     src_set = set(src)
     wiki = sorted({p.split("/", 1)[0] + "/" for p in src if p.split("/", 1)[0].endswith("_wiki")})
 
@@ -141,27 +130,21 @@ def main():
         if extra:
             errors.append(f"{label}: extra {', '.join(extra)} (not in section 2)")
 
-    group_a, group_b = groups()
-
-    unclassified = sorted(p for p in src_set if not covers(group_a, p) and not covers(group_b, p))
-    if unclassified:
-        errors.append("section 3.6: outside both groups: " + ", ".join(unclassified)
-                      + " -- every section 2 path reconciles (A) or aborts (B), no third option")
-    both = sorted(p for p in src_set if covers(group_a, p) and covers(group_b, p))
-    if both:
-        errors.append("section 3.6: in Group A and B at once: " + ", ".join(both))
-    ghost = sorted(g for g in group_a | group_b if not any(p == g or p.startswith(g) for p in src_set))
-    if ghost:
-        errors.append("section 3.6: classifies a path section 2 does not list: " + ", ".join(ghost))
+    untagged = sorted(p for p in src if group[p] is None)
+    if untagged:
+        errors.append("section 2: no [A]/[B] group tag: " + ", ".join(untagged)
+                      + " -- every path reconciles (A) or aborts (B), no third option")
+    group_a = {p for p in src if group[p] == "A"}
+    group_b = {p for p in src if group[p] == "B"}
 
     bc_set = set(broadcast_paths())
-    leaked = sorted(bc_set & group_b)
+    leaked = sorted(b for b in group_b if covers(bc_set, b) or any(e.startswith(b) for e in bc_set))
     if leaked:
-        errors.append("broadcast-main.sh KNOWLEDGE_PATHS: contains Group B (" + ", ".join(leaked)
+        errors.append("broadcast-main.sh KNOWLEDGE_PATHS: covers [B] (" + ", ".join(leaked)
                       + ") -- that turns a planned abort into blind adoption of main's version")
-    missing_a = sorted(group_a - bc_set)
+    missing_a = sorted(a for a in group_a if not covers(bc_set, a))
     if missing_a:
-        errors.append("broadcast-main.sh KNOWLEDGE_PATHS: missing Group A " + ", ".join(missing_a))
+        errors.append("broadcast-main.sh KNOWLEDGE_PATHS: does not cover [A] " + ", ".join(missing_a))
     stray = sorted(p for p in bc_set - group_a if not any(p.startswith(w) for w in wiki))
     if stray:
         errors.append("broadcast-main.sh KNOWLEDGE_PATHS: extra outside Group A and outside the wiki: "

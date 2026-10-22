@@ -60,8 +60,8 @@ TARGETS=(
 # .gitattributes is knowledge layer but NOT Group A: git reads merge attributes
 # from the ours side, so adopting main's copy mid-merge protects nothing.
 #
-# TODO(paths): adapt to your project's actual filenames. Must equal Group A of
-# knowledge_source_of_truth_rule.md §3.6 — scripts/check-knowledge-paths.py checks it.
+# TODO(paths): adapt to your project's actual filenames. Must cover every [A] path of
+# knowledge_source_of_truth_rule.md §2 and nothing tagged [B] — check-knowledge-paths.py checks it.
 KNOWLEDGE_PATHS=(
   "{{project}}_wiki/"          # whole wiki: knowledge pages + work/ (trios + generated index)
   ".agents/"
