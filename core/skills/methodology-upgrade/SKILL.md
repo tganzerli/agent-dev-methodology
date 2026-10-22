@@ -16,7 +16,7 @@ allowed-tools: Bash(python3 *), Bash(git *), Read
 python3 .claude/skills/methodology-upgrade/compare.py --kit $ARGUMENTS --root .
 ```
 
-It maps each kit file to its installed path, reads it at the **stamped** commit (`.agents/KIT_VERSION` → `kit_commit`) and at kit **HEAD**, fills `{{project}}`/`{{PROJECT}}`/`{{KNOWLEDGE_LANG}}` from the vault slug and the stamp, and classifies: `kit-change`, `local`, `both`, `new-in-kit`, `missing` (`not-installed` modules hidden unless `--all`). Inspect one file with `--diff <installed-path> [--against stamp|head]`.
+It maps each kit file to its installed path, reads it at the **stamped** commit (`.agents/KIT_VERSION` → `kit_commit`) and at kit **HEAD**, fills the kit's placeholders from the vault slug and the stamp, and classifies: `kit-change`, `local`, `both`, `new-in-kit`, `missing` (`not-installed` modules hidden unless `--all`). Inspect one file with `--diff <installed-path> [--against stamp|head]`.
 
 No stamp (an install older than the stamp)? The script still compares with HEAD, but cannot tell who moved; ask the human for the approximate install date and pick the kit commit from `git -C <kit> log`, then write `.agents/KIT_VERSION` as part of the upgrade.
 

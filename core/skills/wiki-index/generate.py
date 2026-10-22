@@ -20,6 +20,7 @@ Usage:
   python3 generate.py --all [--check]     # every configured dir that has pages
 
   --check    do not write; exit 1 if the file on disk differs (drift).
+Exit: 0 ok · 1 drift · 2 usage · 3 no pages in the directory (nothing to generate).
 """
 import argparse
 import glob
@@ -45,6 +46,7 @@ DATE_SLUG = re.compile(r"^(\d{4}-\d{2}-\d{2})_")
 # One line per entry, not a paragraph. A catalog entry that became a digest is a
 # structural cause of prefix bloat (METHODOLOGY §6.6); /wiki-lint gates on this limit.
 MAX_SUMMARY = 250
+NO_PAGES = 3  # distinct from drift (1): nothing to index is not something to regenerate
 
 
 def config(dirname, names):
@@ -151,10 +153,12 @@ def main():
         results = [run(a.root, vault, d, a.check, a.verbose) for d in DIRS]
         return 1 if any(r == 1 for r in results) else 0
     if not os.path.isdir(os.path.join(a.root, vault, a.dir)):
-        sys.exit(f"{vault}/{a.dir}/ does not exist")
+        print(f"{vault}/{a.dir}/ does not exist", file=sys.stderr)
+        return NO_PAGES
     r = run(a.root, vault, a.dir.rstrip("/"), a.check, a.verbose)
     if r is None:
-        sys.exit(f"no pages in {vault}/{a.dir}/ — refusing to write an empty catalog")
+        print(f"no pages in {vault}/{a.dir}/ — refusing to write an empty catalog", file=sys.stderr)
+        return NO_PAGES
     return r
 
 

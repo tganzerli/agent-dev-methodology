@@ -88,16 +88,20 @@ def finding(check, path, msg):
 # ── gates ────────────────────────────────────────────────────────────────────
 def g_catalog_drift(ctx):
     out = []
+    # A fresh vault (no trio yet, index never generated) has nothing to drift from.
+    fresh = not ctx["work"] and not os.path.exists(
+        os.path.join(ctx["root"], ctx["vault"], "work", "_index.md"))
     r = subprocess.run([sys.executable, WORK_INDEX, "--check", "--root", ctx["root"],
                         "--vault", ctx["vault"]], capture_output=True, text=True)
-    if r.returncode != 0:
+    if r.returncode != 0 and not fresh:
         why = [l for l in r.stderr.splitlines() if l.startswith(("drift", "✗"))]
         out.append(finding("catalog-drift", f"{ctx['vault']}/work/_index.md",
                            "work index drift or trio error — run /work-index --check: "
                            + "; ".join(why[:3])))
     for d in INDEXED_DIRS:
-        if not os.path.isdir(os.path.join(ctx["root"], ctx["vault"], d)):
-            continue
+        pages = glob.glob(os.path.join(ctx["root"], ctx["vault"], d, "*.md"))
+        if not any(not os.path.basename(p).startswith("_") for p in pages):
+            continue  # no page yet: the catalog is created with the first one
         r = subprocess.run([sys.executable, WIKI_INDEX, d, "--check", "--root", ctx["root"],
                             "--vault", ctx["vault"]], capture_output=True, text=True)
         if r.returncode == 1:

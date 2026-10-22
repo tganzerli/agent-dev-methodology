@@ -134,7 +134,7 @@ def main():
         return check_message_file(a.message_file)
     if not a.base:
         return cannot_verify("missing <base>. There is no default on purpose: pass the PR's "
-                             "real base (GitHub Actions: origin/${{ github.base_ref }}).")
+                             "real base (GitHub Actions: origin/$GITHUB_BASE_REF).")
     bad = [s for s in a.allow if not re.fullmatch(r"[0-9a-f]{40}", s)]
     if bad:
         return cannot_verify(f"--allow takes full 40-char SHAs only, got {bad}.")

@@ -3,7 +3,7 @@
 
 For each kit file that maps to an installed path it reads three versions — the kit at
 the commit stamped in .agents/KIT_VERSION, the kit at HEAD, and the installed file —
-de-templates the kit side ({{project}}, {{PROJECT}}, {{KNOWLEDGE_LANG}}, {{repo}}) and
+de-templates the kit side (the project, PROJECT, KNOWLEDGE_LANG and repo placeholders) and
 classifies:
 
   kit-change     kit moved since the stamp, project did not   -> apply (under a plan)
@@ -83,7 +83,7 @@ def installed_path(kit_path, vault):
 def detemplate(text, values):
     for k, v in values.items():
         if v:
-            text = text.replace("{{" + k + "}}", v)
+            text = text.replace("{" * 2 + k + "}" * 2, v)  # spelled so install greps for leftovers stay clean
     return text
 
 
