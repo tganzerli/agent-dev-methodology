@@ -131,7 +131,7 @@ modules/intra-team/conventions-extension.md  →  append its fields into {{proje
 Then:
 - Create `{{project}}_wiki/work/relay/` and seed `{{project}}_wiki/work/relay/_board.md` from the coordination-board template **and** `{{project}}_wiki/work/relay/_locks.md` from the scope-locks template.
 - **Choose the publication route for `_locks.md` before seeding it** — `modules/intra-team/README.md` §4.2. It is live state: on the default per-branch route it is invisible during exactly the window a lock exists for, which is the defect §4 documents. Write the choice down, with what it does not fix.
-- *(Opt-in, only for the named-exception route.)* Copy `modules/intra-team/skills/scope-lock/` → `.claude/skills/scope-lock/` and paste `modules/intra-team/snippets/branching-live-state-exception.md` into the branching rule — both or neither (README §4.2).
+- *(Opt-in, only for the named-exception route.)* Copy `modules/intra-team/skills/scope-lock/` → `.claude/skills/scope-lock/` and paste `modules/intra-team/snippets/branching-live-state-exception.md` into the branching rule — both or neither (README §4.2) — and register `scope-lock` in `.claude/skills/_index.md` (agent-invocable).
 - Register `intra-team` in `.claude/skills/_index.md` — mark it **hybrid** (agent-invocable; `note` is autonomous, all other flows carry an in-body human gate).
 - **No script change needed:** `work-index`/`work-find`/`work-audit` scan only `tasks`/`plans`/`executions`, so `work/relay/` is ignored by design (relay docs are historical, never `stale`; `_board.md` is their own catalog).
 

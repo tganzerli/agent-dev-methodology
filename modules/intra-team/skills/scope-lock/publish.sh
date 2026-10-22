@@ -13,14 +13,21 @@
 # Environment:
 #   SCOPE_LOCK_FILE    repo-relative path of the table (default: <the single *_wiki>/work/relay/_locks.md)
 #   SCOPE_LOCK_REMOTE  remote to publish to (default: origin)
-#   SCOPE_LOCK_LINE    the shared line every agent reads (default: main)
+#   SCOPE_LOCK_LINE    the shared line every agent reads (default: main). Supported ONLY
+#                      for the one line the installed exception names; any other line
+#                      is refused, because the push has no human gate.
+#   SCOPE_LOCK_RULE    the branching rule carrying the exception
+#                      (default: .agents/rules/git_branching_rule.md)
 
 set -euo pipefail
+# git's push messages are matched below; keep them in English.
+export LC_ALL=C
 
 REPO="$(git rev-parse --show-toplevel)"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REMOTE="${SCOPE_LOCK_REMOTE:-origin}"
 LINE="${SCOPE_LOCK_LINE:-main}"
+RULE="${SCOPE_LOCK_RULE:-.agents/rules/git_branching_rule.md}"
 
 if [[ -n "${SCOPE_LOCK_FILE:-}" ]]; then
   LOCKS_REL="$SCOPE_LOCK_FILE"
@@ -31,6 +38,15 @@ else
     exit 2
   fi
   LOCKS_REL="$(basename "${vaults[0]}")/work/relay/_locks.md"
+fi
+
+# The exception must be installed and must name this line and this file.
+# Language-neutral: only the backticked line name and the path are matched.
+if [[ ! -f "$REPO/$RULE" ]] || ! grep -qF "\`${LINE}\`" "$REPO/$RULE" \
+   || ! grep -qF "$LOCKS_REL" "$REPO/$RULE"; then
+  echo "scope-lock: REFUSED - ${RULE} does not carry a live-state exception naming \`${LINE}\` and ${LOCKS_REL}." >&2
+  echo "scope-lock: install snippets/branching-live-state-exception.md first; no other line receives this exception." >&2
+  exit 2
 fi
 
 OP="" SCOPE="" OWNER="" WORK_ID="" STATE="held" UNTIL="" SOURCE=""
@@ -57,8 +73,12 @@ if [[ "$OP" == "take" ]]; then
   [[ -n "$SOURCE"  ]] || { echo "scope-lock: --source is required for take" >&2; exit 2; }
 fi
 
-WT="$(mktemp -d)/locks-${LINE}"
-cleanup() { git -C "$REPO" worktree remove --force "$WT" >/dev/null 2>&1 || true; }
+TMP="$(mktemp -d)"
+WT="$TMP/locks"
+cleanup() {
+  git -C "$REPO" worktree remove --force "$WT" >/dev/null 2>&1 || true
+  rm -rf "$TMP"
+}
 trap cleanup EXIT
 
 git -C "$REPO" fetch --quiet "$REMOTE" "$LINE"
@@ -95,9 +115,16 @@ for attempt in 1 2 3; do
       -c user.email="$(git -C "$REPO" config user.email)" \
       commit --quiet -m "$MSG"
 
-  if git push --quiet "$REMOTE" "HEAD:${LINE}" 2>/dev/null; then
+  if err="$(git push --quiet "$REMOTE" "HEAD:${LINE}" 2>&1)"; then
     echo "scope-lock: ${OP} published on ${LINE} - $(git rev-parse --short HEAD)"
     exit 0
+  fi
+  echo "$err" | sed 's/^/  git: /' >&2
+  # Only a moved line is worth a retry. A protected branch, auth or hook rejection
+  # will not change on the next attempt: fail now, and say so.
+  if ! grep -qE '\((fetch first|non-fast-forward)\)' <<<"$err"; then
+    echo "scope-lock: push refused - the lock is NOT published (see git's message above)" >&2
+    exit 1
   fi
   echo "scope-lock: push rejected (attempt ${attempt}/3) - ${LINE} moved, redoing on top of it" >&2
 done
