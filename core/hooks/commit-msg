@@ -1,0 +1,18 @@
+#!/bin/sh
+# Git commit-msg hook — blocks LLM co-authorship trailers (adapter rule "No LLM
+# co-authorship on commits"). Installs as .githooks/commit-msg; activate once per
+# clone with:  git config core.hooksPath .githooks
+#
+# This hook is early feedback, NOT the guarantee: it does not run in a clone that
+# skipped the command above, nor on commits made through a host API. The guarantee
+# is the same script run in CI on every PR (see INSTALL.md). The pattern list lives
+# only in that script, so the two layers cannot drift apart.
+set -eu
+
+script="$(git rev-parse --show-toplevel)/scripts/ci/check_commit_trailers.py"
+if [ ! -f "$script" ]; then
+  echo "commit-msg: $script not found — cannot check for LLM trailers." >&2
+  echo "  Restore it, or unset core.hooksPath if this repo no longer ships it." >&2
+  exit 1
+fi
+exec python3 "$script" --message-file "$1"

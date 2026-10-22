@@ -19,6 +19,7 @@ scope:
   packages: []                  # monorepo only — e.g. [core, ui] or []
 status: stub                    # stub | draft | stable | stale
 updated: 2026-05-14             # ISO date — update on every change
+summary: One sentence — the catalog line (required in generated-catalog dirs, ≤250 chars)
 sources:                        # links to sources/ backing this page
   - sources/external/2026-05-13_partner-spec.md
 code_refs:                      # code files this page describes (used by lint for `stale`)
@@ -37,6 +38,7 @@ related:                        # wikilinks
 | `scope` | yes | At least one sub-field filled. Cross-boundary pages live in `cross-cutting/`. |
 | `status` | yes | `stub` → `draft` → `stable` → `stale`. |
 | `updated` | yes | Update manually when the page is touched. |
+| `summary` | in generated-catalog dirs | One sentence, ≤250 chars. It **is** the page's line in the generated sub-index (`/wiki-index`); `/wiki-lint` gates on it. |
 | `sources` | when applicable | Pages in `sources/` that originated the content. |
 | `code_refs` | when applicable | Repo files described. Used by lint to detect `stale`. |
 | `related` | recommended | Manual cross-references. |
@@ -53,6 +55,8 @@ Every technical claim needs a citation to its source file. Inline format:
 A claim without a citation **must** be marked `⚠ unverified` at the end of the paragraph until someone anchors it.
 
 > **Module tags.** Optional modules define specialized uncertainty tags, appended into this file by their `conventions-extension.md` at install: `⚠ unverified <metric>` (benchmarks — a quantitative claim without a reproducible page) and `⚠ contract-drift` (contracts — a contract page out of sync with its definition). They are stricter, scoped variants of `⚠ unverified`.
+
+**Citations are point-in-time.** A `file:line` records what the source said **when the page was written**. In a closed trio (or any dated record) never "fix" a citation against today's file: an audit against the current version accuses every correct historical record and absolves the recent defect. Check against `git show <commit>:<file>` at the document's date; if the source moved on, **annotate** ("correct as of YYYY-MM-DD; the text now lives at …") instead of rewriting. Only a citation that was wrong when written is corrected. *(Origin: three correct records were rewritten to match a source changed since, and had to be restored.)*
 
 **When NOT to cite:** domain definitions (cite the external source/ADR instead of code); process/methodology statements (cite `.agents/METHODOLOGY.md` or a rule).
 
@@ -90,8 +94,8 @@ Pages that cross boundaries live in `cross-cutting/`.
 ### Work (cataloged in `{{project}}_wiki/work/_index.md`)
 | `type` | Directory | Content |
 |---|---|---|
-| `task` | `work/tasks/` | Human request. Status: `open | in_progress | future | paused | done | cancelled | aborted`. Human-owned; LLM edits only on explicit request + approval. |
-| `plan` | `work/plans/` | LLM analysis + plan (follows `mandatory_planning_rule.md`). Status: `draft | approved | executed`. |
+| `task` | `work/tasks/` | Human request. Status: `open | in_progress | future | paused | done | cancelled | aborted`. Human-owned. LLM edits in three tiers (METHODOLOGY §4.2): **substantive** edits (creating it, extending scope, adding a stage, changing request or criteria) only on explicit human request, proposed then applied after approval; `status`, `updated` and stage ticks are updated as work advances, ungated; **non-substantive** fixes (typo, broken link, formatting, frontmatter normalization) are allowed but announced in the same turn. |
+| `plan` | `work/plans/` | LLM analysis + plan (follows `mandatory_planning_rule.md`). Status: `draft | approved | executed | cancelled | aborted`. |
 | `execution` | `work/executions/` | Live execution log. Status: `in_progress | done | aborted`. |
 
 **Important:** lint does **not** mark `work/` pages as `stale` when code changes — they are historical by design. Only knowledge pages are subject to `stale`.
@@ -118,7 +122,18 @@ related:
 
 #### `summary` and `topic` (mandatory on new trios)
 - **`summary`** — one sentence stating what the work delivers. It is the text shown in the generated catalog (`work/_index.md`). Long narrative lives **only** in the execution. Generator preference: `execution.summary` → `task.summary` → `title`.
-- **`topic`** — controlled-vocabulary labels for subject filtering and `/work-find`. Seed the vocabulary in this file; a new label is added here before use. `/work-index` warns on off-vocabulary topics.
+- **`topic`** — controlled-vocabulary labels for subject filtering and `/work-find`. A new label is added to the block below **before** use; `/work-index` reads the block and warns on off-vocabulary topics.
+
+#### `topic` vocabulary
+
+This block is the **only** copy: `/work-index` parses the backticked labels between the markers. Do not mirror it in a script constant — two copies drifted in every installation that kept both. Keep it small; an ad-hoc label is what makes `/work-find` useless later.
+
+<!-- topic-vocabulary:begin -->
+- `service` `entity` `flow` `domain` `contract` — knowledge-layer subject
+- `build` `ci` `tooling` `refactor` `bugfix` `performance` — nature of the change
+- `ui` `api` — surface
+- `wiki` `methodology` `knowledge` — the vault and the method itself
+<!-- topic-vocabulary:end -->
 
 #### `parent_task` (optional) — sub-trio
 
@@ -183,7 +198,8 @@ What is still missing to document/implement/decide.
   - **`future`** — accepted, deliberately **not** started (it depends on something that has not happened, or belongs to a later phase). It is the backlog status, and it is what keeps a decision from being re-litigated every time someone notices the gap again: the answer is "already decided, not now", with the trio to prove it.
   - **`paused`** — started, then suspended with work already on the ground. Distinct from `future`, because the cost of resuming is not the cost of starting: the execution log says how far it got.
   - Both are **non-terminal**, so `/work-index` keeps them in the active catalog rather than archiving them by quarter. A backlog item is not history.
-- **plan** — `draft` → `approved` (human gate) → `executed`.
+- **plan** — `draft` → `approved` (human gate) → `executed` (set by `/wiki-sync`). Terminal alternatives: `cancelled` (the task was cancelled or absorbed before execution) and `aborted` (its execution was aborted). Leaving such a plan `approved` asserts something false — that it is authorized and waiting to run. `/work-index --check` fails on a plan whose execution exists while the plan is still `draft`, on an `approved` plan whose execution is `aborted`, and on a plan with no task (and no `parent_task`).
+  - **Plan → work status.** When a trio has neither task nor execution status (a plan-only sub-trio), the generator maps the plan's: `draft`/`approved`/`executed` → `open`, `cancelled` → `cancelled`, `aborted` → `aborted`. `executed` with no execution stays `open` on purpose — it is an anomaly to notice, not to launder as `done`.
 - **execution** — `in_progress` → `done`/`aborted`.
 
 ## 7. Do NOT
@@ -191,4 +207,5 @@ What is still missing to document/implement/decide.
 - ❌ Pseudocode. If it is not a literal citation, it is prose.
 - ❌ Mix scopes: a page whose scope spans two areas belongs in `cross-cutting/`.
 - ❌ Update a page without updating `updated:`.
-- ❌ Create a page without an entry in `{{project}}_wiki/_meta/index.md`.
+- ❌ Create a page without an entry in `{{project}}_wiki/_meta/index.md` — or, in a generated-catalog dir (`decisions/`, `cross-cutting/`, `sources/external/`, `postmortems/`), without a `summary` and a `/wiki-index` run.
+- ❌ Hand-edit a generated `_index.md` (`status: generated` in its frontmatter), or keep a second list of the same pages elsewhere.

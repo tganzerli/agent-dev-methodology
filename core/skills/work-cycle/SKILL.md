@@ -129,7 +129,7 @@ title: {Human slug}
 type: plan
 work_id: {YYYY-MM-DD_slug}
 scope: { area: [] }   # or apps/packages in a monorepo
-status: draft         # draft → approved → executed
+status: draft         # draft → approved → executed (or cancelled | aborted)
 risk: medium          # low | medium | high — METHODOLOGY §4.4.1
 updated: {YYYY-MM-DD}
 related: []           # wikilinks to the knowledge pages the plan touches

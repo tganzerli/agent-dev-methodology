@@ -14,6 +14,7 @@ scope:
   area: []
 status: draft                # stub | draft | stable | stale
 updated: {YYYY-MM-DD}
+summary: One sentence, at most 250 chars — the line the catalogs show (/wiki-index).
 introduced_by: {commit hash or work_id that introduced the bug}
 fixed_by: {work_id of the fix}
 detected_by: {test | agent review | human review | production | user report | …}

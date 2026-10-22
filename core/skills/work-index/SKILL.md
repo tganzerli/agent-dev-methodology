@@ -35,7 +35,10 @@ Line format: `emoji [[work/tasks/{id}]] · status · scope · [topic] — summar
 
 1. `git branch --show-current` — run on the working branch. *(Monorepo module only)* avoid `demo_*`/`staging_*`.
 2. **Dry-run:** `python3 .claude/skills/work-index/generate.py --check --root .`
-   - Reports drift (files that would change) + warnings (`topic` outside vocabulary, trio without summary). Exits 1 if there is drift.
+   - Reports drift (files that would change), **errors** and warnings. Exits 1 on drift or on any error:
+     - a plan with no task and no `parent_task` (or a `parent_task` with no file);
+     - a plan whose execution exists while the plan is `draft`, or an `approved` plan whose execution is `aborted`.
+   - Warnings never fail (they are `/work-audit` R9's input): a file **skipped** because its name is not `YYYY-MM-DD_slug.md` (invisible to the index), missing frontmatter or `status`, a status outside that type's vocabulary, a non-ISO `updated` (never archives), an off-vocabulary `topic`, a `done` execution whose plan is still `approved` (pending `/wiki-sync`).
    - The script auto-detects the `*_wiki` vault under `--root`; pass `--vault <name>` if there is more than one.
 3. **Generate:** `python3 .claude/skills/work-index/generate.py --root .`
    - Confirm on stderr that `trios == active + archive` (no trio lost).
@@ -46,5 +49,6 @@ Line format: `emoji [[work/tasks/{id}]] · status · scope · [topic] — summar
 
 - **Idempotent:** running twice on the same day produces no diff.
 - **No PyYAML:** own frontmatter parser in `generate.py` (shared with `/work-find`).
-- `topic` vocabulary is seeded in `generate.py` (`VALID_TOPICS`) and documented in `_meta/conventions.md` §4 — extend it there before using a new label.
-- Legacy files without a `YYYY-MM-DD_slug` name are ignored (per the work naming convention).
+- `topic` vocabulary has **one** copy: the `topic-vocabulary` block in `_meta/conventions.md`, which the script parses. Extend it there before using a new label. Without the block the script falls back to the kit seed and says so.
+- Plan-only sub-trios take their status from the plan via `PLAN_STATUS_TO_WORK` (shared with `/work-find`).
+- Legacy files without a `YYYY-MM-DD_slug` name are skipped, with a warning naming each one.

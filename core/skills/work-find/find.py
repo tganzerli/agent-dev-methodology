@@ -21,7 +21,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "work-index"))
 try:
-    from generate import parse_frontmatter, find_vault, DATE_SLUG  # reuse the canonical parser
+    from generate import (parse_frontmatter, find_vault, DATE_SLUG,  # reuse the canonical parser
+                          PLAN_STATUS_TO_WORK)
 except Exception:  # minimal fallback
     def parse_frontmatter(_):  # noqa
         return {}
@@ -30,6 +31,7 @@ except Exception:  # minimal fallback
         return None
 
     DATE_SLUG = re.compile(r"^\d{4}-\d{2}-\d{2}_")
+    PLAN_STATUS_TO_WORK = {}
 
 
 def read(path):
@@ -73,7 +75,8 @@ def main():
         summary = (ex_fm.get("summary") or task_fm.get("summary") or pl_fm.get("summary")
                    or task_fm.get("title") or ex_fm.get("title") or pl_fm.get("title")
                    or wid)
-        status = task_fm.get("status") or ex_fm.get("status") or "?"
+        status = (task_fm.get("status") or ex_fm.get("status")
+                  or PLAN_STATUS_TO_WORK.get(pl_fm.get("status", ""), "") or "?")
         topics = ex_fm.get("topic") or task_fm.get("topic") or pl_fm.get("topic") or []
         if isinstance(topics, str):
             topics = [topics]
