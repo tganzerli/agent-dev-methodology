@@ -47,7 +47,7 @@ The safeguard is the diff bound, not a gate: `publish.sh` checks that the staged
 .claude/skills/scope-lock/publish.sh release --scope "src/module/"
 ```
 
-Environment: `SCOPE_LOCK_FILE` (default `<the single *_wiki>/work/relay/_locks.md`), `SCOPE_LOCK_REMOTE` (default `origin`), `SCOPE_LOCK_RULE` (default `.agents/rules/git_branching_rule.md`), `SCOPE_LOCK_LINE` (default `main`).
+Environment: `SCOPE_LOCK_FILE` (default `<the single *_wiki>/work/relay/_locks.md`), `SCOPE_LOCK_REMOTE` (default `origin`), `SCOPE_LOCK_RULE` (default `.agents/rules/git_branching_rule.md`), `SCOPE_LOCK_LINE` (default `main`), `SCOPE_LOCK_MSG_TAKE` / `SCOPE_LOCK_MSG_RELEASE` (commit message templates, default `docs(work): take scope lock on {scope}` / `docs(work): release scope lock on {scope}`; `{scope}` is replaced and ` (<work_id>)` appended when given). A project whose commit messages follow its knowledge language sets the two templates once (e.g. exported from the shell profile, or edited at the top of `publish.sh`), keeping the Conventional Commits type in English.
 
 `SCOPE_LOCK_LINE` is **unsupported for any line other than the one shared line the installed exception names.** The push carries no human gate, so the script refuses to run unless the branching rule names both that line and the lock file. It also refuses when the snippet is not installed at all.
 
