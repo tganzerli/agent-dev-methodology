@@ -18,7 +18,7 @@ Implement the work cycle described in `.agents/METHODOLOGY.md`. Portable to any 
 | `ingest-source` | Manual: `/ingest-source {path-or-url}` | Ingest an external source into the wiki. |
 | `commit` | Manual: `/commit [work_id?]` | Close the cycle: sync pending executions + commits grouped by work_id and type. |
 | `sync-context` | Manual: `/sync-context` | Sync the local working tree with the remote before new work (fetch + status + gated pull). |
-| `work-audit` | Manual: `/work-audit [--days N] [--code-check] [--fix]` | Audit drift between trio frontmatter and the generated `{{project}}_wiki/work/_index.md`. Read-only by default; `--fix` applies trivial corrections. |
+| `work-audit` | Manual: `/work-audit [--days N] [--code-check] [--fix]` | Audit drift between trio frontmatter and the generated `{{project}}_wiki/work/_index.md`. Read-only by default; `--fix` applies only deterministic corrections (never fills Commits). |
 | `work-index` | Manual: `/work-index [--check] [--quarter YYYY-Qn]` | Deterministically generate `work/_index.md` (active) + `work/archive/YYYY-Qn.md` (closed by quarter) from the trio frontmatter. Regenerate > hand-edit. |
 | `work-find` | Manual: `/work-find <terms> [--topic T] [--status S]` | Ranked full-text search over old work (executions + frontmatter); returns pointers without re-reading the index. For "how was X done" / "has this bug appeared before?". |
 
