@@ -20,9 +20,9 @@ There are **four classes** of permanent branch. All live forever on the remote; 
 
 | Branch | Role | Receives PRs from | Tags |
 |---|---|---|---|
-| `main` (production) | Production. The collection of stable products. | `staging_<app>` + `tag/<pkg>-vX.Y.Z__<pkg>` + `docs/<id>__knowledge` | No (tags are cut on staging merges or package releases) |
+| `main` (production) | Production. The collection of stable products. | `staging_<app>` + `tag/<pkg>-vX.Y.Z__<pkg>` + `docs/<id>__knowledge` (+ `contract/<id>__<surface>` with the contracts module) | No (tags are cut on staging merges or package releases) |
 | `staging_<app>` | Release candidate, per app. | `dev_<app>` only | **Yes** — namespaced tag (`web-v1.0.1`, `mobile-v2.3.0`) cut on merge |
-| `dev_<app>` | Continuous development, per app. | Ephemeral branches + direct commits (from an approved plan) + CI auto-merge (top-down broadcast from `main` and `dev_packages`) | No |
+| `dev_<app>` | Continuous development, per app. | Ephemeral branches + CI auto-merge (top-down broadcast from `main` and `dev_packages`) | No |
 | `demo_<app>` | Frozen demonstration build (fairs, events). **Terminal** — never promotes to staging/main. | Cherry-picked fixes only; manual rebase onto a stable snapshot | No |
 
 Optionally, projects that share code across apps add a fifth permanent branch:
@@ -61,12 +61,18 @@ pkg/<id>__<pkg>  →  dev_packages  ──(CI: direct auto-merge)──▶  dev_
   - `staging_<app>` (app release): `staging_<app>` was **rebased onto `main`** immediately before; CI green; human approved the release.
   - `tag/<pkg>-vX.Y.Z__<pkg>` (package release per §6): from `dev_packages`; CHANGELOG present; SemVer bump in the package manifest.
   - `docs/<id>__knowledge` (knowledge layer per `knowledge_source_of_truth_rule.md`).
+  - `contract/<id>__<surface>` (contracts module only — a versioned cross-boundary contract per `contract_change_rule.md`): the ADR is present, and every in-repo consumer is updated **in the same diff**.
 - **PR into `staging_<app>`** requires: source is `dev_<app>`; the affected app's manifest got a **version bump** (patch/minor/major); CI green. On merge, the `<app>-vX.Y.Z` tag is cut.
-- **PR into `dev_<app>`** requires one of: an ephemeral branch with a valid `work_id` (`feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `hotfix/`); a direct commit from an approved plan; a CI auto-merge (top-down broadcast per §6 — the bot token has a branch-protection exception, humans stay restricted).
+- **PR into `dev_<app>`** requires one of: an ephemeral branch with a valid `work_id` (`feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `hotfix/`, or a module-registered type — §4.2); a CI auto-merge (top-down broadcast per §6 — the bot token has a branch-protection exception, humans stay restricted).
+
+  > **There is no direct commit into `dev_<app>`, not even from an approved plan.** An earlier version of this line and of the §3 table allowed one, while §10 gate 12 forbade any human push to `dev_<app>`: two sections authorised what a third banned. An installation found it by walking into it — an agent committed a work log straight to a `dev_<app>`, then checked and got both answers; the missing host-side protection (§6.7) let it pass in silence instead of failing. Resolved toward the stricter reading: **one flow, always a PR.** An approved plan authorises the work, never the push path.
 - **PR into `dev_packages`** requires: source is `pkg/<work_id>__<pkg>` with an approved plan. Diff restricted to `packages/*` + shared knowledge/tooling.
 - **Commit into `demo_<app>`** requires: explicit human confirmation and justification (this branch is frozen).
 - **Direct commit into `main` or `staging_*` is FORBIDDEN** — no exception.
 - **PR into `main` via `docs/<id>__knowledge`** is allowed **only** for knowledge-layer changes. Gate: the diff must not touch `apps/*/lib/`, `packages/*/lib/`, or any other code path.
+- **PR into `main` via `contract/<id>__<surface>`** is allowed **only** for a change to a versioned cross-boundary contract, and **only** when the diff is atomic in the sense of `contract_change_rule.md`: the contract, the implementation, **every** in-repo consumer, the tests and the knowledge page, together.
+
+  > **Why `contract/` goes straight to `main`.** `main` is the only branch where every app and every package coexist, so it is the only place a simultaneous change across all consumers can be expressed. `dev_packages` refuses `apps/*` (§10 gate 11) and each `dev_<app>` covers one app: a PR into either leaves the other consumers speaking the old shape until the broadcast arrives. The accepted cost is that a contract change reaches `main` without passing `staging_<app>`. The trade is asymmetric — diverging package copies between apps are recoverable (the broadcast exists for that), a consumer speaking the old shape at runtime is a production break.
 
 > **Host neutrality.** These gates are enforced two ways: (a) this rule, which every agent obeys; and (b) **branch-protection / merge-check settings configured in your git host's UI** (GitHub, GitLab, Bitbucket, …) — see §9. Neither replaces the other.
 
@@ -82,7 +88,7 @@ Any branch that is not one of the permanent branches above is **ephemeral** — 
 
 - **`<type>`** — the change category (§4.2).
 - **`<work_id>`** — the methodology's `YYYY-MM-DD_short-slug-in-kebab-case` (e.g. `2026-05-16_diary-schedule-service`). Same ID as `{{project}}_wiki/work/{tasks,plans,executions}/{ID}.md`.
-- **`<scope>`** — exactly **one** app **OR** exactly **one** package **OR** `knowledge` (for `docs/` branches touching **only** the knowledge layer — see `knowledge_source_of_truth_rule.md` §2) **OR** `tooling` (for shared monorepo tooling/CI — `scripts/`, CI pipeline config, `qa/`, the root workspace manifest, methodology/skills/rules — developed via the normal `dev_<app>` flow). Never two scopes on one branch.
+- **`<scope>`** — exactly **one** app **OR** exactly **one** package **OR** `knowledge` (for `docs/` branches touching **only** the knowledge layer — see `knowledge_source_of_truth_rule.md` §2) **OR** `tooling` (for shared monorepo tooling/CI — `scripts/`, CI pipeline config, `qa/`, the root workspace manifest, methodology/skills/rules — developed via the normal `dev_<app>` flow) **OR** a **contract surface** (`contract/` branches only — e.g. `public-api`, `shared-packages`, `wire-protocol`: the change lands in every consumer at once, so one app or package name would misdescribe the diff). Never two scopes on one branch.
 
   > **`tooling` vs `knowledge`:** use `knowledge` for pure knowledge-layer `docs/` branches that go **straight to/from `main`** (§7). Use `tooling` when the tooling/CI change is **developed and tested on a `dev_<app>`** (types `chore`/`refactor`/`fix`) — even when it is also knowledge layer — and then promoted to `main` via `/promote-knowledge`. Rule of thumb: **branched off `dev_<app>` → `tooling`; branched off `main` → `knowledge`**.
 
@@ -101,6 +107,10 @@ The **`__` (double underscore)** separator between `<work_id>` and `<scope>` is 
 | `pkg` | Change to a shared package | `dev_packages` | `dev_packages` (single PR — §6) |
 | `tag` | SemVer release of a package — promotes it to `main` | `dev_packages` | `main` |
 | `docs` (knowledge) | Knowledge layer (scope `knowledge`) — rule/skill/wiki/methodology | `main` | `main` |
+| `bench` | Benchmark work (`benchmark_protocol_rule.md`) — evidence page, dataset, command, versioned artifacts | `dev_<app>` | `dev_<app>` |
+| `contract` | Change to a versioned cross-boundary contract (`contract_change_rule.md`) — **atomic**: contract + implementation + every consumer + tests + knowledge page | `main` | `main` (§3.2) |
+
+**Module-registered types.** `bench` (benchmarks module) and `contract` (contracts module) are valid **only while their module is installed**; delete the row of a module the project did not install. The module's own rule owns what must ride on the branch; this table owns where the branch starts and lands.
 
 ### 4.3. Valid examples
 
@@ -113,6 +123,8 @@ tag/core-v0.4.0__core                       (off dev_packages, PR to main, tag c
 hotfix/2026-05-30_crash-on-launch__web
 docs/2026-05-20_knowledge-source-of-truth__knowledge
 chore/2026-07-30_ci-broadcast-tweak__tooling   (shared tooling/CI; off dev_<app>, promoted to main via /promote-knowledge)
+bench/2026-08-02_decode-throughput__web        (benchmarks module; off dev_<app>, PR to dev_<app>)
+contract/2026-08-04_retire-legacy__public-api  (contracts module; off main, PR to main — atomic across every consumer)
 ```
 
 ### 4.4. Invalid examples (REJECTED by the gate)
@@ -230,6 +242,8 @@ Global tags (e.g. a bare `v1.0.0`) are **forbidden** — they collide in a monor
 - **App tag** — on the `dev_<app> → staging_<app>` merge (or `staging → main` for a hotfix).
 - **Package tag** — on the `tag/<pkg>-vX.Y.Z__<pkg> → main` merge.
 
+**Tags are MANUAL — the CI creates none** (unless the project adds and documents a tagging job). Whoever merges the release PR cuts the tag. While this rule said a tag "is cut on merge", agents assumed it appeared on its own and never cut it; one installation also found a release tag on the wrong commit. Before tagging, verify the **target commit**: it is the merge commit on `main` (or `staging_<app>`), never the `HEAD` of your local tree.
+
 ### 7.3. Manifest bump
 
 The version bump is **manual** in the `dev → staging` PR, following SemVer: `patch` (fix), `minor` (compatible feat), `major` (breaking). An auto-bump CI step is a possible follow-up.
@@ -282,6 +296,8 @@ Some operations live in the git host's **control panel**, not in `git`: branch p
 
 When guiding the human, **describe the path for their specific host** and the expected result.
 
+⚠ **Require a status check on a branch only once CI actually fires there.** A required check that no event produces does not fail — it **waits forever**, and every PR into that branch hangs. One installation armed `staging_*` with protection but deliberately without the required checks, because its CI ran on PRs into `main` and `dev_*` only; adding the checks belongs to the work that extends CI to that branch. Protection that blocks a legitimate merge becomes the reason someone turns protection off.
+
 ### 9.1. The gate is the authorisation, not the tool
 
 🔒 **An agent never changes host configuration on its own initiative.** That — and only that — is the prohibition. The API is not what is banned: the host's REST API configures **every row of the table above**, so *"not doable via `git`"* was never the same as *"cannot be automated"*. The principle underneath is narrower and holds either way: **access control is the repository owner's to grant, not an agent's to assume.**
@@ -304,7 +320,7 @@ With **explicit, per-task human authorisation**, an agent MAY apply the change t
 
 These are **forbidden** for any LLM agent. Violations require immediate reversal.
 
-1. ❌ Direct commit into `main`, `staging_*`, or `dev_*` without a valid `work_id` in an approved plan. Direct push to `main`/`staging_*` is always forbidden.
+1. ❌ Direct push to `main`, `staging_*` or `dev_*` — always. Every change enters a permanent branch through a PR from an ephemeral branch with a valid `work_id` in an approved plan, or through the CI bot token's auto-merge. An approved plan authorises the **work**, never the **push path** (see the note in §3.2).
 2. ❌ Creating a branch with no `work_id` matching a plan in `{{project}}_wiki/work/plans/`.
 3. ❌ Creating a dual-scope branch (`feat/x__web__mobile`). Use `pkg/` if it affects multiple apps' shared code.
 4. ❌ `git push --force` (without `--with-lease`) on any branch.
@@ -318,6 +334,7 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 10. ❌ Editing the knowledge layer on `demo_*`/`staging_*` without explicit human confirmation + justification.
 11. ❌ Editing `apps/*` on `dev_packages`, or creating a `pkg/<id>__<app>` branch. `dev_packages` is packages-only.
 12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). The CI auto-merge has a branch-protection exception; humans stay restricted to PRs.
+13. ❌ Using a module-registered type (`bench`, `contract`) when its module is not installed (§4.2).
 
 ## 11. Cross-reference
 

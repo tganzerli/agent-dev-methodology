@@ -32,15 +32,15 @@ A **cross-boundary contract** is any interface whose shape is depended on by cod
 
 ### 3.1. Dedicated `contract` branch
 
-A contract change gets its **own ephemeral branch**, registered as the `contract` type with the core branching rule (`core/rules/git_branching_rule.md` §4.3):
+A contract change gets its **own ephemeral branch**, registered as the `contract` type with the installed branching rule, `.agents/rules/git_branching_rule.md` — its *Module-registered types* section (core variant) or its *Valid types* table (monorepo variant):
 
 ```
 contract/<work_id>__<scope>
 ```
 
-- Source: `dev` (or the monorepo module's `dev_<app>` / `dev_packages` per that rule). PR target: same.
+- Source and PR target: `dev` under the core variant; **`main`** under the monorepo variant, because `main` is the only branch where every consumer coexists (that rule's gate for `contract/` PRs into `main`). The scope is the contract **surface** (`public-api`, `wire-protocol`, …), not an app or package.
 - Example: `contract/2026-08-04_add-cursor-pagination__public-api`.
-- The creation gate is the core rule's (§4.6): an **approved** plan at `{{project}}_wiki/work/plans/{work_id}.md` must exist first.
+- The creation gate is the branching rule's (*Creation gate* section, both variants): an **approved** plan at `{{project}}_wiki/work/plans/{work_id}.md` must exist first.
 
 A `feat/` or `fix/` branch is **never** valid for a contract change — the `contract/` type exists precisely to make the change visible in the branch name and to key the PR checklist below.
 
@@ -136,7 +136,7 @@ The knowledge-lint pass flags contract pages that fell behind their definition:
 
 This rule is part of the broader methodology in `.agents/METHODOLOGY.md`. On conflict, **this rule prevails for everything about changing a cross-boundary contract**; the methodology prevails for the work cycle and the wiki. It composes with:
 
-- `core/rules/git_branching_rule.md` — which **registers the `contract` branch type** (§4.3) this rule governs; that rule owns the branch syntax and creation gate, this one owns what must ride on the branch.
-- `core/rules/mandatory_planning_rule.md` — the approved plan is the precondition for the `contract/` branch.
+- `.agents/rules/git_branching_rule.md` — which **registers the `contract` branch type** this rule governs (core or monorepo variant); that rule owns the branch syntax and creation gate, this one owns what must ride on the branch.
+- `.agents/rules/mandatory_planning_rule.md` — the approved plan is the precondition for the `contract/` branch.
 - `modules/benchmarks/` (if installed) — the regression gate of §3.5.
 - The conventions extension (`modules/contracts/conventions-extension.md`) — the `⚠ contract-drift` tag and the `contract_version` frontmatter field.
