@@ -20,6 +20,7 @@ scope:
   # packages: []                # monorepo only
 status: draft                   # stub | draft | stable | stale
 updated: {YYYY-MM-DD}
+summary: One sentence, at most 250 chars — the line the catalogs show (/wiki-index).
 related: []                     # wikilinks to knowledge pages this source feeds
 ---
 

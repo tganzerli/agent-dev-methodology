@@ -1,0 +1,12 @@
+description = "Compare the installed methodology with a kit checkout, both directions (human-gated)"
+
+prompt = """
+You are executing the `/methodology-upgrade` command in this project.
+
+The canonical source of truth is `@.claude/skills/methodology-upgrade/SKILL.md`.
+1. Run `python3 .claude/skills/methodology-upgrade/compare.py --kit {{args}} --root .` (read-only).
+2. Read the diffs; sort them into (a) kit changes to adopt, (b) local evolutions worth upstreaming, and adaptations to keep.
+3. Propose only. (a) becomes a task + plan in this project; (b) becomes a note for the kit maintainer. Never copy kit files over installed ones.
+
+Arguments: {{args}}
+"""

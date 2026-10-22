@@ -13,7 +13,8 @@ While this rule is written in English, the generated **plan document** MUST be w
 ## 3. Storage and Workflow Rules
 - **Location:** the plan lives in `{{project}}_wiki/work/plans/`. Filename follows the work-ID convention: `{{project}}_wiki/work/plans/{YYYY-MM-DD}_{slug}.md`.
 - **Trio companion:** every plan has a matching task at `{{project}}_wiki/work/tasks/{ID}.md` (same ID). After execution, an execution log at `{{project}}_wiki/work/executions/{ID}.md` completes the trio.
-- **Frontmatter:** the plan starts with YAML frontmatter declaring at least `type: plan`, `work_id`, `scope`, `status` (`draft|approved|executed`), `related[]`.
+- **Frontmatter:** the plan starts with YAML frontmatter declaring at least `type: plan`, `work_id`, `scope`, `status` (`draft|approved|executed|cancelled|aborted`), `related[]`.
+- **Terminal statuses:** `approved` → `executed` when the execution closes (`/wiki-sync`); `approved` → `cancelled` when the task is cancelled or absorbed before execution; `approved` → `aborted` when its execution is aborted. A plan left `approved` in those cases asserts it is still waiting to run. (Origin: two installations adopted these statuses after finding cancelled work rendered as active, and five plans already using them off-vocabulary.) `/work-index --check` enforces it.
 - **Iterative refinement:** the plan is a living document, refined until there is complete and precise understanding of the task.
 - **Punctual edits (strict):** when the human requests adjustments, perform **targeted, punctual edits** to the existing file. Modify ONLY the requested sections. **DO NOT** rewrite the whole file from scratch.
 - **Execution gate:** you are strictly forbidden from executing the plan until it completely and accurately covers every requirement of the task, and the human has approved it.

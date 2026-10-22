@@ -1,0 +1,13 @@
+description = "Regenerate a knowledge sub-index (decisions, cross-cutting, sources/external, postmortems) from page frontmatter"
+
+prompt = """
+You are executing the `/wiki-index` command in this project.
+
+The canonical source of truth is `@.claude/skills/wiki-index/SKILL.md`.
+Regenerate the catalog by running:
+`python3 .claude/skills/wiki-index/generate.py {{args}} --root .`
+
+Pass a directory (e.g. `decisions`) or `--all`. With `--check`, run in dry-run mode without modifying files.
+
+Arguments: {{args}}
+"""

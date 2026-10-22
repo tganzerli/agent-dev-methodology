@@ -18,6 +18,7 @@ scope:
   # packages: []                # monorepo only — e.g. [core, ui]
 status: stub                    # stub | draft | stable | stale
 updated: {YYYY-MM-DD}
+summary: One sentence, at most 250 chars — the line the catalogs show (/wiki-index).
 sources: []                     # links to sources/ pages backing this content
   # - sources/external/{YYYY-MM-DD}_{slug}.md
 code_refs: []                   # repo files this page describes — used by lint to detect `stale`

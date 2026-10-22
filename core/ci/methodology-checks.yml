@@ -1,0 +1,46 @@
+# Optional CI template (GitHub Actions). Installs as .github/workflows/methodology-checks.yml.
+# Other hosts: keep the two commands and the full-depth checkout; translate the rest.
+#
+# Why it exists: a checker nobody invokes does not warn that anything is wrong. The
+# wiki lint and the commit-trailer check both answered correctly when run, and nothing
+# ran them. A local run also lints the WORKING TREE (untracked files included), not the
+# commit; checkout materializes the commit, so this is what actually lands.
+# See METHODOLOGY §6.7.
+
+name: methodology-checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: methodology-checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  commit-trailers:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # a shallow clone silently drops commits from the range
+      # Only the commits this PR adds, against the PR's real base. Add
+      # `--exclude origin/main` when PRs also target long-lived branches that carry
+      # history already on main.
+      - run: python3 scripts/ci/check_commit_trailers.py "origin/${{ github.base_ref }}"
+
+  wiki-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the `stale` warning reads git log of each code_ref
+      # Standard library only — no pip install. Exit 1 = a gate rose above its
+      # baseline (<vault>/_meta/lint-baseline.json). Lowering a baseline is a
+      # deliberate edit; raising one is a conversation, not a commit.
+      - run: python3 .claude/skills/wiki-lint/lint.py --root .
