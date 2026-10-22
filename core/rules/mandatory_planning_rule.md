@@ -8,7 +8,7 @@ trigger: always_on
 **STOP.** Before executing any code modification, file creation, or system command, you MUST generate a comprehensive execution plan. Do not write or alter any project code until this plan has been fully drafted, reviewed, and approved. The plan is the absolute source of truth for your execution.
 
 ## 2. Language Requirement
-While this rule is written in English, the generated **plan document** MUST be written in **{{KNOWLEDGE_LANG}}** — the knowledge-content language chosen for this project at install time (the same language as the wiki). Code and identifiers remain in English. If `{{KNOWLEDGE_LANG}}` is unset, ask the human before writing the plan.
+While this rule is written in English, the generated **plan document** MUST be written in **{{KNOWLEDGE_LANG}}** — the knowledge-content language chosen for this project at install time (the same language as the wiki). Code and identifiers remain in English. If the knowledge language was not set at install (the value above is still a template placeholder), ask the human before writing the plan.
 
 ## 3. Storage and Workflow Rules
 - **Location:** the plan lives in `{{project}}_wiki/work/plans/`. Filename follows the work-ID convention: `{{project}}_wiki/work/plans/{YYYY-MM-DD}_{slug}.md`.

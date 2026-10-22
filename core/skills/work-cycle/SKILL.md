@@ -15,7 +15,7 @@ Every piece of work in this repo produces a trio bound by **work_id** (`YYYY-MM-
 - `{{project}}_wiki/work/plans/{ID}.md` — generated plan (human gate)
 - `{{project}}_wiki/work/executions/{ID}.md` — live log (kept during execution)
 
-> **Language:** the trio content (task/plan/execution) and any wiki page are authored in **{{KNOWLEDGE_LANG}}**. Code and identifiers stay English. If `{{KNOWLEDGE_LANG}}` is unset, ask the human before writing content.
+> **Language:** the trio content (task/plan/execution) and any wiki page are authored in **{{KNOWLEDGE_LANG}}**. Code and identifiers stay English. If the knowledge language was not set at install (the value above is still a template placeholder), ask the human before writing content.
 
 ## When to apply
 
