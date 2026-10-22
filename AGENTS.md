@@ -37,7 +37,7 @@
 ## Agent Skills
 
 This project follows the [Agent Skills spec](https://agentskills.io/specification). Skills live in `.claude/skills/`.
-- **Native discovery** (Claude Code, Antigravity/Gemini via `.agents/skills.json` or `.agents/skills/`, and other spec-compliant agents): skills are found automatically.
+- **Native discovery** (Claude Code; Antigravity via the `.agents/skills` symlink to `.claude/skills`; other spec-compliant agents): skills are found automatically.
 - **Legacy discovery** (e.g. Gemini CLI without native support): read `.claude/skills/_index.md` and load the matching `SKILL.md` when the topic applies. Do not invent skills; use only the listed ones.
 
 Manual-only skills (`disable-model-invocation: true`) run **only** on explicit human request (e.g. `/wiki-sync`, `/wiki-lint`, `/commit`) — they have side effects and depend on a human gate.

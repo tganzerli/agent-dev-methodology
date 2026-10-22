@@ -70,7 +70,7 @@ Gemini integrates with project skills through two complementary paths:
 - **Slash Commands via `.gemini/commands/` (Gemini CLI):**
   For the Gemini CLI, each operational skill in `.claude/skills/` is exposed as a native `/command` through a `.toml` file in `.gemini/commands/` (e.g. `.gemini/commands/wiki-sync.toml`). Each command is a thin wrapper that directs the agent to read `@.claude/skills/<skill>/SKILL.md`. This delivers 100% command parity with Claude Code without duplicating skill logic.
 - **Native Discovery (Antigravity) & Manual Simulation:**
-  - In Antigravity / modern Gemini agentic harnesses, skills in `.claude/skills/` can be registered natively via `.agents/skills.json` (`{ "entries": [ { "path": "../.claude/skills" } ] }`) or symlinked.
+  - In Antigravity, skills in `.claude/skills/` are discovered through the **required** symlink `.agents/skills -> ../.claude/skills` (workspace skills live at `.agents/skills/<name>/SKILL.md`); `.agents/skills.json` is a fallback only (see the kit's `INSTALL.md` §6).
   - When invoking manually: the root `GEMINI.md` carries a **"Skills available"** section (name · path · trigger). Scan that section on entering a conversation and load the corresponding `SKILL.md` when the topic matches.
 - **Lazy-load references:** only read a skill's `references/*.md` when its specific subject comes up.
 - **Do not invent skills.** Use only those listed in `.claude/skills/_index.md`.
