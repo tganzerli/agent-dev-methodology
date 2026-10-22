@@ -48,4 +48,4 @@ Codex has **no native** [Agent Skills](https://agentskills.io/specification) dis
 
 **Forbidden** to include `Co-Authored-By: Codex <…>` — or any trailer/footer identifying the assistant (any Codex/OpenAI model or product name) — in commits produced via Codex. Applies to ordinary commits, merge commits, amendments, any trailer/footer, and PR descriptions. The author is the human; the local `git user` already records authorship. Fix a co-authored message before committing; if already committed, do not rebase without human approval. (An equivalent rule holds for every other agent's adapter.)
 
-**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py <PR base>` in CI (the guarantee) — see the kit's `INSTALL.md` §6.
+**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py` in CI on every PR and every push to the default branch (the guarantee) — see the kit's `INSTALL.md` §6.

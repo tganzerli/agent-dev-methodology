@@ -12,7 +12,7 @@ name: methodology-checks
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main]   # the default branch — rename if yours differs
 
 concurrency:
   group: methodology-checks-${{ github.event.pull_request.number || github.sha }}
@@ -23,16 +23,51 @@ permissions:
 
 jobs:
   commit-trailers:
-    if: github.event_name == 'pull_request'
+    # PRs, plus pushes to the default branch (`main` above): a direct push is the one
+    # path that skips the PR check. A PR's own merge commit arriving by push is skipped
+    # — that PR was already checked.
+    if: >-
+      github.event_name == 'pull_request' ||
+      !startsWith(github.event.head_commit.message, 'Merge pull request #')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # a shallow clone silently drops commits from the range
-      # Only the commits this PR adds, against the PR's real base. Add
-      # `--exclude origin/main` when PRs also target long-lived branches that carry
-      # history already on main.
-      - run: python3 scripts/ci/check_commit_trailers.py "origin/${{ github.base_ref }}"
+      # Only the commits being added. History already on a permanent branch (`main`,
+      # `dev`, `dev_*`, `staging_*`) is excluded: it cannot be rewritten without human
+      # approval, and a release/integration PR (`dev` -> `main`, `staging_<app>` ->
+      # `main`) brings exactly that history, old trailers included. The explicit fetch
+      # guarantees those refs exist locally. On a push, the pushed branch itself is
+      # not excluded (it already contains the new commits).
+      - name: check commit trailers
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+          PUSHED: ${{ github.ref_name }}
+        run: |
+          git fetch --no-tags --quiet origin \
+            '+refs/heads/main:refs/remotes/origin/main' \
+            '+refs/heads/dev*:refs/remotes/origin/dev*' \
+            '+refs/heads/staging_*:refs/remotes/origin/staging_*' || true
+          excludes=""
+          for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/main \
+                         refs/remotes/origin/dev 'refs/remotes/origin/dev_*' 'refs/remotes/origin/staging_*'); do
+            [ "$EVENT" != pull_request ] && [ "$ref" = "origin/$PUSHED" ] && continue
+            excludes="$excludes --exclude=$ref"
+          done
+          if [ "$EVENT" = pull_request ]; then
+            python3 scripts/ci/check_commit_trailers.py "origin/$BASE_REF" $excludes
+          elif [ -z "$(printf '%s' "$BEFORE" | tr -d 0)" ]; then
+            # New branch (`before` is all zeros): there is no range — check the pushed commit.
+            git log -1 --format=%B HEAD > "$RUNNER_TEMP/head-msg"
+            python3 scripts/ci/check_commit_trailers.py --message-file "$RUNNER_TEMP/head-msg"
+          else
+            # HEAD is the pushed sha; on a fast-forward merge-base(before, HEAD) = before,
+            # so the range is before..sha.
+            python3 scripts/ci/check_commit_trailers.py "$BEFORE" $excludes
+          fi
 
   wiki-lint:
     runs-on: ubuntu-latest
