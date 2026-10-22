@@ -287,7 +287,7 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 
 10. ❌ Editing the knowledge layer on `demo_*`/`staging_*` without explicit human confirmation + justification.
 11. ❌ Editing `apps/*` on `dev_packages`, or creating a `pkg/<id>__<app>` branch. `dev_packages` is packages-only.
-12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). The CI auto-merge has a branch-protection exception; humans stay restricted to PRs.
+12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). The CI auto-merge has a branch-protection exception; humans stay restricted to PRs. A manual broadcast while CI is down is allowed only under a named, dated exception written into this rule (recipe: `git-runbook` §1.6.1).
 13. ❌ Using a module-registered type (`bench`, `contract`) when its module is not installed (§4.2).
 
 ## 11. Cross-reference

@@ -64,6 +64,50 @@ Bump only the packages that changed since their last tag; an unchanged package's
 - **Manual fallback:** `/sync-knowledge`.
 - **Tests:** `scripts/test-broadcast-main.sh` and `scripts/test-broadcast-packages.sh` run both scripts against a throwaway bare remote, including the production push path. Run them after any edit to a broadcast script.
 
+#### 1.6.1. Manual broadcast while CI is unavailable — a dated, human-run exception
+
+A human pushing to `dev_*` is forbidden (the rule's §10 gate 12). This recipe is usable **only** while the project's `git_branching_rule.md` carries a **named, dated exception** to that gate — who runs it (the human, with their own git identity; never the agent on its own initiative), what may be pushed (only the merges the broadcast scripts produce), until when (a date, or the CI's return, whichever comes first), and its provenance (the plan or decision that opened it). Without that clause in the rule, wait for CI. When the date passes, delete the clause.
+
+The agent prepares and verifies; the **human** runs the pushes. The scripts are the repository's own — never a hand-written merge.
+
+```bash
+# 1. Throwaway clone — the script runs `checkout -B` on every target: never in your working tree
+WORK=$(mktemp -d) && git clone -q <origin-url> "$WORK/repo" && cd "$WORK/repo"
+git config user.name  "<human name>"
+git config user.email "<human email>"
+
+# 2. A copy of the script WITHOUT the lines that pin the CI bot identity (kept outside the clone)
+grep -v '^git config user\.' scripts/broadcast-main.sh > "$WORK/broadcast-main.sh"
+
+# 3. main -> dev_* : the script's env contract — CI_COMMIT_SHA = the tip of main,
+#    CI_PUSH_REMOTE = the clone's origin (pushes with the human's credentials)
+CI_COMMIT_SHA=$(git rev-parse origin/main) CI_PUSH_REMOTE=origin bash "$WORK/broadcast-main.sh"
+
+# 4. Verify — every dev_* has all of main: 0 on every line
+git fetch -q origin
+for b in $(git for-each-ref --format='%(refname:strip=3)' 'refs/remotes/origin/dev_*'); do
+  echo "$b $(git rev-list --count origin/$b..origin/main)"
+done
+```
+
+`dev_packages -> dev_<app>` (only when a package change reached `dev_packages` with no broadcast), in the same clone:
+
+```bash
+git fetch -q origin && git checkout -q -B dev_packages origin/dev_packages
+grep -v '^git config user\.' scripts/broadcast-packages.sh > "$WORK/broadcast-packages.sh"
+# CI_BEFORE_SHA = the root commit, so the no-op gate sees packages/ changed and does not skip
+CI_COMMIT_SHA=$(git rev-parse origin/dev_packages) \
+CI_BEFORE_SHA=$(git rev-list --max-parents=0 origin/dev_packages | tail -1) \
+CI_PUSH_REMOTE=origin bash "$WORK/broadcast-packages.sh"
+for a in <apps from the script's APPS roster>; do
+  echo "dev_$a $(git rev-list --count origin/dev_$a..origin/dev_packages)"
+done
+```
+
+- **Conflict:** the script aborts that target, continues the others and exits 1; the resolution goes through a PR (`/sync-knowledge`, `/distribute-packages`), never forced.
+- **Record:** the commands and their output (the `OK / FAIL / SKIP` summary and the verification counts) go into the execution that needed the broadcast.
+- **Afterwards:** delete the clone (`rm -rf "$WORK"`).
+
 ### 1.7. CI identity
 
 `dev_*` carries branch protection with a push exception for the CI identity only. Prefer a **write-scoped deploy key** (private half as a CI secret, the workflow pushing over SSH): no human inherits it. On GitHub, a push made with `GITHUB_TOKEN` does not trigger other workflows, and on a user-owned repository the GitHub Actions app cannot be a ruleset bypass actor (the API answers 422). A reference workflow lives in the kit at `modules/monorepo/ci-examples/github-broadcast.yml`.
