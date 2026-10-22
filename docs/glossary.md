@@ -18,6 +18,13 @@
 | **Review round cap** | At most three reviewer passes per work. Rounds after the first review only the new diff. With `Important` findings still open after round 3, the work returns to the human to rethink the approach. |
 | **Reviewer replay case** | Recorded in a postmortem: the diff that introduced a bug and the finding the reviewer must produce. Replayed whenever the reviewer's instructions, `REVIEW.md` or its model tier change. |
 | **`/wiki-sync`** | Manual, human-gated step that propagates a finished execution into knowledge pages. |
+| **Ratchet baseline** | `/wiki-lint`: a gate fails only when its count rises **above** a measured baseline (`<vault>/_meta/lint-baseline.json`), so a vault with old debt adopts the lint green and still blocks regressions. Lowering is a deliberate edit; raising is a conversation. |
+| **Gate vs warning (lint)** | A gate has an unambiguous definition and drives the exit code; a warning needs a human reading and never fails. |
+| **Generated catalog** | An index derived from frontmatter by a script (`/work-index`, `/wiki-index`) and never hand-edited; its frontmatter says `status: generated`. On a merge conflict, regenerate. |
+| **Mechanism (for a rule)** | What makes a non-negotiable hold without anyone remembering it: a hook, a CI check, a `--check` that exits 1. See METHODOLOGY §6.7. |
+| **Kit stamp (`KIT_VERSION`)** | `.agents/KIT_VERSION`: the kit commit a project installed or last adopted. `/methodology-upgrade` compares from it in both directions. |
+| **Point-in-time citation** | A `file:line` records the source as it was when the page was written; in a closed trio it is annotated, never "fixed" against today's file. |
+| **Delivered but not closed** | `/work-audit` R8: an execution still `in_progress` whose `work_id` already has commits on the main branch. |
 | **Knowledge layer** | The set of paths whose timeline is canonical in `main` (monorepo module): `.agents/`, `.claude/skills/`, wiki knowledge pages, entry-points. |
 | **Promote / sync knowledge** | Monorepo skills: `promote-knowledge` pushes knowledge from a per-app branch up to `main`; `sync-knowledge` pulls `main`'s knowledge down. |
 | **Broadcast** | Monorepo CI flow that propagates `main`'s knowledge (and package changes) to per-app branches automatically. |
