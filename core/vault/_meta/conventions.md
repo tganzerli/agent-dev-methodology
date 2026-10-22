@@ -71,6 +71,18 @@ Compare with [[packages/core/entities/user]].
 
 Wikilinks are recognized by Obsidian and greppable.
 
+#### Catalog labels
+
+`/wiki-index` titles its generated catalogs from this block (one `` - `key`: value `` per line; `{n}` = page count, `{dir}` = directory). The values below are the defaults; translate them in place when the vault is written in another language. Delete the block to fall back to the script's defaults.
+
+<!-- catalog-labels:begin -->
+- `decisions`: Decisions — Architecture Decision Records
+- `cross-cutting`: Cross-cutting — knowledge that crosses boundaries
+- `sources/external`: External sources — ingested summaries
+- `postmortems`: Postmortems — lessons from costly bugs
+- `pages`: Pages ({n})
+<!-- catalog-labels:end -->
+
 ## 4. Page types and where they live
 
 ### Knowledge (cataloged in `{{project}}_wiki/_meta/index.md`)
