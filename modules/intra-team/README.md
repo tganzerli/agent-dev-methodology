@@ -76,7 +76,7 @@ Messages are *episodic* (one exchange). The **board** is *durable*. A **scope lo
 | Who must read it | another working tree, **during** | whoever arrives later |
 | Versioning that serves it | publish when taken | land when the work lands |
 
-**This split is measured, not deduced.** In the project this kit came from, a lock lived **17.0 h** and was visible on the shared line for **zero** of them: the merge carried its creation *and* its removal in the same push, so the net was nothing. A peer agent checked the board during that window and read `(none)` — **correctly, per the file**. In a **second installation** the same declaration stands unexercised rather than disproved: board five days stale, both state tables empty, one history block, while the channel kept running. Its own agent's words: *"no lock was lost because none was taken — that is traffic luck, not a property of the design."*
+**This split is measured, not deduced.** In the project this kit came from, a lock lived **17.0 h** and was visible on the shared line for **zero** of them: the merge carried its creation *and* its removal in the same push, so the net was nothing. A peer agent checked the board during that window and read `(none)` — **correctly, per the file**. In a **second installation** the same declaration first stood unexercised rather than disproved: board five days stale, both state tables empty, one history block, while the channel kept running. Its own agent's words: *"no lock was lost because none was taken — that is traffic luck, not a property of the design."* That installation then adopted the exception route of §4.3 and, on its first day of concurrent infrastructure work, published and released **three** locks through it: six commits on `main`, each touching only `_locks.md` (`git log -- <vault>/work/relay/_locks.md` in that repository, 2026-10-15).
 
 The defect is **structural, not hygiene**. If `work/relay/` is versioned per-branch (this kit's default — `core/METHODOLOGY.md` §11 and the path list in `modules/monorepo/rules/knowledge_source_of_truth_rule.md` §2), then a lock written mid-cycle lives on that cycle's branch, and writer and reader are in different trees during exactly the window the signal exists for. Nothing an agent remembers to do fixes that.
 
@@ -87,7 +87,7 @@ The defect is **structural, not hygiene**. If `work/relay/` is versioned per-bra
 
 Keep the lock section in `_board.md` as a **permanent pointer** rather than deleting it: a reader who learned the old location lands somewhere correct instead of on a missing heading.
 
-### 4.2. The requirement — and why this kit does not hand you the route
+### 4.2. The requirement, and the opt-in reference route
 
 The live table needs a publication route that **does not wait for the work to land**. That is the requirement; the route is a **topology decision this kit cannot make for you**, because it depends on which line every agent reads.
 
@@ -102,9 +102,18 @@ Be aware that this kit's own monorepo module makes the obvious route unavailable
 
 **Do not adopt a route by default.** Pick one, write down why, and write down what it does not fix.
 
+**The exception route ships as an opt-in reference.** Two installations chose it independently, each recording its own argument rather than copying the other's, and both have now exercised it (§4 above). If you choose it, the module provides the pieces:
+
+| Piece | Path | Install as |
+|---|---|---|
+| `scope-lock` skill | `skills/scope-lock/` (`SKILL.md`, `publish.sh`, `edit_table.py`) | `.claude/skills/scope-lock/` |
+| Branching-rule section | `snippets/branching-live-state-exception.md` | pasted as its own section of `.agents/rules/git_branching_rule.md` |
+
+`publish.sh` takes or releases one row on the shared line through a throwaway `git worktree`, refuses a `take` on a scope already held, and aborts before the push unless the staged diff is **exactly** the lock file. The snippet carries the exception in exact terms and the required conduct when a lock **could not be published** (§4.4). Install both or neither: the skill without the snippet commits directly to a line the rule forbids, and the snippet without the skill promises a diff bound nothing enforces.
+
 ### 4.3. What the exception route looked like, and the criterion that placed it
 
-The installation that took the exception route learned two things worth carrying:
+The installations that took the exception route learned three things worth carrying:
 
 **Where a new exception goes.** The instinct is to widen the existing docs-trivial exception, and that was the worse edit: seven places in that repository described it by the two attributes it would have lost. The question that settled it generalizes to any rule with an exceptions section:
 
@@ -116,11 +125,15 @@ The existing exception was safe by being **rare and human-judged** — a person 
 
 **Publish without switching branches.** Whoever takes a lock is mid-cycle with a dirty tree, so any route that requires `git checkout` will not be used. A throwaway `git worktree` on the shared line writes the row and leaves the working session untouched.
 
+**The route is used when it costs one command.** Both installations have used it, one of them three times in a day. That is the evidence, and also its limit: it shows the locks that were taken got published, not that every lock that should have been taken was.
+
 ### 4.4. What none of this fixes, and say so out loud
 
 **Nothing forces an agent to take a lock.** Every route above changes the cost of *publishing* a lock; none creates an obligation to declare scope. An empty table stays truthful when it says it is empty.
 
 Say this wherever the mechanism is documented. The installation above found the criterion the hard way, from a peer that refused to offer its own mitigation as a fix on exactly this ground: *"the gate depends on the agent remembering."* A mechanism that promises **visibility** and delivers it is worth installing; the same mechanism sold as ending clobbering is not.
+
+**Nor does anything guarantee the agent can publish.** Dropping the per-act gate bets that the agent *can* act, and tool capability has been measured to vary per session without warning. A lock that **could not be published** produces the same empty table as a lock never taken, and it is the worse case: a scope is being touched while the table reads empty, correctly. The required conduct, carried by the snippet: **record the block in the execution log, naming the intended scope, and tell the human at once. Do not try to diagnose it.** An agent cannot reliably measure its own block; the one that tried produced a plausible and false explanation. The clause depends on the agent remembering, since a block leaves no artifact a check could read. It is declared weak, and it still beats silence.
 
 ## 5. Frontmatter this module standardizes
 
@@ -156,6 +169,7 @@ See `INSTALL.md` §5-bis. In short:
 3. Create `{{project}}_wiki/work/relay/` (empty) and an initial `{{project}}_wiki/work/relay/_board.md` from the board template.
 4. Append `conventions-extension.md` into `{{project}}_wiki/_meta/conventions.md`.
 5. Register `intra-team` in `.claude/skills/_index.md` (mark it hybrid: agent-invocable, in-body gate on the blocking flows).
+6. *(Only if you chose the exception route, §4.2.)* Copy `skills/scope-lock/` → `.claude/skills/scope-lock/`, paste `snippets/branching-live-state-exception.md` into the branching rule, and register `scope-lock` as agent-invocable.
 
 All authored content is in **{{KNOWLEDGE_LANG}}**, like the rest of the wiki.
 
@@ -183,6 +197,8 @@ The reference-first message + coordination-board shape is the core. Heavier idea
   ⚠ **Do not** also fail a row whose `work_id` has **no** trio in the checkout. That is the *normal* state of a live lock: the trio is in progress, so it is per-branch and absent from the shared line — the very asymmetry the live table exists to bridge. One installation shipped that condition, and it rejected every real lock on the first production attempt. It had passed its tests because the tests ran on the branch where the trio existed, which is never where the check runs.
 
   *Escalate when:* locks are taken but not seen. Until then, the board is advisory.
+
+  ⚠ **Do not add a gate for transient claim-state in closed work.** It looks narrow: `⚠ in-flight` and `🔒 intent` name what does not exist yet, so on a `done` trio they seem to be drift by definition. One installation planned the gate and cancelled it after measuring. Its scan found 20 hits in closed trios and **none** was real drift: most mentioned the vocabulary itself (install notes, reports), a few attributed state to a peer, and the rest were dated stamps in execution logs, which are true records of the day they were written. A tag and a mention of the tag are spelled the same, so a literal gate would have been wrong 20 times out of 20. Drift exists only in an **undated** claim, and that is not a pattern a linter can match.
 - **Structured broadcast bus** — a queue/topic instead of one-file-per-message, for many agents at high message volume. *Escalate when:* `relay/` churns faster than humans can gate. Until then, one file per message + `work_refs` greppability suffices.
 
 Both are **not defaults** — the seed-vs-accretion principle (`docs/design-rationale.md`).
@@ -191,4 +207,4 @@ Both are **not defaults** — the seed-vs-accretion principle (`docs/design-rati
 
 Be honest about maturity: unlike `cross-team` (whose hand-shape was run repeatedly before it was a skill), this module is **largely an informed generalization**.
 
-**The board/lock split of §4 is the first piece this module got back from real use, and it arrived as a defect.** Two installations ran it. In one, a lock was taken and measured at 17.0 h of life with zero visibility, while a peer agent read the empty table and planned around it. In the other, nothing broke — and its own agent named why: no lock had ever been taken, which is traffic luck and not a property of the design. Both boards carried the same "authoritative — now" declaration against per-branch versioning. §4, the §9 correction and the path-list note in the monorepo module are what that use bought; the split itself is now **proven**, and the route remains per-installation. It applies the *proven* structural spine of `cross-team` (addressed docs, stable ask IDs, episodic-message + durable-durable split, per-claim tags, dual closing ask) to the intra-repo case, **inverting** the access premise. The **reference-first rule** and the **claim-state tags** are the new, unproven pieces — adopt them, then let real multi-agent use tell you which parts earn their keep. Prune what doesn't.
+**The board/lock split of §4 is the first piece this module got back from real use, and it arrived as a defect.** Two installations ran it. In one, a lock was taken and measured at 17.0 h of life with zero visibility, while a peer agent read the empty table and planned around it. In the other, nothing broke — and its own agent named why: no lock had ever been taken, which is traffic luck and not a property of the design. Both boards carried the same "authoritative — now" declaration against per-branch versioning. §4, the §9 correction and the path-list note in the monorepo module are what that use bought; the split itself is now **proven**. The route remains a per-installation choice, but the exception route is now **exercised** in both installations and ships as an opt-in reference (§4.2). It applies the *proven* structural spine of `cross-team` (addressed docs, stable ask IDs, episodic-message + durable-durable split, per-claim tags, dual closing ask) to the intra-repo case, **inverting** the access premise. The **reference-first rule** and the **claim-state tags** are the new, unproven pieces — adopt them, then let real multi-agent use tell you which parts earn their keep. Prune what doesn't.
