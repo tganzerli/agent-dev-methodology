@@ -8,7 +8,7 @@ trigger: always_on
 **STOP.** Before executing any code modification, file creation, or system command, you MUST generate a comprehensive execution plan. Do not write or alter any project code until this plan has been fully drafted, reviewed, and approved. The plan is the absolute source of truth for your execution.
 
 ## 2. Language Requirement
-While this rule is written in English, the generated **plan document** MUST be written in **{{KNOWLEDGE_LANG}}** — the knowledge-content language chosen for this project at install time (the same language as the wiki). Code and identifiers remain in English. If `{{KNOWLEDGE_LANG}}` is unset, ask the human before writing the plan.
+While this rule is written in English, the generated **plan document** MUST be written in **{{KNOWLEDGE_LANG}}** — the knowledge-content language chosen for this project at install time (the same language as the wiki). Code and identifiers remain in English. If the knowledge language was not set at install (the value above is still a template placeholder), ask the human before writing the plan.
 
 ## 3. Storage and Workflow Rules
 - **Location:** the plan lives in `{{project}}_wiki/work/plans/`. Filename follows the work-ID convention: `{{project}}_wiki/work/plans/{YYYY-MM-DD}_{slug}.md`.
@@ -18,6 +18,7 @@ While this rule is written in English, the generated **plan document** MUST be w
 - **Iterative refinement:** the plan is a living document, refined until there is complete and precise understanding of the task.
 - **Punctual edits (strict):** when the human requests adjustments, perform **targeted, punctual edits** to the existing file. Modify ONLY the requested sections. **DO NOT** rewrite the whole file from scratch.
 - **Execution gate:** you are strictly forbidden from executing the plan until it completely and accurately covers every requirement of the task, and the human has approved it.
+- 🔒 **Never route around the plan gate.** Where a hook mechanizes this rule, it keys on the branch name and a marker file — so never create or switch a branch, or write the marker, to get past a block: stop and ask the human. The branch-scope barrier and human review are the real enforcement.
 
 ## 4. Plan Structure
 

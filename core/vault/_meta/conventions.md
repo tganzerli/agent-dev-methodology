@@ -6,7 +6,7 @@
 
 ## 1. Mandatory frontmatter
 
-Every `.md` wiki page starts with this YAML block:
+Every `.md` wiki page starts with this YAML block, at the very first byte (Obsidian reads it only there; template comments go below it). The kit's scripts share one tolerant rule — a UTF-8 BOM, blank lines and `<!-- … -->` blocks before the opening `---` are skipped — so a stray comment does not hide a plan's `status:`:
 
 ```yaml
 ---
@@ -70,6 +70,18 @@ Compare with [[packages/core/entities/user]].
 ```
 
 Wikilinks are recognized by Obsidian and greppable.
+
+#### Catalog labels
+
+`/wiki-index` titles its generated catalogs from this block (one `` - `key`: value `` per line; `{n}` = page count, `{dir}` = directory). The values below are the defaults; translate them in place when the vault is written in another language. Delete the block to fall back to the script's defaults.
+
+<!-- catalog-labels:begin -->
+- `decisions`: Decisions — Architecture Decision Records
+- `cross-cutting`: Cross-cutting — knowledge that crosses boundaries
+- `sources/external`: External sources — ingested summaries
+- `postmortems`: Postmortems — lessons from costly bugs
+- `pages`: Pages ({n})
+<!-- catalog-labels:end -->
 
 ## 4. Page types and where they live
 
@@ -146,7 +158,7 @@ parent_task: 2026-05-17_extended-protocol
 Rules:
 
 - **The parent task must exist** under `work/tasks/`. A `parent_task` pointing at a missing file is a data error, not a sub-trio.
-- **The sub-trio has its own `work_id`** (date + slug), distinct from the parent's. It names the plan, the execution, and the branch like any other work.
+- **The sub-trio has its own `work_id`** (date + slug), distinct from the parent's. It names the plan, the execution, and the branch like any other work. The slug stays kebab-case by convention; the tooling **tolerates** underscores in a sub-trio suffix (`<parent-id>_stepa`) — the plan gate reads the `work_id` from the branch non-greedily up to the `__` scope separator — so existing `_step*` names need no rename.
 - **`/work-index` renders a sub-trio pointing at its parent**, as `sub · [[work/tasks/{parent}]] › {work_id}`. Without the field, the plan+execution pair reads as a "trio with no task" and the generated line links a file that never existed, with the summary degrading to the raw `work_id`.
 - **Do not confuse it with a split trio.** A split trio is one piece of work whose `work_id` disagrees between the task and the plan/execution — that is drift to repair. A sub-trio is deliberate structure. **Check `parent_task` before renaming any artifact to "reunify" a trio**: in the project this kit came from, that check kept two deliberate sub-trios from being renamed as if they were drift.
 

@@ -1,3 +1,15 @@
+---
+title: Coordination board
+type: relay-board
+scope:
+  area: []                     # single-repo: free text. Monorepo: apps/packages.
+status: draft                  # stub | draft | stable | stale
+updated: {YYYY-MM-DD}
+summary: One sentence — the active coordination state of agents on this repo.
+work_refs: []                  # work_ids currently touched by an active lock/agreement
+related: []
+---
+
 <!--
   Installs as: {{project}}_wiki/work/relay/_templates/coordination-board.md
   See INSTALL.md §5-bis and modules/intra-team/README.md §4.
@@ -14,17 +26,6 @@
 
   Authored prose is in {{KNOWLEDGE_LANG}}.
 -->
----
-title: Coordination board
-type: relay-board
-scope:
-  area: []                     # single-repo: free text. Monorepo: apps/packages.
-status: draft                  # stub | draft | stable | stale
-updated: {YYYY-MM-DD}
-summary: One sentence — the active coordination state of agents on this repo.
-work_refs: []                  # work_ids currently touched by an active lock/agreement
-related: []
----
 
 # Coordination board
 

@@ -32,7 +32,7 @@
 - **`file:line` citations** for every technical claim in plans and wiki. Unanchored → `⚠ unverified`.
 - **Scope attribution** on every plan/execution/wiki page.
 - **Knowledge language:** author plans and wiki content in **{{KNOWLEDGE_LANG}}**. Code and identifiers in English.
-- **Commits and PRs:** Conventional Commits in English; the PR body follows `.github/pull_request_template.md`; no AI attribution (`Co-Authored-By`, "Generated with …") in either.
+- **Commits and PRs:** Conventional Commits — type and identifiers in English, description in **{{COMMIT_LANG}}**; PR title and body in **{{COMMIT_LANG}}** too, following `.github/pull_request_template.md`; no AI attribution (`Co-Authored-By`, "Generated with …") in either.
 
 ## Agent Skills
 

@@ -29,6 +29,7 @@ Ask these before creating anything. Keep it to one round; propose sensible defau
 | 11 | **Does the project depend on external services** (DB, broker, cache, …) that must be reproducible across machines and CI? | installs `modules/dev-env/` | no |
 | 12 | **Does the project deliver long-form prose** for people outside the repo (thesis/dissertation, paper, technical articles, posts), derived from the work it does? | installs `modules/writing/` | no |
 | 13 | **Does this project coordinate with another project in a separate repo on the same machine**, whose agent can read your files but does not share your checkout? | installs `modules/peer-relay/` (requires answer 8 = yes) | no |
+| 14 | **Commit messages and PR text in the knowledge language?** Only the commit description and the PR title/body; the Conventional Commits type (`feat:`, `docs:` …), branch names, tags and identifiers stay ASCII English either way. | `{{COMMIT_LANG}}` — `English`, or answer 3 | no (English) |
 
 > **Never guess question 3.** If the human does not state a knowledge language, ask explicitly. Everything the methodology generates (plans, wiki pages) is in that language; getting it wrong means rewriting the vault.
 
@@ -40,6 +41,7 @@ Record the answers in a short block you will paste into `{{project}}_wiki/_meta/
 kit_commit: <full sha of the kit checkout>
 project: <answer 1>
 knowledge_lang: <answer 3>
+commit_lang: <answer 14: English, or answer 3>
 installed: <YYYY-MM-DD>
 modules: [<installed modules>]
 ```
@@ -56,6 +58,7 @@ Every template file in this kit uses `{{...}}` placeholders. When you copy a fil
 | `{{project}}` | vault slug (answer 2) — the vault dir is `{{project}}_wiki` |
 | `{{repo}}` | target repo folder name |
 | `{{KNOWLEDGE_LANG}}` | knowledge-content language (answer 3) |
+| `{{COMMIT_LANG}}` | commit-message and PR language (answer 14): `English`, or the knowledge language |
 | `{{ABS_PATH_TO_THIS_REPO}}` | absolute path of the target repo (peer-relay module only) |
 
 Do a final grep for `{{` after install — **no placeholder may remain** in the target project (§7 checklist). Two kinds of double braces are **not** placeholders and must stay as shipped: `{{args}}` in the Gemini CLI command files (`.gemini/commands/*.toml` — Gemini CLI substitutes it at run time) and Go-template format strings such as `{{.State.Health.Status}}` in the dev-env skill (Docker reads them). CI workflow files use `${{ … }}` expressions for the same reason; the checklist grep does not scan them.
@@ -272,9 +275,9 @@ The methodology is agent-agnostic; each agent just needs a thin stub pointing at
     "hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/require-approved-plan.sh"}]}]}}
   ```
   The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`. It speaks two protocols: Claude Code's (exit 2 + stderr) and Antigravity CLI's (`.agents/hooks.json`, above: a JSON `deny` on stdout to block, **empty** stdout to allow — never `"allow"`, which would skip the permission prompt). Gemini CLI hooks live in `.gemini/settings.json` (Gemini CLI only); the kit has not verified the script against that protocol.
-- **Optional (recommended): mechanize the no-LLM-co-author rule** → copy `core/hooks/commit-msg` to `.githooks/commit-msg` (chmod +x) and `core/ci/check_commit_trailers.py` to `scripts/ci/`, then run `git config core.hooksPath .githooks` (once per clone — put it in the onboarding notes). The hook is early feedback only; the guarantee is the CI step, which runs the same script on the commits each PR adds: `python3 scripts/ci/check_commit_trailers.py origin/<PR base>`, with a full-depth checkout. `core/ci/methodology-checks.yml` is a GitHub Actions template running it plus `/wiki-lint`. Plant a trailer once and watch both layers go red before trusting them (METHODOLOGY §6.7).
+- **Optional (recommended): mechanize the no-LLM-co-author rule** → copy `core/hooks/commit-msg` to `.githooks/commit-msg` (chmod +x) and `core/ci/check_commit_trailers.py` to `scripts/ci/`, then run `git config core.hooksPath .githooks` (once per clone — put it in the onboarding notes). The hook is early feedback only (it ignores the diff `git commit -v` appends below the scissors line); the guarantee is the CI step, which runs the same script on the commits each PR adds — `python3 scripts/ci/check_commit_trailers.py origin/<PR base>`, with a full-depth checkout — and on every push to a permanent branch — `main`, `dev`, `dev_*`, `staging_*` (`<before>..<sha>`; a brand-new branch checks every commit not yet on the default branch or another permanent line; a rewind is ok with a note; `core.commentChar` is honoured for the scissors line). Commits already on a permanent branch (`main`, `dev`, `dev_*`, `staging_*`) are excluded with repeated `--exclude`, so a release/integration PR (`dev` → `main`, `staging_<app>` → `main`) is not charged for old history. `core/ci/methodology-checks.yml` is a GitHub Actions template running it plus `/wiki-lint`. Plant a trailer once and watch both layers go red before trusting them (METHODOLOGY §6.7).
 
-Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub. Each stub (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`) also carries the one-line commit/PR convention from the kit's `AGENTS.md` "Non-negotiables" — copy that line as-is.
+Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub. Each stub (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`) also carries the one-line commit/PR convention from the kit's `AGENTS.md` "Non-negotiables" — copy that line as-is (de-templated: it names the commit language of answer 14, which the branching rule's language clause states too). If commits follow the knowledge language and the intra-team module is installed, also set `SCOPE_LOCK_MSG_TAKE` / `SCOPE_LOCK_MSG_RELEASE` (scope-lock `SKILL.md`).
 
 ## 7. Post-install verification checklist
 

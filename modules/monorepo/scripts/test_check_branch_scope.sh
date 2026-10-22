@@ -68,6 +68,18 @@ echo h >> apps/web/a.txt; G commit -qam "hotfix"
 run hotfix/2026-01-01_d__web SCOPE_BARRIER_BLOCKING=1
 assert "hotfix __web off main: exit 0" "${RC}" 0
 
+echo "== contract/: default route (main) and the shared-package variant (dev_packages)"
+G checkout -q dev_packages; echo p >> packages/core/a.txt; G commit -qam "packages line work"; G push -q origin dev_packages
+G checkout -q -b contract/2026-01-01_f__core
+echo k >> packages/core/a.txt; G commit -qam "contract package"
+run contract/2026-01-01_f__core SCOPE_BARRIER_BLOCKING=1
+assert "contract off dev_packages, default line main: derivation violation" "$(contains "${OUT}" 'derivation')" yes
+run contract/2026-01-01_f__core SCOPE_BARRIER_BLOCKING=1 SCOPE_CONTRACT_LINE=dev_packages
+assert "contract off dev_packages, SCOPE_CONTRACT_LINE=dev_packages: exit 0" "${RC}" 0
+echo k >> apps/web/a.txt; G commit -qam "app code on a package-line contract"
+run contract/2026-01-01_f__core SCOPE_BARRIER_BLOCKING=1 SCOPE_CONTRACT_LINE=dev_packages
+assert "package-line contract touching apps/web: exit 1" "${RC}" 1
+
 echo "== naming and configuration errors follow the mode"
 run feature/2026-01-01_e__web
 assert "unknown type, advisory: exit 0" "${RC}" 0

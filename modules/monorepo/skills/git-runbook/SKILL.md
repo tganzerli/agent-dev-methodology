@@ -64,6 +64,50 @@ Bump only the packages that changed since their last tag; an unchanged package's
 - **Manual fallback:** `/sync-knowledge`.
 - **Tests:** `scripts/test-broadcast-main.sh` and `scripts/test-broadcast-packages.sh` run both scripts against a throwaway bare remote, including the production push path. Run them after any edit to a broadcast script.
 
+#### 1.6.1. Manual broadcast while CI is unavailable — a dated, human-run exception
+
+A human pushing to `dev_*` is forbidden (the rule's §10 gate 12). This recipe is usable **only** while the project's `git_branching_rule.md` carries a **named, dated exception** to that gate — who runs it (the human, with their own git identity; never the agent on its own initiative), what may be pushed (only the merges the broadcast scripts produce), until when (a date, or the CI's return, whichever comes first), and its provenance (the plan or decision that opened it). Without that clause in the rule, wait for CI. When the date passes, delete the clause.
+
+The agent prepares and verifies; the **human** runs the pushes. The scripts are the repository's own — never a hand-written merge.
+
+```bash
+# 1. Throwaway clone — the script runs `checkout -B` on every target: never in your working tree
+WORK=$(mktemp -d) && git clone -q <origin-url> "$WORK/repo" && cd "$WORK/repo"
+git config user.name  "<human name>"
+git config user.email "<human email>"
+
+# 2. A copy of the script WITHOUT the lines that pin the CI bot identity (kept outside the clone)
+grep -v '^git config user\.' scripts/broadcast-main.sh > "$WORK/broadcast-main.sh"
+
+# 3. main -> dev_* : the script's env contract — CI_COMMIT_SHA = the tip of main,
+#    CI_PUSH_REMOTE = the clone's origin (pushes with the human's credentials)
+CI_COMMIT_SHA=$(git rev-parse origin/main) CI_PUSH_REMOTE=origin bash "$WORK/broadcast-main.sh"
+
+# 4. Verify — every dev_* has all of main: 0 on every line
+git fetch -q origin
+for b in $(git for-each-ref --format='%(refname:strip=3)' 'refs/remotes/origin/dev_*'); do
+  echo "$b $(git rev-list --count origin/$b..origin/main)"
+done
+```
+
+`dev_packages -> dev_<app>` (only when a package change reached `dev_packages` with no broadcast), in the same clone:
+
+```bash
+git fetch -q origin && git checkout -q -B dev_packages origin/dev_packages
+grep -v '^git config user\.' scripts/broadcast-packages.sh > "$WORK/broadcast-packages.sh"
+# CI_BEFORE_SHA = the root commit, so the no-op gate sees packages/ changed and does not skip
+CI_COMMIT_SHA=$(git rev-parse origin/dev_packages) \
+CI_BEFORE_SHA=$(git rev-list --max-parents=0 origin/dev_packages | tail -1) \
+CI_PUSH_REMOTE=origin bash "$WORK/broadcast-packages.sh"
+for a in <apps from the script's APPS roster>; do
+  echo "dev_$a $(git rev-list --count origin/dev_$a..origin/dev_packages)"
+done
+```
+
+- **Conflict:** the script aborts that target, continues the others and exits 1; the resolution goes through a PR (`/sync-knowledge`, `/distribute-packages`), never forced.
+- **Record:** the commands and their output (the `OK / FAIL / SKIP` summary and the verification counts) go into the execution that needed the broadcast.
+- **Afterwards:** delete the clone (`rm -rf "$WORK"`).
+
 ### 1.7. CI identity
 
 `dev_*` carries branch protection with a push exception for the CI identity only. Prefer a **write-scoped deploy key** (private half as a CI secret, the workflow pushing over SSH): no human inherits it. On GitHub, a push made with `GITHUB_TOKEN` does not trigger other workflows, and on a user-owned repository the GitHub Actions app cannot be a ruleset bypass actor (the API answers 422). A reference workflow lives in the kit at `modules/monorepo/ci-examples/github-broadcast.yml`.
@@ -115,7 +159,7 @@ Any tool that creates a branch or worktree for the session (e.g. Claude Code wor
 
 1. **Before approval:** draft the task and plan in the wiki; commit nothing the plan gate guards. Prefer keeping the drafts uncommitted until the branch is final (step 5 may replace it).
 2. **After approval:** run the creation gate (the rule's §4.5 steps 1–3) on the target name.
-3. **Check the base** against the type's source line (the rule's §4.2: `dev_<app>`, `dev_packages` for `pkg/`, `main` for `hotfix/`, `contract/`, `docs/__knowledge`). Both must hold:
+3. **Check the base** against the type's source line (the rule's §4.2: `dev_<app>`, `dev_packages` for `pkg/` — and for `contract/` under the shared-package variant, §5.3 —, `main` for `hotfix/`, `contract/`, `docs/__knowledge`). Both must hold:
    ```bash
    git fetch origin
    git merge-base --is-ancestor origin/<source-line> HEAD   # the line is in HEAD (exit 0)
@@ -169,6 +213,14 @@ An earlier version of the rule (§3 table and §3.2) allowed "a direct commit fr
 ### 5.3. Why `contract/` goes straight to `main`
 
 `main` is the only branch where every app and every package coexist, so it is the only place a simultaneous change across all consumers can be expressed. `dev_packages` refuses `apps/*` (§10 gate 11) and each `dev_<app>` covers one app: a PR into either leaves the other consumers speaking the old shape until the broadcast arrives. The accepted cost is that a contract change reaches `main` without passing `staging_<app>`. The trade is asymmetric — diverging package copies between apps are recoverable (the broadcast exists for that), a consumer speaking the old shape at runtime is a production break.
+
+**Variant: the contract is a shared package — `contract/` off and into `dev_packages`.** When the versioned contract is itself a package (`packages/<contract>`: generated types, a schema package, an API client), a project may route it like any package change:
+
+1. `contract/<id>__<pkg>` branches off `dev_packages`; its single PR targets `dev_packages`. It carries what `contract_change_rule.md` requires (ADR, the package's version bump + CHANGELOG) — but **no `apps/*`** (`dev_packages` refuses them, §10 gate 11).
+2. Each consuming app follows on its own `feat/<id>__<app>` branch off `dev_<app>`, after the broadcast (`broadcast-packages.sh`) has brought the new contract version — or, before it, by merging the contract branch to build against it (the scope barrier reports that merge; record it in the execution).
+3. The contract reaches `main` through the normal `tag/<pkg>-vX.Y.Z__<pkg>` release, the apps through `staging_<app>`.
+
+The cost the default route avoids — consumers on the old shape until each app's own branch lands — is accepted here because **no app reaches `main` without its own release through `staging_<app>`**, which pins the contract version it was built against. Choose the variant only when that holds. The project's rule must name it in place of the `contract` row (rule §4.2), and the barrier must be told: `SCOPE_CONTRACT_LINE=dev_packages` makes `scripts/check_branch_scope.sh` expect `dev_packages` as the source and forbid `apps/*` on `contract/` branches.
 
 ### 5.4. Branch scope barrier — how it is checked, and why
 

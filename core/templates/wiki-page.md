@@ -1,14 +1,3 @@
-<!--
-  Installs as: {{project}}_wiki/_meta/_page_template.md
-  Generic template for any KNOWLEDGE page (type: entity | service | flow |
-  domain | contract | page | adr | discovery). See conventions.md §1, §5.
-  For `type: source` use source.md instead; for `type: overview` use
-  the seed at core/vault/overview.md.
-
-  Authored CONTENT is written in {{KNOWLEDGE_LANG}}. Frontmatter keys/values
-  stay English. Every technical claim needs a `file:line` citation
-  (conventions.md §2) — a claim without one must be marked `⚠ unverified`.
--->
 ---
 title: {Human page name}
 type: entity                    # entity | service | flow | domain | contract | page | adr | discovery
@@ -27,6 +16,18 @@ related: []                     # wikilinks
   # - services/{related-service}
   # - entities/{related-entity}
 ---
+
+<!--
+  Installs as: {{project}}_wiki/_meta/_page_template.md
+  Generic template for any KNOWLEDGE page (type: entity | service | flow |
+  domain | contract | page | adr | discovery). See conventions.md §1, §5.
+  For `type: source` use source.md instead; for `type: overview` use
+  the seed at core/vault/overview.md.
+
+  Authored CONTENT is written in {{KNOWLEDGE_LANG}}. Frontmatter keys/values
+  stay English. Every technical claim needs a `file:line` citation
+  (conventions.md §2) — a claim without one must be marked `⚠ unverified`.
+-->
 
 # {Title}
 

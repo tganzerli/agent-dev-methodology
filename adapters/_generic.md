@@ -26,7 +26,7 @@ If your surface has no automatic file loading, the human must paste `.agents/MET
 
 ## 2. Non-negotiables (same for every agent)
 
-- **Plan-then-execute.** No code change before `{{project}}_wiki/work/plans/{ID}.md` is `status: approved`. Name the gate to the human before advancing — you honor gates by instruction, not by lock.
+- **Plan-then-execute.** No code change before `{{project}}_wiki/work/plans/{ID}.md` is `status: approved`. Name the gate to the human before advancing — you honor gates by instruction, not by lock. Where a plan-gate hook does run, it keys on the branch name / marker file: never create or switch a branch, or write the marker, to get past a block — stop and ask. The branch-scope barrier and human review are the real enforcement.
 - **Human gate at every transition** (plan approval, execution review, `/wiki-sync`).
 - **`file:line` citations** for every technical claim in plans and wiki. Unanchored → `⚠ unverified`. If a sub-process produced a citation you did not verify, **check it before writing it**.
 - **Scope attribution** on every plan/execution/wiki page.
@@ -60,4 +60,4 @@ Assume nothing you "learn" survives the session. Everything durable about this p
 
 **Forbidden** to include a `Co-Authored-By:` trailer — or any footer/trailer identifying the assistant (its model or product name) — in commits produced via this agent. Applies to ordinary commits, merge commits, amendments, any trailer/footer, and PR descriptions. The author is the human; the local `git user` already records authorship. Fix a co-authored message before committing; if already committed, do not rebase without human approval.
 
-**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py <PR base>` in CI (the guarantee) — see the kit's `INSTALL.md` §6.
+**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py` in CI on every PR and every push to a permanent branch (the guarantee) — see the kit's `INSTALL.md` §6.

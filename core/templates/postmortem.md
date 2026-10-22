@@ -1,12 +1,3 @@
-<!--
-  Installs as: {{project}}_wiki/postmortems/_template.md
-  See METHODOLOGY.md §5.6 and §4.4.2.
-
-  Authored CONTENT is written in {{KNOWLEDGE_LANG}}. Frontmatter keys/values
-  stay English. A postmortem is a KNOWLEDGE page (thematic, living): the lesson
-  a costly bug taught, not the chronology of fixing it — that is the execution.
-  Blameless: it examines which layer missed the bug, never who.
--->
 ---
 title: {Short name of the failure}
 type: postmortem
@@ -22,6 +13,16 @@ sources: []
 code_refs: []
 related: []
 ---
+
+<!--
+  Installs as: {{project}}_wiki/postmortems/_template.md
+  See METHODOLOGY.md §5.6 and §4.4.2.
+
+  Authored CONTENT is written in {{KNOWLEDGE_LANG}}. Frontmatter keys/values
+  stay English. A postmortem is a KNOWLEDGE page (thematic, living): the lesson
+  a costly bug taught, not the chronology of fixing it — that is the execution.
+  Blameless: it examines which layer missed the bug, never who.
+-->
 
 # {Title}
 

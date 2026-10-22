@@ -3,7 +3,7 @@
 
 For each kit file that maps to an installed path it reads three versions — the kit at
 the commit stamped in .agents/KIT_VERSION, the kit at HEAD, and the installed file —
-de-templates the kit side (the project, PROJECT, KNOWLEDGE_LANG and repo placeholders) and
+de-templates the kit side (the project, PROJECT, KNOWLEDGE_LANG, COMMIT_LANG and repo placeholders) and
 classifies:
 
   kit-change     kit moved since the stamp, project did not   -> apply (under a plan)
@@ -129,6 +129,7 @@ def main():
               "`local` and `kit-change` cannot be told apart", file=sys.stderr)
     values = {"project": vault[:-len("_wiki")], "PROJECT": stamp.get("project", ""),
               "KNOWLEDGE_LANG": stamp.get("knowledge_lang", ""),
+              "COMMIT_LANG": stamp.get("commit_lang", "English"),
               "repo": os.path.basename(os.path.abspath(a.root))}
 
     head_files = kit_files(a.kit, "HEAD")

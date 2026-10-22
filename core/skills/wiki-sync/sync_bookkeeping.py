@@ -8,8 +8,9 @@ appended straight to the end of the file; its content is never read.
 Does, in order:
   1. adds wikilinks of the touched pages to the execution's `related[]`;
   2. appends the entry to `<vault>/_meta/log.md` (pure append);
-  3. marks the plan `status: executed` (anchored on `^status:`, never on a
-     `# status:` comment);
+  3. marks the plan `status: executed` (anchored on `^status:` inside the
+     frontmatter, never on a `# status:` comment; a trailing `# a | b` comment
+     on the line is kept);
   4. runs `wiki-lint/lint.py --only index-format` on the hand-kept catalogs.
 
 Usage:
@@ -32,6 +33,11 @@ import sys
 
 KINDS = {"CREATE", "UPDATE", "APPEND"}
 
+# `status: <value>` with an optional trailing YAML comment, as the kit templates write it
+# (`status: approved   # draft | approved | executed`). Group 1 = `status:` + spacing,
+# 2 = the value, 3 = the rest (spacing + comment), kept verbatim on rewrite.
+STATUS_RE = re.compile(r"^(status:[ \t]*)([^\s#]+)([ \t]*(?:#[^\r\n]*)?\r?)$", re.M)
+
 
 def read(path):
     with open(path, "r", encoding="utf-8") as fh:
@@ -43,11 +49,36 @@ def write(path, text):
         fh.write(text)
 
 
+# ── Frontmatter rule, shared verbatim by every parser in the kit ──────────────
+# The YAML block opens with a `---` line, after an optional UTF-8 BOM, blank lines and
+# `<!-- ... -->` blocks, and closes at the next line that is exactly `---`. Keep this
+# function identical wherever it is copied (one fixture test runs all of them).
+_FM_LEAD = re.compile(r"\ufeff?(?:[ \t]*\r?\n|[ \t]*<!--.*?-->[ \t]*\r?\n)*", re.S)
+_FM_OPEN = re.compile(r"---[ \t]*\r?\n")
+_FM_CLOSE = re.compile(r"^---[ \t]*(?:\r?\n|\Z)", re.M)
+
+
+def frontmatter_bounds(text):
+    """(lead_end, yaml_start, yaml_end, body_start) or None. text[:yaml_start] is the
+    prefix plus the opening line, text[yaml_start:yaml_end] the YAML, text[yaml_end:]
+    the closing line plus the body — so a rewriter keeps the prefix verbatim."""
+    lead = _FM_LEAD.match(text).end()
+    opening = _FM_OPEN.match(text, lead)
+    if not opening:
+        return None
+    closing = _FM_CLOSE.search(text, opening.end())
+    if not closing:
+        return None
+    return lead, opening.end(), closing.start(), closing.end()
+
+
 def split_frontmatter(text):
-    m = re.match(r"^---\n(.*?\n)---\n", text, re.S)
-    if not m:
+    """(head, yaml, tail): head = anything before the block + the opening `---` line,
+    tail = the closing `---` line + body. head + yaml + tail == text."""
+    bounds = frontmatter_bounds(text)
+    if not bounds:
         sys.exit("✗ frontmatter not found")
-    return m.group(1), text[m.end():]
+    return text[:bounds[1]], text[bounds[1]:bounds[2]], text[bounds[2]:]
 
 
 def in_head(root, path):
@@ -120,15 +151,18 @@ def main():
             sys.exit(f"✗ not found: {p}")
 
     ex_text = read(ex)
-    fm, body = split_frontmatter(ex_text)
-    if not re.search(r"^status:\s*done\s*$", fm, re.M):
+    ex_head, fm, ex_tail = split_frontmatter(ex_text)
+    m = STATUS_RE.search(fm)
+    if not m or m.group(2) != "done":
         sys.exit("✗ execution is not `status: done` — confirm with the human first (premature sync)")
     new_fm = add_related(fm, [wikilink(p, vault) for p, _, _ in pages])
 
     plan_text = read(plan)
-    new_plan, n = re.subn(r"^status:\s*\S+\s*$", "status: executed", plan_text, count=1, flags=re.M)
+    plan_head, plan_fm, plan_tail = split_frontmatter(plan_text)
+    new_plan_fm, n = STATUS_RE.subn(lambda m: m.group(1) + "executed" + m.group(3), plan_fm, count=1)
     if n != 1:
         sys.exit("✗ plan has no `status:` line in its frontmatter")
+    new_plan = plan_head + new_plan_fm + plan_tail
 
     n_pages = len(pages)
     if not pages:
@@ -142,7 +176,7 @@ def main():
         print("[dry-run] log (append):" + entry)
         return
 
-    write(ex, "---\n" + new_fm + "---\n" + body)
+    write(ex, ex_head + new_fm + ex_tail)
     write(plan, new_plan)
     with open(log, "a", encoding="utf-8") as fh:  # pure append: the log is never read
         fh.write(entry)

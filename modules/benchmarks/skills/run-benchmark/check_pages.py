@@ -24,11 +24,32 @@ DRIFT_KEYS = {"order", "per_session", "internal_drift_pct", "adjacent_compared"}
 HOST_KEYS = {"measured_at", "swap_pct", "mem_free_pct", "load1", "uptime_days"}
 
 
+# ── Frontmatter rule, shared verbatim by every parser in the kit ──────────────
+# The YAML block opens with a `---` line, after an optional UTF-8 BOM, blank lines and
+# `<!-- ... -->` blocks, and closes at the next line that is exactly `---`. Keep this
+# function identical wherever it is copied (one fixture test runs all of them).
+_FM_LEAD = re.compile(r"\ufeff?(?:[ \t]*\r?\n|[ \t]*<!--.*?-->[ \t]*\r?\n)*", re.S)
+_FM_OPEN = re.compile(r"---[ \t]*\r?\n")
+_FM_CLOSE = re.compile(r"^---[ \t]*(?:\r?\n|\Z)", re.M)
+
+
+def frontmatter_bounds(text):
+    """(lead_end, yaml_start, yaml_end, body_start) or None. text[:yaml_start] is the
+    prefix plus the opening line, text[yaml_start:yaml_end] the YAML, text[yaml_end:]
+    the closing line plus the body — so a rewriter keeps the prefix verbatim."""
+    lead = _FM_LEAD.match(text).end()
+    opening = _FM_OPEN.match(text, lead)
+    if not opening:
+        return None
+    closing = _FM_CLOSE.search(text, opening.end())
+    if not closing:
+        return None
+    return lead, opening.end(), closing.start(), closing.end()
+
+
 def frontmatter_lines(text):
-    if not text.startswith("---"):
-        return []
-    end = text.find("\n---", 3)
-    return text[3:end].splitlines() if end != -1 else []
+    bounds = frontmatter_bounds(text)
+    return text[bounds[1]:bounds[2]].splitlines() if bounds else []
 
 
 def top_value(lines, key):

@@ -100,7 +100,7 @@ That is why the module is separate and gated on install-interview answer #4. Do 
 
 ## Install & register
 
-1. Copy the files per `INSTALL.md` §4 (de-templating `{{project}}`, `{{PROJECT}}`, `{{KNOWLEDGE_LANG}}`).
+1. Copy the files per `INSTALL.md` §4 (de-templating `{{project}}`, `{{PROJECT}}`, `{{KNOWLEDGE_LANG}}`, `{{COMMIT_LANG}}`).
 2. Reorganize the vault knowledge dirs into `apps/<app>/` + `packages/<pkg>/` as above.
 3. Register the five skills in `.claude/skills/_index.md`.
 4. Adapt the two `scripts/broadcast-*.sh` stubs to the git host chosen in interview answer #7 (fill every `TODO(...)`; map the host's variables onto `CI_COMMIT_SHA` / `CI_PUSH_REMOTE` in the pipeline config), wire them as CI triggers (on push to `main`, and on push to `dev_packages`), and run the two `test-broadcast-*.sh`. Fill the roster placeholder of `check_branch_scope.sh` and wire it advisory; wire `check-knowledge-paths.py` (and, while §1.1 is kept, `check-transition-state.sh`) into CI.

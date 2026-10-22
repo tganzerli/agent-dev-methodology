@@ -2,7 +2,7 @@
 
 > Canonical, **LLM-agnostic** document. Any agent (Claude, Codex, Gemini/Antigravity, Cursor, etc.) operating in this repository must follow it. Per-agent specifics live in `.agents/llm/`.
 >
-> **Language note.** This methodology document is written in English. The **knowledge content** it governs — plans, wiki pages, tasks, executions — is authored in **{{KNOWLEDGE_LANG}}**, the language chosen for this project at install time. Code and identifiers are always in English. If `{{KNOWLEDGE_LANG}}` is unset, the installing agent MUST ask the human which language the wiki/plans should be written in before generating any content.
+> **Language note.** This methodology document is written in English. The **knowledge content** it governs — plans, wiki pages, tasks, executions — is authored in **{{KNOWLEDGE_LANG}}**, the language chosen for this project at install time. Code and identifiers are always in English. If no knowledge language was chosen at install (the value above is still a template placeholder), the agent MUST ask the human which language the wiki/plans should be written in before generating any content.
 
 ## 1. Objective
 

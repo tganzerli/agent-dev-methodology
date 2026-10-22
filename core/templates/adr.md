@@ -1,13 +1,3 @@
-<!--
-  Instala como: {{project}}_wiki/decisions/_templates/adr.md
-
-  Template de ADR **comum**. Para mudança de contrato versionado (API pública,
-  schema de banco, protocolo de fio, schema de evento, ABI de FFI) use
-  `adr-contract.md`, que o `contract_change_rule.md` exige.
-
-  Prosa em pt-BR; chaves e valores de frontmatter em inglês.
-  Apague estas linhas-guia ao salvar. Todo `{...}` é campo do autor.
--->
 ---
 title: {YYYY-MM-DD} — {a decisão, em uma linha}
 type: adr
@@ -27,6 +17,17 @@ sources: []
 code_refs: []               # arquivos que a decisão governa; vazio se ainda não há código
 related: []
 ---
+
+<!--
+  Instala como: {{project}}_wiki/decisions/_templates/adr.md
+
+  Template de ADR **comum**. Para mudança de contrato versionado (API pública,
+  schema de banco, protocolo de fio, schema de evento, ABI de FFI) use
+  `adr-contract.md`, que o `contract_change_rule.md` exige.
+
+  Prosa em pt-BR; chaves e valores de frontmatter em inglês.
+  Apague estas linhas-guia ao salvar. Todo `{...}` é campo do autor.
+-->
 
 # {YYYY-MM-DD} — {a decisão, em uma linha}
 

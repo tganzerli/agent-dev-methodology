@@ -110,4 +110,4 @@ The `read` flow runs `skills/peer-relay/inbox.py <peer>`, which reads the peer's
 - **Exit `0`** — both states checked; an empty list means empty.
 - **Exit `2`** — the open PRs were **not** checked (or the `fetch` failed). Never report "no messages" on a `2`.
 - Open PRs are read with the GitHub CLI (`gh`). On another host, replace the script's `list_prs()` with that host's CLI; until then it exits `2`, which is the honest answer.
-- It also lists relay files in open PRs **not** stamped `inbound`/`<peer>`: a peer that delivered its own outbound copy unchanged is otherwise invisible. This has happened, four messages in a row.
+- It also lists relay files in open PRs stamped `direction: outbound` and `peer: <us>` — the peer's own outbound copy addressed to us, delivered unchanged and otherwise invisible. This has happened, four messages in a row. Intra-team messages (no `peer:`) and our own outbound copies to other peers are not flagged. `<us>` is `--self`, else `self:` in the frontmatter of `.agents/peers.md`, else the vault name without `_wiki`.

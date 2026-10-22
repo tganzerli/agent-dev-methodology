@@ -1,12 +1,3 @@
-<!--
-  Installs as: {{project}}_wiki/work/executions/_template.md
-  See INSTALL.md §3 and METHODOLOGY.md §4.4.
-
-  Authored CONTENT is written in {{KNOWLEDGE_LANG}}. Frontmatter keys/values
-  stay English. This is a LIVE log — update it after each completed step,
-  not only at the end. It is historical by design: never mark it `stale`,
-  never rewrite past entries, only append/tick.
--->
 ---
 title: {YYYY-MM-DD} — {human slug}
 type: execution
@@ -21,6 +12,16 @@ summary: One sentence — what this execution actually delivered. Feeds the gene
 topic: []                    # controlled vocabulary — see conventions.md §"work frontmatter"
 related: []                  # wikilinks to knowledge pages touched
 ---
+
+<!--
+  Installs as: {{project}}_wiki/work/executions/_template.md
+  See INSTALL.md §3 and METHODOLOGY.md §4.4.
+
+  Authored CONTENT is written in {{KNOWLEDGE_LANG}}. Frontmatter keys/values
+  stay English. This is a LIVE log — update it after each completed step,
+  not only at the end. It is historical by design: never mark it `stale`,
+  never rewrite past entries, only append/tick.
+-->
 
 # Execution Log — {ID}
 

@@ -18,6 +18,12 @@
 #                      is refused, because the push has no human gate.
 #   SCOPE_LOCK_RULE    the branching rule carrying the exception
 #                      (default: .agents/rules/git_branching_rule.md)
+#   SCOPE_LOCK_MSG_TAKE / SCOPE_LOCK_MSG_RELEASE
+#                      commit message templates; `{scope}` is replaced by --scope, and
+#                      ` (<work_id>)` is appended when --work-id is given. Defaults:
+#                      "docs(work): take scope lock on {scope}" /
+#                      "docs(work): release scope lock on {scope}". Set them when the
+#                      project's commit messages follow its knowledge language.
 
 set -euo pipefail
 # git's push messages are matched below; keep them in English.
@@ -28,6 +34,22 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REMOTE="${SCOPE_LOCK_REMOTE:-origin}"
 LINE="${SCOPE_LOCK_LINE:-main}"
 RULE="${SCOPE_LOCK_RULE:-.agents/rules/git_branching_rule.md}"
+# Defaults kept in plain variables: a `}` inside `${VAR:-...}` would close the expansion.
+DEFAULT_MSG_TAKE='docs(work): take scope lock on {scope}'
+DEFAULT_MSG_RELEASE='docs(work): release scope lock on {scope}'
+MSG_TAKE="${SCOPE_LOCK_MSG_TAKE:-$DEFAULT_MSG_TAKE}"
+MSG_RELEASE="${SCOPE_LOCK_MSG_RELEASE:-$DEFAULT_MSG_RELEASE}"
+
+# Replace every `{scope}` in a template. Not `${var//pat/rep}`: its replacement quoting
+# differs across bash versions (3.2 keeps literal quotes; >= 5.2 expands `&` unquoted).
+fill_scope() { # fill_scope <template> <scope>
+  local tmpl="$1" out=""
+  while [[ "$tmpl" == *"{scope}"* ]]; do
+    out="${out}${tmpl%%\{scope\}*}$2"
+    tmpl="${tmpl#*\{scope\}}"
+  done
+  printf '%s' "${out}${tmpl}"
+}
 
 if [[ -n "${SCOPE_LOCK_FILE:-}" ]]; then
   LOCKS_REL="$SCOPE_LOCK_FILE"
@@ -108,7 +130,8 @@ for attempt in 1 2 3; do
   fi
 
   # `release` takes no --work-id.
-  MSG="docs(work): ${OP} scope lock on ${SCOPE}"
+  if [[ "$OP" == "take" ]]; then MSG="$MSG_TAKE"; else MSG="$MSG_RELEASE"; fi
+  MSG="$(fill_scope "$MSG" "$SCOPE")"
   [[ -n "$WORK_ID" ]] && MSG="${MSG} (${WORK_ID})"
 
   git -c user.name="$(git -C "$REPO" config user.name)" \

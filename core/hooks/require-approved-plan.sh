@@ -8,6 +8,17 @@
 #   1. Ephemeral branch name: <type>/<work_id>__<scope>
 #   2. Local marker file: .claude/active_work.json or .gemini/active_work.json
 #
+# The slug accepts `_` (sub-trios named <id>_stepa), matched non-greedily up to
+# the `__` scope separator.
+#
+# A docs/<id>__knowledge or docs/<id>__relay branch never writes guarded code,
+# plan or not (git_branching_rule.md: knowledge/relay scope gate).
+#
+# Known limit: the gate keys on the branch name and the marker file. An agent
+# could get past it by creating/switching a branch or writing the marker — that
+# is forbidden (mandatory_planning_rule.md); the real enforcement is the
+# branch-scope barrier and human review.
+#
 # Escape hatch: SKIP_PLAN_GATE=1
 #
 # Two protocols, told apart by the stdin payload:
@@ -142,7 +153,24 @@ def current_branch():
 work_id = None
 source = None
 
-m = re.match(r"^[a-z-]+/(\d{4}-\d{2}-\d{2}_[a-z0-9][a-z0-9-]*)__", current_branch())
+DO_NOT_BYPASS = ("Do not create or switch branches, or write a marker file, to get past this block: "
+                 "stop and ask the human.")
+
+# Knowledge/relay scope gate (git_branching_rule.md): a docs/<id>__knowledge or
+# docs/<id>__relay branch carries knowledge or one relay message, never code — approved plan or not.
+_branch = current_branch()
+if re.match(r"^docs/.+__(knowledge|relay)$", _branch):
+    block(
+        "PLAN GATE — BLOCKED.\n"
+        "Target: " + ", ".join(guarded) + "\n"
+        "Branch " + _branch + " has scope knowledge/relay: it may not write guarded code paths, "
+        "even with an approved plan (git_branching_rule.md, knowledge/relay scope gate — "
+        "monorepo variant §10 gate 9; peer-relay module `relay` scope).\n"
+        "Code goes on a branch of the right scope (<type>/<work_id>__<scope>). " + DO_NOT_BYPASS
+    )
+
+# The slug may carry `_` (sub-trios named <id>_stepa); non-greedy, so it stops at the first `__`.
+m = re.match(r"^[a-z-]+/(\d{4}-\d{2}-\d{2}_[a-z0-9][a-z0-9_-]*?)__", _branch)
 if m:
     work_id, source = m.group(1), "branch name"
 else:
@@ -201,16 +229,40 @@ if not os.path.exists(plan_abs):
             "PLAN GATE — BLOCKED.\n"
             "Target: " + target + "\n"
             "work_id `" + work_id + "` (via " + source + ") has no plan at " + plan_rel + ".\n\n"
-            "mandatory_planning_rule.md: no code changes before an approved plan."
+            "mandatory_planning_rule.md: no code changes before an approved plan.\n" + DO_NOT_BYPASS
         )
 
+# ── Frontmatter rule, shared verbatim by every parser in the kit ──────────────
+# The YAML block opens with a `---` line, after an optional UTF-8 BOM, blank lines and
+# `<!-- ... -->` blocks, and closes at the next line that is exactly `---`. Keep this
+# function identical wherever it is copied (one fixture test runs all of them).
+_FM_LEAD = re.compile(r"\ufeff?(?:[ \t]*\r?\n|[ \t]*<!--.*?-->[ \t]*\r?\n)*", re.S)
+_FM_OPEN = re.compile(r"---[ \t]*\r?\n")
+_FM_CLOSE = re.compile(r"^---[ \t]*(?:\r?\n|\Z)", re.M)
+
+
+def frontmatter_bounds(text):
+    """(lead_end, yaml_start, yaml_end, body_start) or None. text[:yaml_start] is the
+    prefix plus the opening line, text[yaml_start:yaml_end] the YAML, text[yaml_end:]
+    the closing line plus the body — so a rewriter keeps the prefix verbatim."""
+    lead = _FM_LEAD.match(text).end()
+    opening = _FM_OPEN.match(text, lead)
+    if not opening:
+        return None
+    closing = _FM_CLOSE.search(text, opening.end())
+    if not closing:
+        return None
+    return lead, opening.end(), closing.start(), closing.end()
+
+# `status:` counts only as a TOP-LEVEL key inside the frontmatter (shared rule above): a
+# `status: approved` in the body, or indented under another key, is ignored.
 status = None
 with open(plan_abs, encoding="utf-8") as fh:
-    for line in fh:
-        s = line.strip()
-        if s == "---" and status is not None:
-            break
-        m = re.match(r"^status:\s*([a-z_]+)", s)
+    plan_text = fh.read()
+bounds = frontmatter_bounds(plan_text)
+if bounds:
+    for line in plan_text[bounds[1]:bounds[2]].splitlines():
+        m = re.match(r"^status:[ \t]*([a-z_]+)", line)
         if m:
             status = m.group(1)
             break
@@ -221,7 +273,7 @@ if status != "approved":
         "Target: " + target + "\n"
         "Plan " + plan_rel + " has status: " + (status or "missing") + " (required: approved).\n\n"
         "mandatory_planning_rule.md: the plan is the source of truth for execution.\n"
-        "Request human approval and set frontmatter status to approved before executing."
+        "Request human approval and set frontmatter status to approved before executing.\n" + DO_NOT_BYPASS
     )
 
 allow()

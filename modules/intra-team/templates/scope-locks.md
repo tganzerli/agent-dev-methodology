@@ -1,3 +1,12 @@
+---
+title: Active scope locks
+type: relay-locks
+status: live
+updated: {YYYY-MM-DD}
+summary: One sentence — live state of who is touching what right now.
+related: []
+---
+
 <!--
   Installs as: {{project}}_wiki/work/relay/_locks.md
   See modules/intra-team/README.md §4.
@@ -17,14 +26,6 @@
 
   Authored prose is in {{KNOWLEDGE_LANG}}.
 -->
----
-title: Active scope locks
-type: relay-locks
-status: live
-updated: {YYYY-MM-DD}
-summary: One sentence — live state of who is touching what right now.
-related: []
----
 
 # Active scope locks
 

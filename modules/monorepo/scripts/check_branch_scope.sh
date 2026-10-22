@@ -19,6 +19,10 @@
 #   scripts/check_branch_scope.sh [branch] [ref]
 #     branch  default: $SCOPE_BRANCH   (TODO(env): map from your CI, e.g. the PR source branch)
 #     ref     default: HEAD            (any commit-ish — used by tests)
+#
+#   SCOPE_CONTRACT_LINE  where `contract/` branches come from (default: main — rule §3.2).
+#                        `dev_packages` = the shared-package variant (git-runbook §5.3):
+#                        source dev_packages, any package, no apps/*.
 set -eu
 
 # ---------------------------------------------------------------------------
@@ -101,7 +105,10 @@ case "${BRANCH}" in
     if ! echo "${TYPES}" | tr ' ' '\n' | grep -qx -- "${TYPE}"; then
       fail "branch type '${TYPE}' does not exist. Valid: ${TYPES}"
     fi
-    if [ "${TYPE}" = "contract" ]; then
+    if [ "${TYPE}" = "contract" ] && [ "${SCOPE_CONTRACT_LINE:-main}" = "dev_packages" ]; then
+      # Shared-package variant (git-runbook §5.3): a package change like any other, no apps/*.
+      SCOPE_APP=""; SCOPE_PKG="*"; EXPECTED="dev_packages"
+    elif [ "${TYPE}" = "contract" ]; then
       # A contract surface lands in every consumer at once, off main (rule §3.2).
       SCOPE_APP="*"; SCOPE_PKG="*"; EXPECTED="main"
     else

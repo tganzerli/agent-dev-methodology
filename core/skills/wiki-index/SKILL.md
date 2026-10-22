@@ -32,6 +32,10 @@ The vault is auto-detected (a single `*_wiki/`); pass `--vault <name>` otherwise
 | `sources/external` | `source` | date, newest first |
 | `postmortems` | `postmortem` | date, newest first |
 
+## Catalog labels (vault language)
+
+Titles and the `Pages (n)` heading default to English. A vault written in another language translates them **once**, in the `catalog-labels` block of `_meta/conventions.md` — one `` - `key`: value `` line per label (`decisions`, `cross-cutting`, `sources/external`, `postmortems`, any other dir; `pages` with `{n}`; `generated`, a one-line banner with `{dir}`). Every run reads the block, so `/wiki-lint`'s drift check agrees with what you generated. `--label KEY=VALUE` overrides one label for a single run — persist it in the block, or the next check reports drift.
+
 Adding a directory is one entry in `DIRS` at the top of `generate.py`, not a new skill (also add it to `INDEXED_DIRS` in `wiki-lint/lint.py`). An unlisted dir passed explicitly works with defaults.
 
 ## When NOT to use

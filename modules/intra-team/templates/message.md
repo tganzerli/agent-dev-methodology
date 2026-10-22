@@ -1,3 +1,17 @@
+---
+title: {human title}
+type: relay
+direction: outbound            # outbound (we authored) | inbound (we received)
+from_agent: {model/role}       # e.g. opus-4.8/auth-refactor
+to_agent: {model/role | any}   # `any` broadcasts to whoever picks up the scope
+msg_role: note                 # note | request | response | handoff | conflict
+status: sent                   # sent | read | acked | resolved | superseded
+updated: {YYYY-MM-DD}
+summary: One sentence — what this message coordinates.
+work_refs: []                  # work_ids / [[wikilinks]] / branches concerned — greppable
+related: []
+---
+
 <!--
   Installs as: {{project}}_wiki/work/relay/_templates/message.md
   See INSTALL.md §5-bis and modules/intra-team/README.md.
@@ -16,19 +30,6 @@
   re-paste code, an algorithm, or a field list the reader can open themselves.
   Duplication drifts.
 -->
----
-title: {human title}
-type: relay
-direction: outbound            # outbound (we authored) | inbound (we received)
-from_agent: {model/role}       # e.g. opus-4.8/auth-refactor
-to_agent: {model/role | any}   # `any` broadcasts to whoever picks up the scope
-msg_role: note                 # note | request | response | handoff | conflict
-status: sent                   # sent | read | acked | resolved | superseded
-updated: {YYYY-MM-DD}
-summary: One sentence — what this message coordinates.
-work_refs: []                  # work_ids / [[wikilinks]] / branches concerned — greppable
-related: []
----
 
 # {Message title}
 

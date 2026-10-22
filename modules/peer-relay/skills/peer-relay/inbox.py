@@ -15,9 +15,15 @@ This script reads both, from the remote:
 
 A message matches when its frontmatter says `direction: inbound` and
 `peer: <peer>`. Branch names are not used to filter: peers name them
-differently. A relay file in an open PR that says neither `inbound` nor
-`peer: <peer>` is listed apart: a peer that delivers its own outbound copy
-unchanged is invisible to the match, and that has happened.
+differently. A relay file in an open PR stamped `direction: outbound` and
+`peer: <self>` is listed apart (`misstamped`): it is the peer's own outbound
+copy addressed to us, delivered without the inbound stamp, invisible to the
+match - and that has happened. Intra-team messages (no `peer:`) and our own
+outbound copies to other peers are not misstamped and are not listed.
+
+<self> is our name in the peers' registries (the prefix they use for us):
+`--self NAME`, else `self:` in the frontmatter of .agents/peers.md, else the
+vault name without `_wiki` (`<project>_wiki` -> `<project>`).
 
 Open PRs are read with the GitHub CLI (`gh`). On another host, replace
 `list_prs()` with that host's CLI (e.g. `glab mr list`), keeping its contract;
@@ -31,7 +37,7 @@ Exit codes - an empty answer is an answer only with 0:
 
 Usage:
   python3 .claude/skills/peer-relay/inbox.py <peer> [--root .] [--vault <dir>]
-          [--remote origin] [--line main] [--all] [--pr N]
+          [--self <our-name>] [--remote origin] [--line main] [--all] [--pr N]
 
 `--pr N` reads PR N in any state instead of listing open ones (to test the
 positive path against an already merged delivery).
@@ -53,14 +59,35 @@ def run(cmd, root):
     return subprocess.run(cmd, cwd=root, check=True, capture_output=True, text=True).stdout
 
 
+# ── Frontmatter rule, shared verbatim by every parser in the kit ──────────────
+# The YAML block opens with a `---` line, after an optional UTF-8 BOM, blank lines and
+# `<!-- ... -->` blocks, and closes at the next line that is exactly `---`. Keep this
+# function identical wherever it is copied (one fixture test runs all of them).
+_FM_LEAD = re.compile(r"\ufeff?(?:[ \t]*\r?\n|[ \t]*<!--.*?-->[ \t]*\r?\n)*", re.S)
+_FM_OPEN = re.compile(r"---[ \t]*\r?\n")
+_FM_CLOSE = re.compile(r"^---[ \t]*(?:\r?\n|\Z)", re.M)
+
+
+def frontmatter_bounds(text):
+    """(lead_end, yaml_start, yaml_end, body_start) or None. text[:yaml_start] is the
+    prefix plus the opening line, text[yaml_start:yaml_end] the YAML, text[yaml_end:]
+    the closing line plus the body — so a rewriter keeps the prefix verbatim."""
+    lead = _FM_LEAD.match(text).end()
+    opening = _FM_OPEN.match(text, lead)
+    if not opening:
+        return None
+    closing = _FM_CLOSE.search(text, opening.end())
+    if not closing:
+        return None
+    return lead, opening.end(), closing.start(), closing.end()
+
+
 def frontmatter(text):
-    lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
+    bounds = frontmatter_bounds(text)
+    if not bounds:
         return {}
     fm = {}
-    for line in lines[1:]:
-        if line.strip() == "---":
-            break
+    for line in text[bounds[1]:bounds[2]].splitlines():
         m = re.match(r"^([A-Za-z_]+):\s*(.*)$", line)
         if m:
             fm[m.group(1)] = re.sub(r"\s+#.*$", "", m.group(2)).strip().strip("\"'")
@@ -71,9 +98,24 @@ def matches(fm, peer):
     return fm.get("direction") == "inbound" and fm.get("peer") == peer
 
 
-def misstamped(fm, peer):
-    """Neither an inbound from `peer`, nor an inbound from another peer, nor our copy to `peer`."""
-    return fm.get("direction") != "inbound" and fm.get("peer") != peer
+def misstamped(fm, self_name):
+    """The peer's outbound copy addressed to us, delivered without being re-stamped
+    `direction: inbound` (peer-relay SKILL: "The delivered copy is stamped for the reader").
+    Not an intra-team message (no `peer:`), not our own outbound copy to another peer."""
+    return fm.get("direction") == "outbound" and fm.get("peer") == self_name
+
+
+def resolve_self(cli_value, peers_text, vault):
+    """Our name as the peers know us: --self, else `self:` in the registry's
+    frontmatter, else the vault name without `_wiki`."""
+    if cli_value:
+        return cli_value
+    bounds = frontmatter_bounds(peers_text)
+    if bounds:
+        m = re.search(r"^self:[ \t]*[\"'`]?([^\s\"'`#]+)", peers_text[bounds[1]:bounds[2]], re.M)
+        if m:
+            return m.group(1)
+    return vault[:-len("_wiki")] if vault.endswith("_wiki") else vault
 
 
 def merged_messages(root, ref, relay_dir, peer, show_all):
@@ -97,7 +139,7 @@ def list_prs(root, line, only_pr):
                            "--limit", "200", "--json", fields], root))
 
 
-def pr_messages(root, remote, relay_dir, peer, pr):
+def pr_messages(root, remote, relay_dir, peer, self_name, pr):
     paths = [f["path"] for f in pr.get("files") or []
              if f["path"].startswith(relay_dir) and f["path"].endswith(".md")
              and not os.path.basename(f["path"]).startswith("_")]
@@ -112,17 +154,17 @@ def pr_messages(root, remote, relay_dir, peer, pr):
             continue  # deleted by the PR
         if matches(fm, peer):
             found.append((pr, path, fm))
-        elif misstamped(fm, peer):
+        elif misstamped(fm, self_name):
             odd.append((pr, path, fm))
     return found, odd
 
 
-def open_pr_messages(root, remote, line, relay_dir, peer, only_pr):
+def open_pr_messages(root, remote, line, relay_dir, peer, self_name, only_pr):
     """Returns (found, odd, None) or (None, None, reason) - never [] for 'not checked'."""
     try:
         found, odd = [], []
         for pr in list_prs(root, line, only_pr):
-            f, o = pr_messages(root, remote, relay_dir, peer, pr)
+            f, o = pr_messages(root, remote, relay_dir, peer, self_name, pr)
             found.extend(f)
             odd.extend(o)
         return found, odd, None
@@ -144,6 +186,9 @@ def main():
     ap.add_argument("peer")
     ap.add_argument("--root", default=".")
     ap.add_argument("--vault", default=None, help="vault dir (default: the single *_wiki/ under --root)")
+    ap.add_argument("--self", dest="self_name", default=None,
+                    help="our name in the peers' registries (default: `self:` in .agents/peers.md, "
+                         "else the vault name without _wiki)")
     ap.add_argument("--remote", default="origin")
     ap.add_argument("--line", default="main", help="the line relay deliveries land in")
     ap.add_argument("--all", action="store_true", help="merged: show every status")
@@ -170,6 +215,7 @@ def main():
             return 1
         vault = vaults[0]
     relay_dir = f"{vault}/work/relay/"
+    self_name = resolve_self(args.self_name, peers, vault)
     ref = f"{args.remote}/{args.line}"
 
     code = 0
@@ -189,7 +235,8 @@ def main():
         print(f"error: cannot read {ref}: {(e.stderr or '').strip()}", file=sys.stderr)
         return 1
 
-    in_prs, odd, reason = open_pr_messages(root, args.remote, args.line, relay_dir, args.peer, args.pr)
+    in_prs, odd, reason = open_pr_messages(root, args.remote, args.line, relay_dir, args.peer,
+                                           self_name, args.pr)
     checked = "checked" if reason is None else "NOT checked"
     print(f"peer {args.peer} · {ref} @ {head} · PRs: {checked}")
 
@@ -206,8 +253,8 @@ def main():
                   f"  status={fm.get('status', '?')}{note}")
             print(f"        {summary_line(fm)}")
         if odd:
-            print(f"⚠ relay files in PRs not stamped inbound/{args.peer} ({len(odd)}) - "
-                  "a delivery with the sender's outbound frontmatter? Read before dismissing:")
+            print(f"⚠ relay files in PRs stamped outbound/{self_name} ({len(odd)}) - "
+                  "a delivery with the sender's outbound frontmatter. Read before dismissing:")
             for pr, path, fm in odd:
                 print(f"  #{pr['number']}  {os.path.basename(path)}"
                       f"  direction={fm.get('direction', '?')} peer={fm.get('peer', '?')}")

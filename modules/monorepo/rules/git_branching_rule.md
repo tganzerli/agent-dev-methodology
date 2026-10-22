@@ -29,7 +29,7 @@ Genesis commit and bootstrap without a `dev_<app>` (the monorepo skills abort un
 
 ## 2. Language requirement
 
-New documents generated under this rule (ADRs, wiki pages) are authored in **{{KNOWLEDGE_LANG}}** (the project's knowledge-content language). Branch names, Git commands, and Git identifiers stay in **English** and pure ASCII — only `[a-z0-9-_]` and `/`, no accents, spaces, or special characters.
+New documents generated under this rule (ADRs, wiki pages) are authored in **{{KNOWLEDGE_LANG}}** (the project's knowledge-content language). Branch names, Git commands, and Git identifiers (including the Conventional Commits type) stay in **English** and pure ASCII — only `[a-z0-9-_]` and `/`, no accents, spaces, or special characters. Commit messages and PR titles/bodies are written in **{{COMMIT_LANG}}** (the commit language chosen at install).
 
 ## 3. Permanent branches
 
@@ -127,6 +127,8 @@ The **`__` (double underscore)** separator between `<work_id>` and `<scope>` is 
 | `docs` (knowledge) | Knowledge layer (scope `knowledge`) — rule/skill/wiki/methodology | `main` | `main` |
 | `bench` | Benchmark work (`benchmark_protocol_rule.md`) — evidence page, dataset, command, versioned artifacts | `dev_<app>` | `dev_<app>` |
 | `contract` | Change to a versioned cross-boundary contract (`contract_change_rule.md`) — **atomic**: contract + implementation + every consumer + tests + knowledge page | `main` | `main` (§3.2) |
+
+**Variant — the contract is a shared package.** A project whose versioned contract *is* a package (`packages/<contract>`) may instead cut `contract/<id>__<pkg>` off `dev_packages` and PR it into `dev_packages`, consumers following on their own branches — only if this rule names the variant in place of the `contract` row above (trade-off, and `SCOPE_CONTRACT_LINE=dev_packages` for the barrier: `git-runbook` §5.3).
 
 **Module-registered types.** `bench` (benchmarks module) and `contract` (contracts module) are valid **only while their module is installed**; delete the row of a module the project did not install. The module's own rule owns what must ride on the branch; this table owns where the branch starts and lands.
 
@@ -285,7 +287,7 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 
 10. ❌ Editing the knowledge layer on `demo_*`/`staging_*` without explicit human confirmation + justification.
 11. ❌ Editing `apps/*` on `dev_packages`, or creating a `pkg/<id>__<app>` branch. `dev_packages` is packages-only.
-12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). The CI auto-merge has a branch-protection exception; humans stay restricted to PRs.
+12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). The CI auto-merge has a branch-protection exception; humans stay restricted to PRs. A manual broadcast while CI is down is allowed only under a named, dated exception written into this rule (recipe: `git-runbook` §1.6.1).
 13. ❌ Using a module-registered type (`bench`, `contract`) when its module is not installed (§4.2).
 
 ## 11. Cross-reference

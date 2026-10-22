@@ -1,16 +1,3 @@
-<!--
-  Instala como: {{project}}_wiki/work/relay/_templates/peer-message.md
-  Ver .claude/skills/peer-relay/SKILL.md e kit:modules/peer-relay/README.md.
-
-  Estende `message.md` (intra-team). Mesmos msg_role, mesma tabela de asks com IDs
-  estáveis, mesmo round log. Três acréscimos, e todos existem porque o leitor está
-  em OUTRO repositório: frontmatter com dois espaços de nomes, uma seção de
-  Orientação, e um terceiro closing ask.
-
-  Copie para {{project}}_wiki/work/relay/{YYYY-MM-DD}_{slug}.md e preencha os {...}.
-  Mantenha a sub-seção do msg_role que está autorando; apague as outras.
-  Prosa em {{KNOWLEDGE_LANG}}.
--->
 ---
 title: {título}
 type: relay
@@ -26,6 +13,20 @@ work_refs: []                  # NOSSOS work_ids / branches
 peer_work_refs: []             # work_ids DELES — espaço de nomes separado, não misture
 related: []
 ---
+
+<!--
+  Instala como: {{project}}_wiki/work/relay/_templates/peer-message.md
+  Ver .claude/skills/peer-relay/SKILL.md e kit:modules/peer-relay/README.md.
+
+  Estende `message.md` (intra-team). Mesmos msg_role, mesma tabela de asks com IDs
+  estáveis, mesmo round log. Três acréscimos, e todos existem porque o leitor está
+  em OUTRO repositório: frontmatter com dois espaços de nomes, uma seção de
+  Orientação, e um terceiro closing ask.
+
+  Copie para {{project}}_wiki/work/relay/{YYYY-MM-DD}_{slug}.md e preencha os {...}.
+  Mantenha a sub-seção do msg_role que está autorando; apague as outras.
+  Prosa em {{KNOWLEDGE_LANG}}.
+-->
 
 # {título}
 

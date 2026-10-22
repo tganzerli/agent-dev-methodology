@@ -77,7 +77,7 @@ After delivery: append to `{{project}}_wiki/_meta/log.md` (`## [YYYY-MM-DD] peer
 
 ### `read <peer>` · autonomous
 
-Run `python3 .claude/skills/peer-relay/inbox.py <peer>`. It lists the peer's `direction: inbound` messages in **two states**: merged into `origin/main` (pending, `status: sent|read`; `--all` shows all) and **delivered in an open PR** against `main`, not merged yet. Peers deliver by PR, so a new message passes through the second state first. Reading the working tree is not enough: it does not see the PR, and it shows the session's branch, not `main`. It also lists relay files in open PRs that are **not** stamped `inbound`/`<peer>` — a peer that delivered its outbound copy unchanged.
+Run `python3 .claude/skills/peer-relay/inbox.py <peer>`. It lists the peer's `direction: inbound` messages in **two states**: merged into `origin/main` (pending, `status: sent|read`; `--all` shows all) and **delivered in an open PR** against `main`, not merged yet. Peers deliver by PR, so a new message passes through the second state first. Reading the working tree is not enough: it does not see the PR, and it shows the session's branch, not `main`. It also lists relay files in open PRs stamped `direction: outbound`, `peer: {{project}}` — the peer's outbound copy addressed to us, delivered unchanged (our name: `--self`, else `self:` in `.agents/peers.md`, else the vault name without `_wiki`).
 
 🔒 **Empty counts only with exit `0`.** Exit `2` means the open PRs were not checked (`gh` missing or failing, or a host other than GitHub) or the `fetch` failed; tell the human that, not "there are no messages".
 

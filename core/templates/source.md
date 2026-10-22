@@ -1,3 +1,16 @@
+---
+title: {origin path or name} — {short description}
+type: source
+scope:
+  area: []                      # single-repo: free text
+  # apps: []                    # monorepo only
+  # packages: []                # monorepo only
+status: draft                   # stub | draft | stable | stale
+updated: {YYYY-MM-DD}
+summary: One sentence, at most 250 chars — the line the catalogs show (/wiki-index).
+related: []                     # wikilinks to knowledge pages this source feeds
+---
+
 <!--
   Installs as: {{project}}_wiki/sources/external/_template.md
   Also usable (copy alongside) for {{project}}_wiki/sources/internal/.
@@ -11,18 +24,6 @@
   Authored CONTENT is written in {{KNOWLEDGE_LANG}}. Frontmatter keys/values
   stay English.
 -->
----
-title: {origin path or name} — {short description}
-type: source
-scope:
-  area: []                      # single-repo: free text
-  # apps: []                    # monorepo only
-  # packages: []                # monorepo only
-status: draft                   # stub | draft | stable | stale
-updated: {YYYY-MM-DD}
-summary: One sentence, at most 250 chars — the line the catalogs show (/wiki-index).
-related: []                     # wikilinks to knowledge pages this source feeds
----
 
 # Summary — `{origin path or name}`
 

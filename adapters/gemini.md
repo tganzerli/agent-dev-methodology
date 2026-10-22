@@ -101,6 +101,8 @@ Just as Claude Code isolates context through role subagents in `.claude/agents/`
 
 The kit's `require-approved-plan.sh` speaks this protocol when the payload carries `toolCall` (and Claude Code's otherwise); the kit ships the file above as `core/hooks/agy-hooks.json`.
 
+- 🔒 **Known limit:** the gate keys on the branch name / marker file (`.claude/` or `.gemini/active_work.json`). Never create or switch a branch, or write the marker, to get past a `deny` — stop and ask the human. The branch-scope barrier and human review are the real enforcement.
+
 **Gemini CLI** configures hooks in `.gemini/settings.json` — Gemini CLI only; `agy` does not read it. The kit's gate script has not been verified against Gemini CLI's hook protocol (`⚠ unverified`).
 
 ### 5.2. MCP servers
@@ -122,7 +124,7 @@ The kit's `require-approved-plan.sh` speaks this protocol when the payload carri
 
 **Forbidden** to include `Co-Authored-By: Gemini <…>` — or any trailer/footer identifying the assistant (any Gemini/Google model or product name) — in commits produced via Gemini. Applies to ordinary commits, merge commits, amendments, any trailer/footer, and PR descriptions. The author is the human; the local `git user` already records authorship. If you generate a co-authored message by mistake, fix it before committing; if already committed, do not rebase without human approval. (An equivalent rule holds for every other agent's adapter.)
 
-**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py <PR base>` in CI (the guarantee) — see the kit's `INSTALL.md` §6.
+**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py` in CI on every PR and every push to a permanent branch (the guarantee) — see the kit's `INSTALL.md` §6.
 
 ## 7. Limits
 

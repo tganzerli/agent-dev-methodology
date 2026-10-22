@@ -1,3 +1,8 @@
+---
+trigger: manual
+self: {{project}}   # our name in the peers' registries — inbox.py flags their outbound copies addressed to it
+---
+
 <!--
   Installs as: .agents/peers.md
   See INSTALL.md §5-ter and modules/peer-relay/README.md.
@@ -8,9 +13,6 @@
 
   Fill one section per peer. Delete the examples. Authored prose in {{KNOWLEDGE_LANG}}.
 -->
----
-trigger: manual
----
 
 # Peers — sibling repositories on this machine
 
