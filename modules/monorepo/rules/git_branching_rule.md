@@ -84,7 +84,7 @@ pkg/<id>__<pkg>  →  dev_packages  ──(CI: direct auto-merge)──▶  dev_
 - **PR into `staging_<app>`** requires: source is `dev_<app>`; the affected app's manifest got a **version bump** (patch/minor/major); CI green. On merge, the `<app>-vX.Y.Z` tag is cut.
 - **PR into `dev_<app>`** requires one of: an ephemeral branch with a valid `work_id` (`feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `hotfix/`, or a module-registered type — §4.2); a CI auto-merge (top-down broadcast per §6 — the bot token has a branch-protection exception, humans stay restricted).
 
-  > **There is no direct commit into `dev_<app>`, not even from an approved plan.** An earlier version of this line and of the §3 table allowed one, while §10 gate 12 forbade any human push to `dev_<app>`: two sections authorised what a third banned. An installation found it by walking into it — an agent committed a work log straight to a `dev_<app>`, then checked and got both answers; the missing host-side protection (§6.7) let it pass in silence instead of failing. Resolved toward the stricter reading: **one flow, always a PR.** An approved plan authorises the work, never the push path.
+  > **There is no direct commit into `dev_<app>`, not even from an approved plan.** An earlier version of this line and of the §3 table allowed one, while §10 gate 12 forbade any human push to `dev_<app>`: two sections authorised what a third banned. An installation found it by walking into it — an agent committed a work log straight to a `dev_<app>`, then checked and got both answers; the missing host-side protection (§6, admin precondition) let it pass in silence instead of failing. Resolved toward the stricter reading: **one flow, always a PR.** An approved plan authorises the work, never the push path.
 - **PR into `dev_packages`** requires: source is `pkg/<work_id>__<pkg>` with an approved plan. Diff restricted to `packages/*` + shared knowledge/tooling.
 - **Commit into `demo_<app>`** requires: explicit human confirmation and justification (this branch is frozen).
 - **Direct commit into `main` or `staging_*` is FORBIDDEN** — no exception.
@@ -194,11 +194,7 @@ Hotfixes patch production without going through `dev_<app>`. They still require 
 
 ### 5.1. Flow
 
-1. Branch off `main`:
-   ```bash
-   git checkout main && git pull
-   git checkout -b hotfix/<work_id>__<app>
-   ```
+1. Branch off `main` (`hotfix/<work_id>__<app>`; commands in the `git-runbook` skill).
 2. Implement the fix, commit.
 3. Open a PR to `staging_<app>` (not `main` directly) and validate in staging.
 4. After validation, open the `staging_<app> → main` PR.
@@ -212,55 +208,15 @@ The manifest version bump (patch — e.g. `1.0.1 → 1.0.2`) is still required i
 
 *(Install this section only if the repo has shared packages — see §3.)*
 
-Changes to `packages/<pkg>` live on the permanent `dev_packages` trunk. Apps consume via automatic (CI) or manual (skill) distribution.
+Changes to `packages/<pkg>` live on the permanent `dev_packages` trunk; apps receive them by broadcast. **The step-by-step recipe** — change flow, contents of `dev_packages`, release to `main`, bootstrap, PR titles, both broadcasts — lives in the **`git-runbook`** skill. Invoke it **before** opening a `pkg/` or `tag/` branch or touching `dev_packages`. The gates stay here:
 
-> **History.** This trunk model replaced an earlier "N twin all-or-nothing PRs" model. If you are installing this kit fresh, **start at the mature trunk + broadcast form** — do not reintroduce the N-PR form.
-
-### 6.1. Change flow
-
-1. **Ephemeral branch** `pkg/<work_id>__<pkg>` off `dev_packages`.
-2. **Implementation + single PR** `pkg/<id>__<pkg> → dev_packages`. **The human review gate happens ONCE here.**
-3. **After merge into `dev_packages`, top-down broadcast via CI (direct auto-merge):**
-   - **Automatic (CI):** the pipeline (`scripts/broadcast-packages.sh`) fires on push to `dev_packages`. For each consuming `dev_<app>`, it does `git merge --no-ff` + `git push` directly — **no intermediate PRs**. The human gate already happened in step 2.
-   - **No-op gate:** if the push to `dev_packages` introduced no change under `packages/*` (e.g. a fast-forward of main), CI skips the broadcast to avoid purposeless merge commits.
-   - **Best-effort conflict:** if some `dev_<app>` conflicts, CI aborts that one, **continues the others**, and marks the pipeline failed with a log of which conflicted. Manual resolution via `/distribute-packages`.
-4. **Manual fallback (`/distribute-packages`):** a dev on a `dev_<app>` can pull ahead of CI, or resolve a post-abort conflict. Useful when CI did not run, the pipeline is down, or bootstrapping a new app.
-
-### 6.2. Contents of `dev_packages`
-
-Contains: `packages/<pkg>/…`; shared tooling (root workspace manifest, etc.); the knowledge layer (present on any branch). Does **NOT** contain `apps/*` — removed on the initial commit. Apps live only on `dev_<app>`.
-
-### 6.3. Promotion to `main` (tagged release)
-
-When bumping a package's SemVer:
-
-1. Ephemeral branch `tag/<pkg>-vX.Y.Z__<pkg>` off `dev_packages`.
-2. Bump the package manifest + CHANGELOG (`packages/<pkg>/CHANGELOG.md`).
-3. PR → `main`. Reviewer validates CHANGELOG, breaking changes, version.
-4. After merge: the namespaced tag `<pkg>-vX.Y.Z` is cut on the merge commit (§7.1).
-
-### 6.4. New apps (bootstrap)
-
-A new app `dev_<newapp>` is born off `main`; its **first action** is `/distribute-packages` to sync with the current `dev_packages` snapshot. Bootstrapping in sync eliminates the accumulated-debt failure mode.
-
-### 6.5. PR conventions
-
-- **Every ephemeral PR** (`<type>/<work_id>__<scope>` into its `dev_*` trunk, including `pkg/`): opened only with the validations green **with their output recorded** in the execution, the agent review closed with no open `Important` finding (or `skipped — low`), and the human review done at the depth the plan's risk tier sets (`.agents/METHODOLOGY.md` §4.4.1). The body states **Testing**, **Risk** and **How to revert**, taken from plan §4.4.
-- **`pkg/<id>__<pkg> → dev_packages`:** title `[pkg] <short description> (work_id: <id>)`. Body links the task + scope. **The only PR in the flow** — downstream broadcast is automatic via CI.
-- **`tag/<pkg>-vX.Y.Z__<pkg> → main`:** title `[tag] <pkg>-vX.Y.Z`. Body includes CHANGELOG + the list of `pkg/` PRs since the previous tag.
-
-### 6.6. Top-down broadcast: `main → dev_<app>` + `dev_packages`
-
-Analogous to §6.1 but for `main`:
-
-- **Trigger:** push to `main` (any merge — `staging_<app>`, `tag/<pkg>`, `docs/__knowledge`).
-- **CI script:** `scripts/broadcast-main.sh` auto-merges `main → dev_<app>` (each) + `dev_packages`. Fast-forward when possible, merge commit otherwise. Knowledge-layer conflicts are auto-reconciled (main is canonical) per `knowledge_source_of_truth_rule.md` §3.6.
-- **Best-effort conflict:** same pattern as §6.1.
-- **Manual fallback:** `/sync-knowledge` when CI fails or a rare conflict arises.
-
-### 6.7. Admin precondition (host UI)
-
-`dev_*` must have **branch protection** with an explicit exception for the CI **bot token** (a repository access token / deploy key with write scope). Humans stay restricted to PRs; only the token pushes directly via CI. Configure this in your git host's UI (§9).
+- 🔒 **`pkg/<work_id>__<pkg>` branches off `dev_packages` and has a single PR into `dev_packages`.** The human review gate happens **once**, there; the CI broadcast (`scripts/broadcast-packages.sh`) then merges into each consuming `dev_<app>` with no intermediate PR. Twin PRs into several `dev_<app>` are forbidden (§10 gate 5) — do not reintroduce the retired N-PR model.
+- 🔒 **`dev_packages` does not contain `apps/*`** (§10 gate 11).
+- 🔒 **A package release** is a `tag/<pkg>-vX.Y.Z__<pkg>` branch off `dev_packages` with a SemVer bump and a CHANGELOG entry, PR into `main` (§3.2); the tag is cut by hand on the merge commit (§7.2).
+- 🔒 **New app bootstrap:** the first action on a fresh `dev_<newapp>` (born off `main`) is `/distribute-packages`, to sync with the current `dev_packages` snapshot.
+- 🔒 **Every ephemeral PR** (`<type>/<work_id>__<scope>` into its `dev_*` trunk, including `pkg/`): opened only with the validations green **with their output recorded** in the execution, the agent review closed with no open `Important` finding (or `skipped — low`), and the human review done at the depth the plan's risk tier sets (`.agents/METHODOLOGY.md` §4.4.1). The body states **Testing**, **Risk** and **How to revert**, taken from plan §4.4.
+- 🔒 **Broadcast failures are resolved by hand, never forced:** `/distribute-packages` for `dev_packages → dev_<app>`, `/sync-knowledge` for `main → dev_*` (knowledge-layer conflicts in Group A are auto-reconciled per `knowledge_source_of_truth_rule.md` §3.6; everything else aborts).
+- 🔒 **Admin precondition:** `dev_*` carries branch protection with a push exception for the CI identity only (a deploy key or bot token with write scope). Humans stay restricted to PRs. Configured in the host (§9).
 
 ## 7. Version tags
 
@@ -288,51 +244,15 @@ Global tags (e.g. a bare `v1.0.0`) are **forbidden** — they collide in a monor
 
 The version bump is **manual** in the `dev → staging` PR, following SemVer: `patch` (fix), `minor` (compatible feat), `major` (breaking). An auto-bump CI step is a possible follow-up.
 
-## 8. Canonical Git commands
+## 8. Git commands and destructive operations
 
-Use these. Do not invent non-standard flags.
-
-```bash
-# Create ephemeral branch
-git checkout dev_<app>            # or: git checkout main (hotfix only)
-git pull
-git checkout -b <type>/<work_id>__<scope>
-
-# Sync ephemeral branch with its dev_<app>
-git checkout <type>/<work_id>__<scope>
-git fetch origin
-git rebase origin/dev_<app>
-
-# Mandatory rebase of staging onto main (pre-PR to main)
-git checkout staging_<app>
-git fetch origin
-git rebase origin/main
-git push --force-with-lease origin staging_<app>   # --force-with-lease, never --force
-
-# Namespaced tag
-git tag <app>-vX.Y.Z <merge_commit>
-git push origin <app>-vX.Y.Z
-
-# Delete ephemeral branch after merge
-git push origin --delete <type>/<work_id>__<scope>
-git branch -D <type>/<work_id>__<scope>
-```
+The canonical commands (create, sync, rebase staging, tag, delete) are in the **`git-runbook`** skill. Use those; do not invent non-standard flags.
 
 **Destructive operations — require human confirmation.** `push --force` (any variant, including `--force-with-lease` on a permanent branch), `branch -D` (unmerged local delete), `push --delete` on a permanent branch (`main`, `staging_*`, `dev_*`, `demo_*`) — always announce the command and ask `[y/n]` before running.
 
 ## 9. Host configuration — who may change it, and how
 
-Some operations live in the git host's **control panel**, not in `git`: branch protection, required checks, merge settings, a bot's push exception. **By default the agent guides the human through the panel and does not touch them itself.** The menu path varies by host (GitHub → Settings → Rules → Rulesets, or Settings → Branches; GitLab → Settings → Repository → Protected branches; Bitbucket → Repository settings → Branch permissions), so name the concept and let the human find it in their host:
-
-| Situation | Concept to configure in the host UI |
-|---|---|
-| Protect permanent branches (`main`, `staging_*`, `dev_*`, `demo_*`) | Branch protection / restriction |
-| Force PR review before merge | Require N minimum approvals |
-| Force CI green before merge | Require successful builds/checks |
-| Grant the CI bot token push on `dev_*` | Branch-protection exception for the bot identity |
-| PR template | Add the host's PR-template file and commit to `main` |
-| Merge strategy (squash/merge/rebase) | Merge settings / merge checks |
-| Block force-push on permanent branches | Prevent history rewriting |
+Some operations live in the git host's **control panel**, not in `git`: branch protection, required checks, merge settings, a bot's push exception. **By default the agent guides the human through the panel and does not touch them itself.** The **`git-runbook`** skill lists the concepts to configure (protection, approvals, required checks, the CI push exception, PR template, merge strategy, force-push block) and where each host keeps them.
 
 When guiding the human, **describe the path for their specific host** and the expected result.
 
@@ -340,7 +260,7 @@ When guiding the human, **describe the path for their specific host** and the ex
 
 ### 9.1. The gate is the authorisation, not the tool
 
-🔒 **An agent never changes host configuration on its own initiative.** That — and only that — is the prohibition. The API is not what is banned: the host's REST API configures **every row of the table above**, so *"not doable via `git`"* was never the same as *"cannot be automated"*. The principle underneath is narrower and holds either way: **access control is the repository owner's to grant, not an agent's to assume.**
+🔒 **An agent never changes host configuration on its own initiative.** That — and only that — is the prohibition. The API is not what is banned: the host's REST API configures **every one of those settings**, so *"not doable via `git`"* was never the same as *"cannot be automated"*. The principle underneath is narrower and holds either way: **access control is the repository owner's to grant, not an agent's to assume.**
 
 With **explicit, per-task human authorisation**, an agent MAY apply the change through the API. Three obligations ride with it, and they are what make the permission auditable instead of a blank cheque:
 
