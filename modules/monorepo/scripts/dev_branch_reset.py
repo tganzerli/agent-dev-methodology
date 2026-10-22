@@ -108,7 +108,7 @@ def decide(root, remote, fetch=True):
 
     r = {"branch": branch, "remote": remote, "head": "", "origin": "", "ahead": 0, "behind": 0,
          "local_merges": 0, "local_files": 0, "outside_wiki": 0, "local_only": [],
-         "untracked": [], "checks": checks, "safe": False}
+         "untracked": [], "clobbered": [], "checks": checks, "safe": False}
 
     # 1 -- the branch is a dev_<app>
     allowed = bool(branch) and bool(DEV.match(branch)) and not NOT_APP.match(branch)
@@ -159,7 +159,16 @@ def decide(root, remote, fetch=True):
     reg(5, "no local-only content", not r["local_only"],
         "%d file(s) differ from the remote" % len(r["local_only"]) if r["local_only"] else "")
 
-    r["untracked"] = out(root, "ls-files", "--others", "--exclude-standard").splitlines()
+    # 6 -- reset --hard OVERWRITES an untracked or ignored file that the remote tracks.
+    untracked = set(out(root, "ls-files", "--others", "--exclude-standard", "-z").split("\0"))
+    ignored = set(out(root, "ls-files", "--others", "--ignored", "--exclude-standard", "-z").split("\0"))
+    remote_files = set(out(root, "ls-tree", "-r", "-z", "--name-only", ref).split("\0"))
+    clobbered = sorted((untracked | ignored) & remote_files - {""})
+    r["clobbered"] = clobbered
+    reg(6, "no untracked/ignored file the remote tracks", not clobbered,
+        ", ".join(clobbered)[:200] if clobbered else "")
+
+    r["untracked"] = sorted(untracked - {""})
     r["safe"] = all(c["ok"] for c in checks)
     return r
 
@@ -185,7 +194,7 @@ def text(r):
     if len(r["local_only"]) > 30:
         L.append("         ... and %d more" % (len(r["local_only"]) - 30))
     if r["untracked"]:
-        L.append("  note: %d untracked file(s); the reset does not touch them" % len(r["untracked"]))
+        L.append("  note: %d untracked file(s); the reset leaves them alone unless the remote tracks the same path (check 6)" % len(r["untracked"]))
     if r.get("applied"):
         L.append("VERDICT: SAFE -- nothing local-only; reset APPLIED.")
     elif r["safe"]:
@@ -216,11 +225,11 @@ def main():
         if a.apply and r["safe"]:
             if not a.expect_head:
                 r["safe"] = False
-                r["checks"].append({"id": 6, "name": "--expect-head given", "ok": False,
+                r["checks"].append({"id": 7, "name": "--expect-head given", "ok": False,
                                     "detail": "use the sha from the report: %s" % r["head"]})
             elif a.expect_head != r["head"]:
                 r["safe"] = False
-                r["checks"].append({"id": 6, "name": "--expect-head matches HEAD", "ok": False,
+                r["checks"].append({"id": 7, "name": "--expect-head matches HEAD", "ok": False,
                                     "detail": "expected %s, current %s" % (a.expect_head, r["head"])})
             else:
                 bk = backup_name(root, r["branch"], a.date or datetime.date.today().isoformat())

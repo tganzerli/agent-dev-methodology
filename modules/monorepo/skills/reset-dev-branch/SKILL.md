@@ -53,6 +53,7 @@ Show the `FAIL` items and guide — **never** insist:
 | Reason | What to say |
 |---|---|
 | `5. no local-only content` | A file the remote lacks (or has differently). Promote with `/promote-knowledge` and wait for the broadcast, or inspect the listed file. |
+| `6. no untracked/ignored file the remote tracks` | `reset --hard` would overwrite that local file with the remote's. Move or delete it after checking its content. |
 | `2. clean tracked tree` | Commit or stash the change. |
 | `3. no git operation in progress` | Finish or abort the merge/rebase/cherry-pick. |
 | `1. branch is a dev_<app>` | Wrong branch. |

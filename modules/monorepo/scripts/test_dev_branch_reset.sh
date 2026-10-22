@@ -181,6 +181,22 @@ assert "warns about the untracked file" "$(contains "${OUT}" 'untracked')" yes
 run "${TMP}/c11" --apply --expect-head "$(short_of "${TMP}/c11")"
 assert "the untracked file survives the reset" "$([ -f "${TMP}/c11/work/draft.txt" ] && echo yes || echo no)" yes
 
+echo "== case 11b: an UNTRACKED file the remote tracks -> refused (reset --hard would overwrite it)"
+setup c11b
+commit_in "${TMP}/c11b/work" notes/a.md v1 "local authoring"
+promote "${TMP}/c11b" notes/a.md v1
+promote "${TMP}/c11b" notes/newf.md theirs
+echo mine > "${TMP}/c11b/work/notes/newf.md"
+run "${TMP}/c11b" --apply --expect-head "$(short_of "${TMP}/c11b")"
+assert "exit 1" "${RC}" "1"
+assert "names the file" "$(contains "${OUT}" 'notes/newf.md')" yes
+assert "local untracked content survives" "$(cat "${TMP}/c11b/work/notes/newf.md")" "mine"
+echo "notes/ign.md" > "${TMP}/c11b/work/.git/info/exclude"
+rm "${TMP}/c11b/work/notes/newf.md"; promote "${TMP}/c11b" notes/ign.md theirs
+echo mine > "${TMP}/c11b/work/notes/ign.md"
+run "${TMP}/c11b"
+assert "ignored file the remote tracks: refused too" "${RC}" "1"
+
 echo "== case 12: --format json parses"
 run "${TMP}/c3" --format json
 assert "valid json with safe=true" "$(printf '%s' "${OUT}" | python3 -c 'import json,sys; print("yes" if json.load(sys.stdin)["safe"] is True else "no")')" yes
