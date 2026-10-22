@@ -41,13 +41,16 @@ One file per role, each declaring `model:` in its frontmatter. The kit ships tem
 | §4.3 Plan | `planner` | sub-agent |
 | **§4.4 Execution** | — | **main thread** |
 | §4.4 Heavy or mechanical step | `planner` / `mechanic` | sub-agent |
+| §4.4.1 Agent review (clean context) | `reviewer` | sub-agent |
 | §4.5 Wiki sync | `scribe` | sub-agent |
 
 **The execution is not delegated wholesale.** Its log is live and its gates need human confirmation in the moment — an isolated sub-agent does neither. What you delegate are discrete steps, in both directions: *up* for a step harder than the average, *down* for a mechanical one.
 
 **Pin tiers, never version names.** A tier alias resolves to the current generation, so the file does not rot when a new model ships — and it does not become the fixed role→model table that METHODOLOGY §4.2 warns against. The role's tier is a floor: the main thread can override it per invocation when the specific work calls for it.
 
-> Any concrete line-up written down **ages**. As a rough heuristic *at time of writing*: a top-tier reasoning tier for planning and task framing, a balanced tier for analysis and wiki drafting, a small/fast tier for mechanical sweeps.
+> Any concrete line-up written down **ages**. As a rough heuristic *at time of writing*: a top-tier reasoning tier for planning and task framing, a balanced tier for analysis, review and wiki drafting, a small/fast tier for mechanical sweeps.
+
+**The reviewer is a sub-agent for a reason beyond cost.** A fresh context is what keeps the author's reasoning out of the review, so never run the §4.4.1 review on the main thread, and pass it only the inputs the `reviewer` role lists. For a `high` tier change, Claude Code's built-in `/security-review` is a cheap extra pass worth adding.
 
 ## 4. Skills — native discovery
 

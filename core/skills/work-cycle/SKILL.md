@@ -1,6 +1,6 @@
 ---
 name: work-cycle
-description: Drive the task → plan → execution → wiki-sync cycle in this repository. Use when the human asks to start new work, create a task, generate a plan, execute an approved plan, or record an execution. Includes pre-plan analysis triage (parallel agents) and a contextual per-role model recommendation. Applies the methodology in .agents/METHODOLOGY.md.
+description: Drive the task → plan → execution → wiki-sync cycle in this repository. Use when the human asks to start new work, create a task, generate a plan, execute an approved plan, or record an execution. Includes pre-plan analysis triage (parallel agents), a contextual per-role model recommendation, and the clean-context agent review before the human gate. Applies the methodology in .agents/METHODOLOGY.md.
 ---
 
 # Work Cycle
@@ -130,22 +130,25 @@ type: plan
 work_id: {YYYY-MM-DD_slug}
 scope: { area: [] }   # or apps/packages in a monorepo
 status: draft         # draft → approved → executed
+risk: medium          # low | medium | high — METHODOLOGY §4.4.1
 updated: {YYYY-MM-DD}
 related: []           # wikilinks to the knowledge pages the plan touches
 ---
 ```
 
-### 2.5. Create branch (after plan approved, before executing) — *(monorepo/git-branching module only)*
+Plan §4.4 must state the **risk tier**, the **verification** command and **how to revert**. Propose the tier from what the change touches (read `REVIEW.md` "Always high risk"), never from who writes it; the human confirms it with the approval.
 
-**Single-repo projects create no per-work branch** — skip this step and go straight to §3. It applies only when the **monorepo/git-branching module is installed** (per-app long-lived branches + ephemeral work branches).
+### 2.5. Create branch (after plan approved, before executing)
 
-With `plans/{ID}.md` at `status: approved`, create the physical branch **before** starting the execution. Canonical rule: `.agents/rules/git_branching_rule.md` (installed by the monorepo module).
+Applies whenever `.agents/rules/git_branching_rule.md` is installed — the core ships a single-repo variant by default, and the monorepo module replaces it at the same path. Only a project that deliberately removed the branching rule skips this step and goes straight to §3.
+
+With `plans/{ID}.md` at `status: approved`, create the physical branch **before** starting the execution. Canonical rule: `.agents/rules/git_branching_rule.md`.
 
 **Mandatory validations before `git checkout -b`:**
 
 1. `{{project}}_wiki/work/plans/{work_id}.md` exists.
 2. The plan frontmatter has `status: approved`.
-3. The name follows the module's `<type>/<work_id>__<scope>` convention (a single app or a single package as scope — never two).
+3. The name follows the rule's `<type>/<work_id>__<scope>` convention (one scope — in a monorepo, a single app or a single package, never two).
 
 See `.agents/rules/git_branching_rule.md` for the exact branch types and canonical commands; do not hardcode them here.
 
@@ -161,9 +164,31 @@ When you start executing, create `{{project}}_wiki/work/executions/{ID}.md` from
 
 Status: `in_progress` → `done` or `aborted`.
 
+**Validations carry evidence.** For each one, record the command and the tail of its output (a few lines — the summary line of a test run, the exit code). "Passed" with no output is `⚠ unverified`. Run the plan's §4.4 verification command too.
+
+### 3.5. Agent review (clean context)
+
+After the last step and its validations, before flagging the human. Skip only for tier `low`, writing `skipped — low` in the execution's "Agent review" section.
+
+1. **Commit the work on the ephemeral branch** (the execution already records its commits), so the reviewed range is a real `base..head` — `base` is the commit the branch started from. Fix rounds add commits; fold them per `git_branching_rule.md` §6.1 before the PR. Never commit on a permanent branch to get a range: without an ephemeral branch, review `git diff <base>` of the working tree and record the reviewed state as `working tree @ <date>`.
+2. **Dispatch the `reviewer` role** with only: the round number and range; plan §4.1 and §4.4; the task's acceptance criteria; the path to `REVIEW.md`; from round 2, the findings already reported. **Do not** pass the execution's activity log or summarize how the code was written — that is the contamination the clean context exists to avoid. Tier `high`: ask for **deep** mode (explore callers and non-local effects); a higher model tier is allowed for that pass.
+3. **Validate each finding on the main thread** — open its `file:line`; a finding whose evidence does not hold is `wrong`.
+4. **Answer every finding** in the "Findings and outcome" table: `fixed`, `wrong`, `intentional` or `nit-ignored`. For a named class, fix every instance in one commit.
+5. **New round only if an `Important` finding was fixed.** The next round reviews only `last-reviewed-head..new-head`. Nits are fixed in passing, never re-reviewed on their own.
+6. **Cap: 3 rounds.** If round 3 still reports `Important` findings, do not fix-and-review again: record a divergence and bring the human the open findings and the choice — accept the fixes under their review, or rethink the approach (amend the plan).
+7. **Promote before closing** (METHODOLOGY §5.6): `/work-find` each `Important` finding's subject; if it already appeared in earlier work, fix it at the source (check, test, instruction line, rule clause with provenance). A `wrong`/`intentional` pattern becomes a `REVIEW.md` "Do not flag" line. Record it in the "Promoted to" column.
+
+The reviewer's verdict **never** substitutes the human gate below.
+
 ### 4. Human review
 
-When the execution closes, flag it and wait for review before touching the wiki.
+When the execution closes, flag it and wait for review before touching the wiki. Tell the human what the tier asks of them (METHODOLOGY §4.4.1):
+
+- **`low`** — read the execution log: validations and divergences.
+- **`medium`** — the log plus the reviewer's findings and outcomes; open the diff where a finding points.
+- **`high`** — the full diff.
+
+If the execution drifted into a riskier path than planned, say so: the tier only goes up.
 
 ### 5. Wiki sync
 
@@ -185,6 +210,9 @@ If the **monorepo module** is installed and the current branch is a per-app dev 
 - ❌ Treating triage/analysis as if it replaced the plan-approval gate — the human gate stays at §2.
 - ❌ Applying a fixed role→model table. Model choice is contextual and re-evaluated each job.
 - ❌ Blindly trusting the model list in `.agents/llm/*` without checking what is available now.
+- ❌ Reviewing the diff on the main thread that wrote it, or giving the reviewer the execution's reasoning.
+- ❌ A fourth review round, or a round opened only to chase nits.
+- ❌ Lowering the risk tier during execution, or letting the reviewer's verdict stand in for the human gate.
 
 ## work_id naming
 

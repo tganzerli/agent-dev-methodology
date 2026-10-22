@@ -50,6 +50,7 @@ Just as Claude Code isolates context through role subagents in `.claude/agents/`
 | §4.3 Plan | `planner` | `pro` | Deep architectural reasoning and plan drafting |
 | **§4.4 Execution** | — | **main thread** | Interactive execution with live log and human gates |
 | §4.4 Heavy or mechanical step | `planner` / `mechanic` | `pro` / `flash_lite` | Delegating discrete isolated steps |
+| §4.4.1 Agent review | `reviewer` | `flash` (`pro` for tier `high`) | Clean-context review of the diff — never on the main thread |
 | §4.5 Wiki sync | `scribe` | `flash` or `pro` | Surgical drafting of knowledge pages |
 
 **Tiers, never version names.** Tier `pro` corresponds to top-tier reasoning (Opus/advanced Sonnet); tier `flash` to balanced reasoning (Sonnet/fast); tier `flash_lite` to mechanical tasks (Haiku).

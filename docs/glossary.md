@@ -11,6 +11,12 @@
 | **`⚠ unverified`** | Marker on a claim that lacks a verifiable citation, until someone anchors it. |
 | **Pre-plan analyses (§4.2.5)** | Optional triage before the plan: decompose into independent questions, dispatch parallel agents, synthesize findings (with citations) into the plan's first section. |
 | **Model recommendation (per role)** | The LLM advises which model to use for task-refinement / each analysis / plan-writing — contextually, never from a fixed role→model table. |
+| **Agent review (clean context)** | METHODOLOGY §4.4.1: before the human gate, the `reviewer` sub-agent reviews the execution's diff with only the plan's intent, the acceptance criteria and `REVIEW.md`, never the reasoning that wrote the code. It reduces what the human must read; it never replaces the human gate. |
+| **Risk tier** | `low \| medium \| high`, declared in the plan (`risk:`), set by what the change touches and not by who writes it, and confirmed by the plan approval. It sets the depth of the agent review and of the human gate. It only goes up during execution, never down. |
+| **`REVIEW.md`** | Repo-root file that teaches the reviewer how to review **here**: what failure looks like per area ("docs lie", "config misroutes"), always-high-risk paths, paths to skip, known false positives, and the nit cap. The counterpart of `CLAUDE.md`/`AGENTS.md`, which teach how to write. |
+| **Finding outcome** | How the author answered each review finding: `fixed`, `wrong`, `intentional` or `nit-ignored`. Recorded per execution. A finding that already appeared in earlier work is promoted to a rule; a `wrong`/`intentional` pattern goes to `REVIEW.md`. |
+| **Review round cap** | At most three reviewer passes per work. Rounds after the first review only the new diff. With `Important` findings still open after round 3, the work returns to the human to rethink the approach. |
+| **Reviewer replay case** | Recorded in a postmortem: the diff that introduced a bug and the finding the reviewer must produce. Replayed whenever the reviewer's instructions, `REVIEW.md` or its model tier change. |
 | **`/wiki-sync`** | Manual, human-gated step that propagates a finished execution into knowledge pages. |
 | **Knowledge layer** | The set of paths whose timeline is canonical in `main` (monorepo module): `.agents/`, `.claude/skills/`, wiki knowledge pages, entry-points. |
 | **Promote / sync knowledge** | Monorepo skills: `promote-knowledge` pushes knowledge from a per-app branch up to `main`; `sync-knowledge` pulls `main`'s knowledge down. |
