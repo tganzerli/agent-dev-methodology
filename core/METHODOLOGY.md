@@ -15,7 +15,7 @@ Ensure every piece of work over this repository produces three bound artifacts �
 3. **Human gate at every transition.** A plan does not run without approval. An execution does not close without review. The wiki does not update without an explicit `/wiki-sync`.
 4. 🔒 **Source-of-truth discipline.** Every technical claim in the wiki, in a plan, **and in the rules** carries a `file:line` citation. A claim without a citation is marked `⚠ unverified` until someone anchors it.
    **In the rules this is what makes them verifiable.** A rule that describes code behaviour without pointing at the code **cannot be checked against reality** — it drifts silently and nobody notices, because there is nothing to notice with. Applies to claims that are **new or edited**; it does not demand a backfill of existing text.
-   **A citation is point-in-time.** Never "fix" a `file:line` in a closed trio to match today's file — that erases what the source said when the decision was made; annotate instead (conventions §2).
+   **A citation is point-in-time:** in a closed trio, annotate a moved source — never "fix" the `file:line` against today's file (conventions §2).
 5. **Scope attribution.** Every wiki page, plan, and execution declares what it affects. In a single-repo project this is the module/area; in a monorepo it is which `apps/*` and/or `packages/*` (see the optional monorepo module).
 6. **The methodology lives in exactly one place.** This file is the source. Per-LLM entry-point stubs (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`, …) only point here.
 
@@ -64,10 +64,9 @@ File: `{{project}}_wiki/work/tasks/{ID}.md`. Template: `{{project}}_wiki/work/ta
 
 **Authorship and collaboration:**
 - The task is, by default, **filled in and edited by the human**. LLM edits fall in **three tiers**:
-  - **Creating a task** — never without an explicit human order.
-  - **`status`, `updated` and ticking a stage done** — ungated; the LLM updates them as work advances. They report reality, and leaving them stale makes the generated catalog lie.
-  - **Any other body edit** — allowed, but **announced in the same turn**, so the human can have it undone. The announcement is the gate. *(Origin: one installation read the old two-tier wording as forbidding a status tick.)*
-- Substantive collaboration — creating the task, extending its scope, adding a stage — happens **only when the human explicitly asks** (e.g. "create a task covering…", "extend the task scope to…", "add a stage with these steps…").
+  - **Substantive** — creating the task, extending its scope, adding a stage, changing its request or criteria — **only when the human explicitly asks** (e.g. "create a task covering…", "add a stage with these steps…").
+  - **`status`, `updated`, ticking a stage done** — ungated: they report reality, and stale values make the generated catalog lie.
+  - **Non-substantive fixes** (typo, broken link, formatting, frontmatter normalization) — allowed, **announced in the same turn**.
 - Even after such a request, the LLM **proposes** the change (describes what it intends) and only **applies** it after explicit human approval. The gate here mirrors the plan gate (§4.3).
 - `related[]` is a soft exception: the LLM may populate it when it spots pertinent wikilinks, but should still flag the change.
 - **Additional stages may be proposed by the LLM during execution of a prior stage**, when that better serves the demand. Inclusion follows the same gate: LLM proposes, human approves, then the task is updated.
@@ -188,7 +187,7 @@ See `{{project}}_wiki/_meta/conventions.md`. Summary:
 - Wikilinks `[[path/to/page]]` for cross-reference.
 - Status (knowledge): `stub | draft | stable | stale`.
 - Status (work — task): `open | in_progress | done | cancelled | aborted`.
-- Status (work — plan): `draft | approved | executed | cancelled | aborted` (terminal: `executed`, `cancelled`, `aborted`).
+- Status (work — plan): `draft | approved | executed | cancelled | aborted`.
 - Status (work — execution): `in_progress | done | aborted`.
 
 ### 5.4. Two catalogs, distinct semantics
@@ -203,7 +202,7 @@ See `{{project}}_wiki/_meta/conventions.md`. Summary:
 
 Requires `summary` and `topic` frontmatter on every trio. See conventions §"work frontmatter".
 
-> **Corollary — a derivable knowledge catalog is generated too.** `decisions/`, `cross-cutting/`, `sources/external/` and `postmortems/` get their `_index.md` from each page's `summary` via `/wiki-index`; `_meta/index.md` points at them instead of repeating their lists. In one installation every hand-kept sub-index had drifted (`decisions/` missing 10 of 27 ADRs) while the generated work index missed 0 of 108 trios. The defect is always omission, so it is silent: a reader cannot see what is not listed. Derivable from frontmatter → generate it; needs editorial judgement → keep it by hand, with a byte budget and a lint that fails.
+> **Corollary — a derivable knowledge catalog is generated too.** `decisions/`, `cross-cutting/`, `sources/external/`, `postmortems/` get their `_index.md` from page `summary` (`/wiki-index`); `_meta/index.md` points at them. Hand-kept sub-indexes drift by omission, silently (`docs/design-rationale.md` in the kit).
 
 ### 5.6. Execution = historical log · Knowledge = living memory
 - An **execution** is a **historical log** — chronological, immutable by design, never `stale`, archivable by quarter. It answers "**when/how** was this done".
@@ -231,7 +230,7 @@ See `.claude/skills/ingest-source/SKILL.md`.
 4. If the answer has durable value, offer to archive it as a new page.
 
 ### 6.3. Lint (wiki health)
-Run periodically (`/wiki-lint`). Check: knowledge pages `status: stale`; orphan pages; contradictions; topics mentioned but without a page; broken cross-references; tasks `open` too long without a plan; plans `approved` too long without an execution; executions `in_progress` too long without progress. Lint **ignores** `{{project}}_wiki/work/` for `stale`. The unambiguous checks are a script whose gates ratchet against a measured baseline, run in CI on every PR; the rest stays human judgement (`.claude/skills/wiki-lint/SKILL.md`).
+Run periodically (`/wiki-lint`). Check: knowledge pages `status: stale`; orphan pages; contradictions; topics mentioned but without a page; broken cross-references; tasks `open` too long without a plan; plans `approved` too long without an execution; executions `in_progress` too long without progress. Lint **ignores** `{{project}}_wiki/work/` for `stale`. Unambiguous checks are scripted gates that ratchet against a baseline, in CI.
 
 ### 6.4. Wiki sync (post-execution)
 See §4.5.
@@ -248,7 +247,7 @@ The fix is not to promote them by hand into a bigger summary, which would drift 
 - The consolidated list is **generated** from those markers, and points back with `file:line`. It is a router, not a digest.
 - Either it has the marker and appears, or it is not a gate. There is no third state.
 
-This is the same verdict as "the work index is generated, not hand-edited" (§5.5): **regenerate beats hand-maintain**, for the same reason. The generator is `.claude/skills/wiki-lint/list_gates.py`.
+This is the same verdict as "the work index is generated, not hand-edited" (§5.5): **regenerate beats hand-maintain**, for the same reason. Generator: `/wiki-lint`'s `list_gates.py`.
 
 > Two traps, both learned the hard way. **Do not mark meta** — a note that *talks about* gates is not one, and self-inclusion inflates the list silently. And **read the generated summary**: if a marked line's summary does not stand on its own, the marker is on the wrong line (a section heading, or the tail of a previous sentence) — that reading is the cheapest correctness check you have.
 
@@ -266,19 +265,14 @@ Three failure modes produce a bloated prefix, and all three are structural rathe
 
 ## 6.7. Every non-negotiable needs a mechanism
 
-**A copy or a check that nobody runs does not warn that it is wrong.** It does not fail and does not visibly age; it looks correct until someone executes it. Text alone did not hold either: a no-LLM-co-author rule, clearly written, was broken by 16 commits in one installation and by 8 of 8 in one trio of another, and each was found by a human, by accident. (Origin: a cross-project survey; one installation catalogued five occurrences — skills installed before their precondition, a path list kept in four copies, an audit whose rule fit the drift exactly and that nobody invoked.)
+A rule, copy or check that nobody runs does not warn that it is wrong — written rules were broken repeatedly until a check existed (provenance: `docs/design-rationale.md` in the kit). A guard that works:
 
-A guard that works:
-
-- **Ask "when it finds a violation, what does it return?"** Running and finding are not enough: a CI analyzer printed the planted violation and exited 0, approving the PR. A green log with the violation in its body is worse than no check.
-- **See every guard red once.** Plant a violation, watch it fail, revert. A guard that never failed is one more unexecuted copy.
-- **Give it a trigger** — CI on every PR, or a script step inside a skill that already runs. Manual-only is a suggestion.
-- **Scope it to what the change adds** (the PR's commits, the files it touches). A permanently red pipeline is a pipeline nobody reads.
-- **Start advisory; go blocking with a ratchet or an incremental mode** — fail on a count above a measured baseline, or on touched files only — never on zero from day one.
-- **Never charge a branch for debt it cannot fix** — history already on a permanent branch, pages it did not touch.
-- **Fail loudly when it cannot verify** (base that does not resolve, shallow clone, empty range): green by absence of cases reads as "all good".
-
-The kit's instances: `/work-index --check`, `/wiki-lint` (ratchet), the commit-trailer check (PR range), the plan-gate hook.
+- **Ask "when it finds a violation, what does it return?"** An analyzer that prints the violation and exits 0 approves the PR.
+- **See it red once** — plant a violation, watch it fail, revert.
+- **Give it a trigger** (CI, or a script step of a skill that runs); manual-only is a suggestion.
+- **Scope it to what the change adds** (the PR range); a permanently red pipeline gets ignored.
+- **Start advisory, block via a ratchet or incremental mode** — never on zero from day one; never charge a branch for debt it cannot fix.
+- **Fail loudly when it cannot verify** (unresolved base, shallow clone, empty range).
 
 ## 7. Anti-patterns (do NOT)
 - ❌ Execute code without plan approval.
@@ -293,7 +287,7 @@ The kit's instances: `/work-index --check`, `/wiki-lint` (ratchet), the commit-t
 - ❌ Fix the same review finding a second time without promoting it to a rule, check or `REVIEW.md` line.
 - ❌ Update the wiki automatically in a PR — always go through `/wiki-sync` with a human gate.
 - ❌ Pseudocode in the wiki. If it has no `file:line`, it is `⚠ unverified`.
-- ❌ Write a non-negotiable with no mechanism, or ship a guard you never saw fail (§6.7).
+- ❌ A non-negotiable with no mechanism, or a guard never seen red (§6.7).
 
 ## 8. Agent Skills
 
@@ -333,7 +327,7 @@ A rule — or a single rule clause — that exists because of a concrete inciden
 - **Monorepo module** (`modules/monorepo/` in the kit): git branching model, knowledge-canonical-in-`main` rule, `promote-knowledge`/`sync-knowledge`/`distribute-packages` skills, CI broadcast. Install only for multi-app/multi-package repos with per-app branches.
 - **Cross-team module** (`modules/cross-team/` in the kit): `cross-team-handoff` skill, handoff/response/living-contract templates, extended source frontmatter. Install only when a partner team collaborates through their own LLM.
 - **Intra-team module** (`modules/intra-team/` in the kit): `intra-team` skill (notes/requests/responses/handoffs/conflicts + coordination board), message/board templates, extended relay frontmatter. The mirror of cross-team for agents that **share** the repo — reference-first instead of self-contained. Install only when more than one agent works the repo and needs to coordinate.
-- **Peer-relay module** (`modules/peer-relay/` in the kit): the **third value** of the axis the two modules above split on — an agent in a *separate repo on the same machine* that **can read** your files but does not **share** your checkout. Self-contained wastes the access that exists; reference-first produces ambiguity (`lib/router.dart:9` exists in both repos) and dead wikilinks (separate vaults). Adds a `peer-relay` skill, a **peer registry** (`.agents/peers.md`) that is the absorption mechanism, and a qualified-citation rule where a `file:line` without a repo prefix is a format error. Registers a `relay` ephemeral branch **scope** — delivery is by Pull Request, and relay messages are neither knowledge layer nor tooling. Requires the intra-team module, whose machinery it inherits rather than duplicates. Install only when another project on this machine is a genuine collaborator.
+- **Peer-relay module** (`modules/peer-relay/` in the kit): the **third value** of the axis the two modules above split on — an agent in a *separate repo on the same machine* that **can read** your files but does not **share** your checkout. Self-contained wastes the access that exists; reference-first produces ambiguity (the same `path:line` exists in both repos) and dead wikilinks (separate vaults). Adds a `peer-relay` skill, a **peer registry** (`.agents/peers.md`) that is the absorption mechanism, and a qualified-citation rule where a `file:line` without a repo prefix is a format error. Registers a `relay` ephemeral branch **scope** — delivery is by Pull Request, and relay messages are neither knowledge layer nor tooling. Requires the intra-team module, whose machinery it inherits rather than duplicates. Install only when another project on this machine is a genuine collaborator.
 - **Benchmarks module** (`modules/benchmarks/` in the kit): the empirical-claim discipline — a `benchmark_protocol_rule.md`, a benchmark-page template, a `run-benchmark` skill, and a conventions extension adding the `⚠ unverified <metric>` seal (a quantitative claim without a reproducible page cannot be cited). Registers a `bench` ephemeral branch type. Install when the project makes quantitative/empirical claims (performance, cost, accuracy, …) it must stand behind.
 - **Contracts module** (`modules/contracts/` in the kit): the cross-boundary-contract discipline — a `contract_change_rule.md` requiring an atomic ADR + synchronized multi-artifact PR for any change to a versioned contract (public API, DB schema, wire/IPC protocol, event schema, FFI ABI), an ADR-contract template, and a `⚠ contract-drift` tag. Registers a `contract` ephemeral branch type. Install when the project exposes a versioned contract other code/teams depend on.
 - **Writing module** (`modules/writing/` in the kit): long-form prose as a first-class deliverable — a directory-scoped override (§4.6) installing a `content/` entry-point with the writing cycle (outline → draft → review → polish → deliver), three human-gated skills (`write-academic`, `write-article`, `write-post`), and a conventions extension adding the `⚠ source needed` seal (a bibliographic assertion with no real source cannot be delivered). Prose reads from the vault and never writes back. Install when the project delivers writing — a thesis, papers, articles, posts — derived from the work it does.

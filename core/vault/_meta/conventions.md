@@ -94,7 +94,7 @@ Pages that cross boundaries live in `cross-cutting/`.
 ### Work (cataloged in `{{project}}_wiki/work/_index.md`)
 | `type` | Directory | Content |
 |---|---|---|
-| `task` | `work/tasks/` | Human request. Status: `open | in_progress | future | paused | done | cancelled | aborted`. Human-owned. LLM edits in three tiers (METHODOLOGY §4.2): **creating** a task needs an explicit human order; `status`, `updated` and stage ticks are updated as work advances, ungated; any other body edit is announced in the same turn. |
+| `task` | `work/tasks/` | Human request. Status: `open | in_progress | future | paused | done | cancelled | aborted`. Human-owned. LLM edits in three tiers (METHODOLOGY §4.2): **substantive** edits (creating it, extending scope, adding a stage, changing request or criteria) only on explicit human request, proposed then applied after approval; `status`, `updated` and stage ticks are updated as work advances, ungated; **non-substantive** fixes (typo, broken link, formatting, frontmatter normalization) are allowed but announced in the same turn. |
 | `plan` | `work/plans/` | LLM analysis + plan (follows `mandatory_planning_rule.md`). Status: `draft | approved | executed | cancelled | aborted`. |
 | `execution` | `work/executions/` | Live execution log. Status: `in_progress | done | aborted`. |
 
