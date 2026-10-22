@@ -91,6 +91,8 @@ Gemini integrates with project skills through two complementary paths:
 
 **Forbidden** to include `Co-Authored-By: Gemini <…>` — or any trailer/footer identifying the assistant (any Gemini/Google model or product name) — in commits produced via Gemini. Applies to ordinary commits, merge commits, amendments, any trailer/footer, and PR descriptions. The author is the human; the local `git user` already records authorship. If you generate a co-authored message by mistake, fix it before committing; if already committed, do not rebase without human approval. (An equivalent rule holds for every other agent's adapter.)
 
+**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py <PR base>` in CI (the guarantee) — see the kit's `INSTALL.md` §6.
+
 ## 7. Limits
 
 - **No persistent memory** equivalent to Claude Code's. Everything Gemini "knows" about this project must live **in the repo**: `.agents/METHODOLOGY.md`, the wiki, the rules. This is why the project versions **every** methodological decision instead of trusting agent memory.

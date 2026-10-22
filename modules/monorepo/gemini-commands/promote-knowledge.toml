@@ -6,7 +6,7 @@ You are executing the `/promote-knowledge` command in this project.
 The canonical source of truth is `@.claude/skills/promote-knowledge/SKILL.md`.
 Follow the steps:
 1. Validate context: branch must be dev_<app> (never demo, staging, or main), clean tree.
-2. Detect knowledge files to promote (scoped to work_id by default, or --all; --trio if closed).
+2. Detect knowledge files to promote with `python3 scripts/promote_detect.py <work_id> --mask "$KL_PATHS"` (attributed by default, every divergent file with --all; --trio if closed). Always show orphans and divergent trios at the gate.
 3. Single human gate: ask for confirmation before branch creation and push.
 4. Autonomous execution: checkout docs/<work_id>__knowledge off origin/main, copy files, regenerate index (/work-index), commit, push.
 5. Instruct human to open PR `docs/<work_id>__knowledge -> main`.

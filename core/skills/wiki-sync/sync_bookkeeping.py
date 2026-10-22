@@ -10,7 +10,7 @@ Does, in order:
   2. appends the entry to `<vault>/_meta/log.md` (pure append);
   3. marks the plan `status: executed` (anchored on `^status:`, never on a
      `# status:` comment);
-  4. runs the vault's index-format guard if the project ships one (optional).
+  4. runs `wiki-lint/lint.py --only index-format` on the hand-kept catalogs.
 
 Usage:
   python3 <skills>/wiki-sync/sync_bookkeeping.py WORK_ID \
@@ -64,7 +64,7 @@ def wikilink(page, vault):
 
 
 def add_related(fm, links):
-    """Acrescenta links a `related:` (lista em bloco ou em linha), sem duplicar."""
+    """Add links to `related:` (block or inline list), without duplicates."""
     new = [l for l in links if l not in fm]
     if not new:
         return fm
@@ -102,7 +102,7 @@ def main():
     for raw in a.page:
         parts = raw.split("|", 2)
         if len(parts) < 2 or parts[1] not in KINDS:
-            sys.exit(f"✗ --page inválido: {raw!r} (expected path|CREATE|UPDATE|APPEND[|note])")
+            sys.exit(f"✗ invalid --page: {raw!r} (expected path|CREATE|UPDATE|APPEND[|note])")
         path, kind = parts[0], parts[1]
         note = parts[2] if len(parts) == 3 else ""
         if not os.path.exists(os.path.join(a.root, path)):
@@ -148,11 +148,14 @@ def main():
         fh.write(entry)
 
     print(f"ok  execution related[] (+{n_pages}) · plan=executed · log +{entry.count(chr(10))} lines")
-    # Optional guard: runs only if the project ships one (the Condor monorepo does).
-    for cand in (".claude/skills/wiki-lint/check_index_format.py", ".agents/skills/wiki-lint/check_index_format.py"):
-        chk = os.path.join(a.root, cand)
-        if os.path.exists(chk):
-            sys.exit(subprocess.call([sys.executable, chk, "--root", a.root]))
+    # Index-format guard (wiki-lint ships it next to this skill): the step-3 index
+    # edit is hand-made, so check its format right after the sync.
+    lint = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "wiki-lint", "lint.py")
+    if os.path.exists(lint):
+        sys.stdout.flush()
+        sys.exit(subprocess.call([sys.executable, lint, "--root", a.root, "--vault", vault,
+                                  "--only", "index-format"]))
+    print("note: wiki-lint/lint.py not found — index format not checked", file=sys.stderr)
 
 
 if __name__ == "__main__":

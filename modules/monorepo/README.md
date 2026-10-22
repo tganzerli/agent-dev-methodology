@@ -21,10 +21,21 @@ If the project is a single repo with one deliverable, **do not install this modu
 | `.claude/skills/promote-knowledge/` | Promote knowledge from `dev_<app>` → `main` via an ephemeral `docs/<id>__knowledge` branch + PR. Agent-invocable with a single `yes/no` gate. |
 | `.claude/skills/sync-knowledge/` | Manual fallback for the `main → dev_<app>` broadcast. `disable-model-invocation: true`. |
 | `.claude/skills/distribute-packages/` | Manual fallback for the `dev_packages → dev_<app>` package broadcast. `disable-model-invocation: true`. |
-| `scripts/broadcast-main.sh` | Host-neutral **stub** for the CI `main → dev_*` broadcast (auto-reconcile Group A, abort Group B). |
+| `.claude/skills/git-runbook/` | The operational recipes (package trunk, broadcasts, canonical commands, host-panel settings), kept out of the always-on rule. |
+| `.claude/skills/reset-dev-branch/` | Reset a `dev_<app>` that stays "ahead" after its content was promoted and broadcast back — only when no content is local-only. `disable-model-invocation: true`. |
+| `scripts/broadcast-main.sh` | Host-neutral **stub** for the CI `main → dev_*` broadcast (auto-reconcile Group A, abort Group B, skip absent roster branches loudly). |
 | `scripts/broadcast-packages.sh` | Host-neutral **stub** for the CI `dev_packages → dev_*` broadcast. |
+| `scripts/test-broadcast-main.sh`, `scripts/test-broadcast-packages.sh` | Run both broadcasts against a throwaway bare remote, through the `BROADCAST_REMOTE` seam and the production push path. |
+| `scripts/check-knowledge-paths.py` | Verifies the four copies of the knowledge path list (rule §9.1). |
+| `scripts/check_log_entry_collisions.py` | Reports repeated `_meta/log.md` headers (the detector behind `merge=union`). |
+| `scripts/promote_detect.py` + `test_promote_detect.sh` | Divergence-based detection for `/promote-knowledge`. |
+| `scripts/dev_branch_reset.py` + `test_dev_branch_reset.sh` | The decision behind `/reset-dev-branch`; read-only unless `--apply --expect-head`. |
+| `scripts/check_branch_scope.sh` + `test_check_branch_scope.sh` | Branch scope barrier, **advisory** by default (naming and configuration errors are reported, not blocking); roster source is a placeholder. |
+| `scripts/check-transition-state.sh` | Fails CI if the optional pre-app §1.1 survives the first `dev_*`. |
 
-> The two `scripts/*.sh` are **templates**, not drop-in scripts. They encode the load-bearing logic (best-effort loop, Group-A reconcile / Group-B abort, no-op gate) but need their environment variables, authenticated push URL, and trigger wiring adapted to your git host (GitHub Actions / GitLab CI / Bitbucket Pipelines / …). Every spot to change is marked `TODO(...)`. The decision to ship **described patterns + generic stubs** rather than verbatim host scripts is deliberate — the CI is the least portable part.
+`ci-examples/github-broadcast.yml` stays in the kit: a reference GitHub Actions wiring (deploy key, full clone, serialized runs) to adapt, not to copy blindly.
+
+> The two `scripts/broadcast-*.sh` are **templates**, not drop-in scripts. They encode the load-bearing logic (best-effort loop, Group-A reconcile / Group-B abort, no-op gate) but need their environment variables, authenticated push URL, and trigger wiring adapted to your git host (GitHub Actions / GitLab CI / Bitbucket Pipelines / …). Every spot to change is marked `TODO(...)`. The decision to ship **described patterns + generic stubs** rather than verbatim host scripts is deliberate — the CI is the least portable part.
 
 ## Vault reorganization
 
@@ -91,8 +102,8 @@ That is why the module is separate and gated on install-interview answer #4. Do 
 
 1. Copy the files per `INSTALL.md` §4 (de-templating `{{project}}`, `{{PROJECT}}`, `{{KNOWLEDGE_LANG}}`).
 2. Reorganize the vault knowledge dirs into `apps/<app>/` + `packages/<pkg>/` as above.
-3. Register the three skills in `.claude/skills/_index.md`.
-4. Adapt the two `scripts/*.sh` stubs to the git host chosen in interview answer #7 (fill every `TODO(...)`), and wire them as CI triggers (on push to `main`, and on push to `dev_packages`).
+3. Register the five skills in `.claude/skills/_index.md`.
+4. Adapt the two `scripts/broadcast-*.sh` stubs to the git host chosen in interview answer #7 (fill every `TODO(...)`; map the host's variables onto `CI_COMMIT_SHA` / `CI_PUSH_REMOTE` in the pipeline config), wire them as CI triggers (on push to `main`, and on push to `dev_packages`), and run the two `test-broadcast-*.sh`. Fill the roster placeholder of `check_branch_scope.sh` and wire it advisory; wire `check-knowledge-paths.py` (and, while §1.1 is kept, `check-transition-state.sh`) into CI.
 5. Configure branch protection + the CI bot push exception in the host UI (`git_branching_rule.md` §9).
 6. Add the companion ADRs in `{{project}}_wiki/decisions/` (branching strategy; packages-trunk strategy; knowledge-reconcile scope) so the rules cite real context.
 

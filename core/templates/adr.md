@@ -17,6 +17,7 @@ scope:
   packages: []
 status: accepted            # proposed | accepted | superseded | deprecated
 updated: {YYYY-MM-DD}
+summary: One sentence, at most 250 chars — the line the catalogs show (/wiki-index).
 revisit_when: "{gatilho OBSERVÁVEL — a fase ou o trabalho que produz a evidência que falta.
                 Ex.: 'primeira implementação de um repositório (Fase 2)'.
                 NUNCA 'quando fizer sentido'. Vazio só se nada puder refinar esta decisão.}"

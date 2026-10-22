@@ -1,0 +1,55 @@
+# REFERENCE EXAMPLE — GitHub Actions wiring for scripts/broadcast-main.sh and
+# scripts/broadcast-packages.sh. Copy to .github/workflows/broadcast.yml and adapt.
+# Other hosts: keep the same shape (trigger on push, full clone, serialize runs,
+# push with an identity only the CI holds).
+#
+# Notes learned in installations:
+# - Push with a write-scoped DEPLOY KEY, not GITHUB_TOKEN:
+#   * a push made with GITHUB_TOKEN does not trigger other workflows, so the
+#     checks on the dev_* branch would never run on the broadcast commit;
+#   * branch protection on dev_* must let the CI push. On a USER-owned repo the
+#     GitHub Actions app cannot be a ruleset bypass actor (the API answers 422:
+#     the integration "must be part of the ruleset source or owner organization").
+#     A deploy key can be, and no human inherits it. A repository-role bypass
+#     would also let the human push directly, dissolving the PR-only funnel.
+# - Store the private half as a secret (BROADCAST_DEPLOY_KEY here) and add the
+#   public half as a deploy key with write access.
+# - The script reads CI_COMMIT_SHA and CI_PUSH_REMOTE; map them here and leave
+#   the script host-neutral. No token variable: the key is the credential.
+
+name: broadcast
+
+on:
+  push:
+    branches: [main, dev_packages]
+
+permissions:
+  contents: read   # the push authenticates with the deploy key, not the job token
+
+concurrency:
+  group: broadcast-${{ github.ref_name }}  # two quick merges must not race:
+  cancel-in-progress: false                 # the second would push over the first
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the scripts resolve SHAs and merge; a shallow clone breaks them
+          ssh-key: ${{ secrets.BROADCAST_DEPLOY_KEY }}
+
+      - name: Broadcast main -> dev_*
+        if: github.ref_name == 'main'
+        env:
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PUSH_REMOTE: git@github.com:${{ github.repository }}.git
+        run: bash scripts/broadcast-main.sh
+
+      - name: Broadcast dev_packages -> dev_<app>
+        if: github.ref_name == 'dev_packages'
+        env:
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_BEFORE_SHA: ${{ github.event.before }}
+          CI_PUSH_REMOTE: git@github.com:${{ github.repository }}.git
+        run: bash scripts/broadcast-packages.sh

@@ -31,19 +31,26 @@ Pulls **knowledge-layer** updates from `main` into the current branch (`dev_<app
 - `git branch --show-current` → must be `dev_<app>`. If `demo_*`/`staging_*`/`main`, **abort** with a clear message.
 - `git status --short` → must be empty. If dirty, instruct `commit`/`stash`.
 - `git fetch origin main`.
+- `python3 scripts/check-knowledge-paths.py` → must print `ok`; if it fails, **abort** (the mask below has drifted from rule §2 — rule §9.1).
 
 ### 2. Detect divergence
 
-Compare `HEAD` vs `origin/main` for the knowledge-layer paths (adapt to the project's actual filenames):
+Compare `HEAD` vs `origin/main` for the knowledge-layer paths. The mask must stay **equal** to rule §2 and to `KL_PATHS` in `promote-knowledge` (rule §9.1); adapt it to the project's actual filenames at install time:
 
 ```bash
-git diff --name-only HEAD origin/main -- \
-  .agents/ .claude/skills/ <per-agent config> .mcp.json \
-  CLAUDE.md GEMINI.md AGENTS.md README.md <workspace file> \
+KL_PATHS=".agents/ .claude/skills/ .claude/agents/ .claude/hooks/ .claude/settings.json \
+  <per-agent-config> .mcp.json <workspace-file> <root-manifest> \
+  scripts/ <ci-config> qa/ .gitattributes \
+  CLAUDE.md GEMINI.md AGENTS.md README.md \
   {{project}}_wiki/_meta/ {{project}}_wiki/apps/ {{project}}_wiki/packages/ \
   {{project}}_wiki/cross-cutting/ {{project}}_wiki/decisions/ {{project}}_wiki/sources/ \
-  {{project}}_wiki/overview.md {{project}}_wiki/.obsidian/ \
-  scripts/ <CI pipeline config> <root workspace manifest> qa/
+  {{project}}_wiki/benchmarks/ {{project}}_wiki/postmortems/ \
+  {{project}}_wiki/overview.md {{project}}_wiki/.obsidian/"
+# `$KL_PATHS` unquoted does NOT word-split under zsh: the whole mask becomes ONE
+# pathspec that matches nothing, and the command reports 0 files while a real
+# divergence exists (found in use: 0 reported against 19 real). Pipe through
+# xargs so the split is explicit and identical under bash and zsh.
+FILES=$(echo "$KL_PATHS" | xargs git diff --name-only HEAD origin/main --)
 ```
 
 **Exclude gitignored** explicitly: local agent settings, `.claude/projects/`, `.claude/todos/`, `{{project}}_wiki/.obsidian/workspace*.json`.
@@ -79,7 +86,8 @@ If the current branch also has local knowledge-layer changes (committed but not 
 ### 5. Apply main's updates
 
 ```bash
-git checkout origin/main -- <detected file list>
+# One path per line in $FILES; the same zsh caveat applies — never `git checkout origin/main -- $FILES`.
+printf '%s\n' "$FILES" | xargs git checkout origin/main --
 ```
 
 ### 6. Verify the staged diff
