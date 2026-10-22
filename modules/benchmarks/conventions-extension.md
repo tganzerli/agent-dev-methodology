@@ -63,6 +63,16 @@ parallelism:                 # optional — only when the workload runs concurre
   workers: 4                 # isolates / threads / processes
   per_worker: 4              # concurrent units per worker
   seed: "42; per-rep = 42 + rep*1000"
+host_state:                  # REQUIRED — measured at run start by preflight.sh
+  measured_at: "..."
+  swap_pct: 12
+  mem_free_pct: 55
+  load1: 1.2
+  uptime_days: 0
+  preparation: "reboot + idle"
+  # override: true           # stamped by BENCH_ALLOW_DIRTY_HOST=1
+# design: sequential-ab      # only for A-then-B in one window
+# drift_declaration: { order, per_session, internal_drift_pct, adjacent_compared }
 sources: []
 code_refs: []                # files this page measures — lint uses these to detect `stale`
 related: []
@@ -74,6 +84,9 @@ related: []
 | `environment.cpu` / `.ram` / `.os` | Host the measurement ran on — the minimum needed to judge external validity. |
 | `environment.versions` | Map of the language runtime, the toolchain (if relevant), and the dependency under test **with its baseline** version. |
 | `parallelism` | Present only when the workload is concurrent: `workers`, `per_worker`, and the RNG `seed` (with its per-rep/worker derivation) for determinism. |
+| `host_state` | **Required.** The host's **measured** state at the start of the run (swap, free memory, load, uptime, preparation), as printed by the `run-benchmark` skill's `preflight.sh`. `override: true` means the run was outside the floor by declared decision: its absolutes are valid within the window and not comparable across windows. |
+| `design` | `sequential-ab` when side A was measured, then side B, in one window. Activates `drift_declaration`. |
+| `drift_declaration` | Required with `design: sequential-ab`: `order`, `per_session`, `internal_drift_pct`, `adjacent_compared`. Checked by `check_pages.py`. |
 
 ### Branch type: `bench`
 

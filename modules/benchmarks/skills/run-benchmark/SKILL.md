@@ -37,6 +37,14 @@ uname -a
 
 Record `cpu`, `ram`, `os`, and the `versions` map (runtime / toolchain / dependency-under-test **and** its baseline). Add `storage` / `network` / `accelerator` only when they move the metric.
 
+### 1b. Host-state preflight
+
+```bash
+BENCH_HOST_PREPARATION="reboot + idle" .claude/skills/run-benchmark/preflight.sh check
+```
+
+It measures swap, free memory, load and uptime **at the start of the run** (Linux and macOS), prints the `host_state` block for the page, and **exits 1** when the host is outside the floor (`SWAP_PCT_CEIL`, default 60; `MEM_FREE_PCT_FLOOR`, default 40 — provisional, not causal). Either prepare the host and repeat, or run with `BENCH_ALLOW_DIRTY_HOST=1`, which stamps `override: true` into the block. Paste the block as printed — the measured state, never the intended one (rule §4.1).
+
 ### 2. Snapshot the code under test
 
 ```bash
@@ -70,6 +78,16 @@ Hypothesis (frozen) → Setup (commits + config) → Exact command (literal) →
 
 Choose the **Verdict** from the data: `confirmed | refuted | partially-confirmed | inconclusive`. A refutation is a valid result — preserve the original hypothesis and record the revised one; if the effect inverted the predicted direction, mark it `refuted-with-sign-inversion` and give the root cause.
 
+If side A was measured and then side B, in one window rather than interleaved, declare `design: sequential-ab` and fill `drift_declaration` with its four keys — order, per-session results, internal drift per side, adjacent sessions compared (rule §5.6.1).
+
+Then check the page:
+
+```bash
+python3 .claude/skills/run-benchmark/check_pages.py {{project}}_wiki/benchmarks/{work_id}.md
+```
+
+Exit 1 lists what is missing (`host-state`, `drift-declaration`). Run it without arguments to check every page; on a project that adopted `host_state` after pages already existed, `--skip host-state` keeps the older pages from drowning the drift check.
+
 ### 7. Update indices and the execution
 
 - `{{project}}_wiki/benchmarks/_index.md` — add an entry.
@@ -86,6 +104,8 @@ Choose the **Verdict** from the data: `confirmed | refuted | partially-confirmed
 ## Anti-patterns
 
 - ❌ Running without warm-up or without a fixed seed where randomness exists.
+- ❌ Starting a run without `preflight.sh`, or writing the intended host state instead of the measured one.
+- ❌ A sequential A/B comparison without `design: sequential-ab` and its four drift items.
 - ❌ **Re-running until a favorable number appears** (p-hacking). Fix the method before the run.
 - ❌ **Rewriting the hypothesis after seeing results** to make it "confirm". If the human pushes to dress up a result, refuse and cite `benchmark_protocol_rule.md` §7.
 - ❌ Deriving a rate as `sum(latency) ÷ N` instead of wall-clock.

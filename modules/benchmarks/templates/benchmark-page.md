@@ -36,6 +36,20 @@ parallelism:                 # optional — only when the workload runs concurre
   workers: {N}               # isolates / threads / processes
   per_worker: {N}            # concurrent units per worker
   seed: "{e.g. 42; per-rep = 42 + rep*1000}"
+host_state:                  # REQUIRED — paste the block `preflight.sh` prints; measured, not intended (rule §4.1)
+  measured_at: "{ISO-8601 with offset}"
+  swap_pct: {int}
+  mem_free_pct: {int}
+  load1: {float}
+  uptime_days: {int}
+  preparation: "{e.g. reboot + idle | none}"
+  # override: true           # stamped by BENCH_ALLOW_DIRTY_HOST=1 — absolutes not comparable across windows
+# design: sequential-ab      # only when side A is measured, then side B, in one window (rule §5.6.1)
+# drift_declaration:         # required with design: sequential-ab — all four keys
+#   order: "{e.g. before, after}"
+#   per_session: true
+#   internal_drift_pct: "{per side, first → last session}"
+#   adjacent_compared: true
 sources: []
 code_refs: []                # code files this page measures — lint uses these to detect `stale`
 related: []
@@ -99,6 +113,19 @@ related: []
 | {p95 latency} | | | |
 | {p99 latency} | | | |
 | {memory / cost / accuracy …} | | | |
+
+<!-- Only with `design: sequential-ab` (rule §5.6.1) — the four drift items:
+
+**Order:** {A then B}
+
+| Session | Side | {metric} |
+|---|---|---|
+| 1 | A | … |
+| … | … | … |
+
+- **Internal drift:** A {first → last, %} · B {first → last, %}
+- **Adjacent sessions:** {last A vs first B — Δ}, when the drift is comparable to the delta
+-->
 
 ## Artifacts
 
