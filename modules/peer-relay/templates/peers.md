@@ -10,6 +10,7 @@
 -->
 ---
 trigger: manual
+self: {{project}}   # our name in the peers' registries — inbox.py flags their outbound copies addressed to it
 ---
 
 # Peers — sibling repositories on this machine
