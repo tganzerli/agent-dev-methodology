@@ -39,11 +39,36 @@ def is_placeholder(line):
     return len(cells) > 1 and all(c in DASHES for c in cells[1:])
 
 
+# ── Frontmatter rule, shared verbatim by every parser in the kit ──────────────
+# The YAML block opens with a `---` line, after an optional UTF-8 BOM, blank lines and
+# `<!-- ... -->` blocks, and closes at the next line that is exactly `---`. Keep this
+# function identical wherever it is copied (one fixture test runs all of them).
+_FM_LEAD = re.compile(r"\ufeff?(?:[ \t]*\r?\n|[ \t]*<!--.*?-->[ \t]*\r?\n)*", re.S)
+_FM_OPEN = re.compile(r"---[ \t]*\r?\n")
+_FM_CLOSE = re.compile(r"^---[ \t]*(?:\r?\n|\Z)", re.M)
+
+
+def frontmatter_bounds(text):
+    """(lead_end, yaml_start, yaml_end, body_start) or None. text[:yaml_start] is the
+    prefix plus the opening line, text[yaml_start:yaml_end] the YAML, text[yaml_end:]
+    the closing line plus the body — so a rewriter keeps the prefix verbatim."""
+    lead = _FM_LEAD.match(text).end()
+    opening = _FM_OPEN.match(text, lead)
+    if not opening:
+        return None
+    closing = _FM_CLOSE.search(text, opening.end())
+    if not closing:
+        return None
+    return lead, opening.end(), closing.start(), closing.end()
+
+
 def find_table(lines):
     """Return (first_row, after_last_row) of the lock table."""
-    i = 0
-    if lines and lines[0].strip() == "---":
-        i = next((j + 1 for j in range(1, len(lines)) if lines[j].strip() == "---"), 0)
+    text = "\n".join(lines)
+    bounds = frontmatter_bounds(text)
+    i = text[:bounds[3]].count("\n") if bounds else 0   # first line after the closing `---`
+    if bounds and not text[:bounds[3]].endswith("\n"):
+        i += 1
     for i in range(i, len(lines) - 1):
         if lines[i].lstrip().startswith("|") and SEP_RE.match(lines[i + 1].strip()):
             start = end = i + 2

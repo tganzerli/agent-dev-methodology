@@ -232,17 +232,37 @@ if not os.path.exists(plan_abs):
             "mandatory_planning_rule.md: no code changes before an approved plan.\n" + DO_NOT_BYPASS
         )
 
-# `status:` counts only inside the YAML frontmatter: the file opens with `---` and the block
-# ends at the next `---`. A `status: approved` in the body (e.g. a code block) is ignored.
+# ── Frontmatter rule, shared verbatim by every parser in the kit ──────────────
+# The YAML block opens with a `---` line, after an optional UTF-8 BOM, blank lines and
+# `<!-- ... -->` blocks, and closes at the next line that is exactly `---`. Keep this
+# function identical wherever it is copied (one fixture test runs all of them).
+_FM_LEAD = re.compile(r"\ufeff?(?:[ \t]*\r?\n|[ \t]*<!--.*?-->[ \t]*\r?\n)*", re.S)
+_FM_OPEN = re.compile(r"---[ \t]*\r?\n")
+_FM_CLOSE = re.compile(r"^---[ \t]*(?:\r?\n|\Z)", re.M)
+
+
+def frontmatter_bounds(text):
+    """(lead_end, yaml_start, yaml_end, body_start) or None. text[:yaml_start] is the
+    prefix plus the opening line, text[yaml_start:yaml_end] the YAML, text[yaml_end:]
+    the closing line plus the body — so a rewriter keeps the prefix verbatim."""
+    lead = _FM_LEAD.match(text).end()
+    opening = _FM_OPEN.match(text, lead)
+    if not opening:
+        return None
+    closing = _FM_CLOSE.search(text, opening.end())
+    if not closing:
+        return None
+    return lead, opening.end(), closing.start(), closing.end()
+
+# `status:` counts only as a TOP-LEVEL key inside the frontmatter (shared rule above): a
+# `status: approved` in the body, or indented under another key, is ignored.
 status = None
 with open(plan_abs, encoding="utf-8") as fh:
-    lines = fh.read().splitlines()
-if lines and lines[0].strip() == "---":
-    for line in lines[1:]:
-        s = line.strip()
-        if s == "---":
-            break
-        m = re.match(r"^status:\s*([a-z_]+)", s)
+    plan_text = fh.read()
+bounds = frontmatter_bounds(plan_text)
+if bounds:
+    for line in plan_text[bounds[1]:bounds[2]].splitlines():
+        m = re.match(r"^status:[ \t]*([a-z_]+)", line)
         if m:
             status = m.group(1)
             break

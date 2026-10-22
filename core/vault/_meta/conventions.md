@@ -6,7 +6,7 @@
 
 ## 1. Mandatory frontmatter
 
-Every `.md` wiki page starts with this YAML block:
+Every `.md` wiki page starts with this YAML block, at the very first byte (Obsidian reads it only there; template comments go below it). The kit's scripts share one tolerant rule — a UTF-8 BOM, blank lines and `<!-- … -->` blocks before the opening `---` are skipped — so a stray comment does not hide a plan's `status:`:
 
 ```yaml
 ---
