@@ -5,7 +5,7 @@
   A HANDOFF is an OUTBOUND document your team's LLM authors FOR the partner
   team's LLM. Copy this file to {{project}}_wiki/sources/external/{YYYY-MM-DD}_{slug}.md
   and fill the {...} per-doc placeholders. Do NOT de-template the `{...}` below —
-  those are per-handoff fill-ins, distinct from the kit-wide `{{...}}` resolved at install.
+  those are per-handoff fill-ins, distinct from the kit-wide double-brace placeholders resolved at install.
 
   ─────────────────────────────────────────────────────────────────────────────
   THIS TEMPLATE IS THE FULL SHAPE, NOT A SKELETON.

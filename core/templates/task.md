@@ -2,7 +2,7 @@
   Installs as: {{project}}_wiki/work/tasks/_template.md
   See INSTALL.md §3. Copy verbatim into a fresh vault (do not de-template
   the `{...}` placeholders below — those are per-task fill-ins, distinct
-  from the kit-wide `{{...}}` placeholders resolved at install time).
+  from the kit-wide double-brace placeholders resolved at install time).
 
   Authored CONTENT (the task body) is written in {{KNOWLEDGE_LANG}}.
   This scaffold's prose is in English only as an authoring aid; translate

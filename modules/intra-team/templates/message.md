@@ -5,7 +5,7 @@
   This ONE template serves all five relay roles — note / request / response /
   handoff / conflict. Copy it to {{project}}_wiki/work/relay/{YYYY-MM-DD}_{slug}.md
   and fill the {...} per-message placeholders. Do NOT de-template the `{...}`
-  below — those are per-message fill-ins, distinct from the kit-wide `{{...}}`
+  below — those are per-message fill-ins, distinct from the kit-wide double-brace placeholders
   resolved at install. Keep or delete the role-specific sub-notes per §2 below
   to match the msg_role you're authoring.
 

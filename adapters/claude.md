@@ -1,6 +1,6 @@
 <!--
   Installs as: .agents/llm/claude.md  (plus a thin root CLAUDE.md stub — see INSTALL.md §6).
-  De-template the {{...}} placeholders at install. This adapter holds Claude-family
+  De-template the double-brace placeholders at install. This adapter holds Claude-family
   specifics ONLY; the canonical, LLM-agnostic methodology is .agents/METHODOLOGY.md.
 -->
 # Claude adapter — {{PROJECT}}

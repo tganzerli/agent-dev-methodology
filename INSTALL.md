@@ -56,8 +56,9 @@ Every template file in this kit uses `{{...}}` placeholders. When you copy a fil
 | `{{project}}` | vault slug (answer 2) — the vault dir is `{{project}}_wiki` |
 | `{{repo}}` | target repo folder name |
 | `{{KNOWLEDGE_LANG}}` | knowledge-content language (answer 3) |
+| `{{ABS_PATH_TO_THIS_REPO}}` | absolute path of the target repo (peer-relay module only) |
 
-Do a final grep for `{{` after install — **no placeholder may remain** in the target project (§7 checklist).
+Do a final grep for `{{` after install — **no placeholder may remain** in the target project (§7 checklist). Two kinds of double braces are **not** placeholders and must stay as shipped: `{{args}}` in the Gemini CLI command files (`.gemini/commands/*.toml` — Gemini CLI substitutes it at run time) and Go-template format strings such as `{{.State.Health.Status}}` in the dev-env skill (Docker reads them). CI workflow files use `${{ … }}` expressions for the same reason; the checklist grep does not scan them.
 
 ## 3. Install the CORE (always)
 
@@ -83,8 +84,12 @@ core/templates/wiki-page.md            →  {{project}}_wiki/_meta/_page_templat
 core/templates/source.md               →  {{project}}_wiki/sources/external/_template.md
 core/templates/postmortem.md           →  {{project}}_wiki/postmortems/_template.md
 core/templates/review.md               →  REVIEW.md               (repo root — the reviewer's instructions; fill it with the human)
+core/templates/pull_request_template.md →  .github/pull_request_template.md   (other hosts: their PR-template path, answer 7)
 core/skills/*                          →  .claude/skills/*
 core/agents/*                          →  .claude/agents/*        (Claude Code only)
+core/hooks/require-approved-plan.sh    →  .claude/hooks/require-approved-plan.sh   (optional, recommended — §6; chmod +x)
+core/hooks/claude-settings.json        →  .claude/settings.json   (with the plan gate, Claude Code; MERGE into an existing file — §6)
+core/hooks/agy-hooks.json              →  .agents/hooks.json      (with the plan gate, Antigravity CLI — §6)
 core/hooks/commit-msg                  →  .githooks/commit-msg    (optional, recommended — §6)
 core/ci/check_commit_trailers.py       →  scripts/ci/check_commit_trailers.py   (optional, recommended — §6)
 core/ci/methodology-checks.yml         →  .github/workflows/methodology-checks.yml   (optional — §6; adapt to the git host)
@@ -94,7 +99,7 @@ Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,exec
 
 The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated ephemerals); the monorepo module (§4) replaces it at the same path with the multi-app topology.
 
-**MCP catalog (only if applicable).** If any agent in this repo will use MCP servers, install `core/mcp.md` and fill its §1 table. It is a **catalog consulted on demand**, not part of the mandatory reading prefix — its job is to keep every client's mirrored config (`.mcp.json`, `.gemini/settings.json`, `.cursor/mcp.json`) in agreement, so a capability granted to one agent is not invisible to the others. Skip the file entirely if the project uses no MCP server.
+**MCP catalog (only if applicable).** If any agent in this repo will use MCP servers, install `core/mcp.md` and fill its §1 table. It is a **catalog consulted on demand**, not part of the mandatory reading prefix — its job is to keep every client's mirrored config (`.mcp.json`, `.gemini/settings.json` for Gemini CLI, `.cursor/mcp.json`) in agreement, so a capability granted to one agent is not invisible to the others. Antigravity has no workspace-level MCP config (user-level `~/.gemini/config/mcp_config.json` only) — the catalog is how its users learn what to mirror. Skip the file entirely if the project uses no MCP server.
 
 **Core skills to install** (from `core/skills/`): `work-cycle`, `wiki-sync`, `wiki-lint`, `wiki-index`, `ingest-source`, `commit`, `sync-context`, `work-index`, `work-find`, `work-audit`, `methodology-upgrade`, and the skills index `_index.md`. `wiki-lint` (`lint.py`, `list_gates.py`), `wiki-index` and `methodology-upgrade` ship scripts too, and `wiki-lint`/`wiki-index`/`work-find` import `work-index`'s parser — keep the skills as siblings. The `work-index`, `work-find` and `wiki-sync` skills ship a small Python script each — copy the whole skill directory. `wiki-sync`'s `sync_bookkeeping.py` appends to `_meta/log.md` without reading it; it auto-detects a single `*_wiki/` vault (pass `--vault` otherwise).
 
@@ -103,6 +108,14 @@ The core now ships a single-repo git branching rule (`main`/`dev` + plan-gated e
 **Seed `REVIEW.md` with the human.** Ask two questions and fill the template's first two sections: *which areas have a failure mode of their own* (what does "broken" look like there?) and *which paths are always high risk*. Keep it short — the reviewer reads it on every review. An empty "Do not flag" section is correct on day one; it grows from review outcomes.
 
 **Knowledge directory seed.** Create the knowledge subdirs the project will use. For a single-repo project: `{{project}}_wiki/{domains,entities,services,flows,pages,contracts,decisions,cross-cutting,postmortems,sources/external,sources/internal}/`. For a monorepo, the monorepo module (§4) adds `apps/` and `packages/` layout instead.
+
+**Keep empty directories.** Git does not track an empty directory, so `work/archive/`, the knowledge seed dirs, `sources/internal/` and any other directory this install leaves empty (the `content/` tree, `docker/`, `benchmarks/`, …) vanish from the first commit and from every clone. Once all sections are installed, put an empty `.gitkeep` in each:
+
+```bash
+find {{project}}_wiki content docker -type d -empty -not -path '*/.obsidian*' -exec sh -c 'touch "$1/.gitkeep"' _ {} \; 2>/dev/null
+```
+
+The kit's scripts read only `*.md`, so `.gitkeep` never shows up in a catalog or a lint finding. Delete it when the directory gets its first page, or leave it — both are harmless.
 
 ## 4. Install the MONOREPO module (only if answer 4 = yes)
 
@@ -247,38 +260,64 @@ Follow `modules/peer-relay/README.md` for the qualified-citation rule (a `file:l
 The methodology is agent-agnostic; each agent just needs a thin stub pointing at `.agents/METHODOLOGY.md`. For each agent named in answer 5:
 
 - **Claude Code** → `.agents/llm/claude.md` (from `adapters/claude.md`) + a root `CLAUDE.md` stub that points to the reading order (§9 of METHODOLOGY). Claude discovers `.claude/skills/` natively.
-- **Gemini / Antigravity** → `.agents/llm/gemini.md` (from `adapters/gemini.md`) + a root `GEMINI.md` with a **"Skills available"** section. For **Gemini CLI**, copy `core/gemini-commands/*.toml` (and any installed module `*/gemini-commands/*.toml`) into `.gemini/commands/` to expose skills as native `/command` slash commands. In Antigravity / modern Gemini environments, skills in `.claude/skills/` are discovered **natively** by registering `.agents/skills.json` (`{ "entries": [ { "path": "../.claude/skills" } ] }`) or creating a symlink `.agents/skills -> ../.claude/skills`.
+- **Gemini CLI / Antigravity** → `.agents/llm/gemini.md` (from `adapters/gemini.md`) + a root `GEMINI.md` with a **"Skills available"** section. Then:
+  - **Skills link — REQUIRED.** Create the symlink `.agents/skills -> ../.claude/skills` (`ln -s ../.claude/skills .agents/skills`) and commit it. Antigravity discovers workspace skills at `.agents/skills/<name>/SKILL.md`; without the link it sees none of `.claude/skills/`. Use `.agents/skills.json` (`{ "entries": [ { "path": "../.claude/skills" } ] }`) **only as a fallback** where a symlink cannot exist — relative-path entries have been reported unreliable, and a directory entry loads only its direct children.
+  - **Gemini CLI** → copy `core/gemini-commands/*.toml` (and any installed module `*/gemini-commands/*.toml`) into `.gemini/commands/` to expose skills as native `/command` slash commands. Antigravity does not read them.
+  - **Antigravity CLI (`agy`)** → install the plan gate (next bullets) and copy `core/hooks/agy-hooks.json` to `.agents/hooks.json`. `agy` runs the hook with CWD `.agents/`, so its command is `../.claude/hooks/require-approved-plan.sh` — the same script Claude Code uses, which detects the `agy` payload. What `agy` loads, and its 20,000-token rule budget: `adapters/gemini.md` §1.
 - **Codex / others** → `.agents/llm/codex.md` (from `adapters/codex.md`).
 - **Always** → a root `AGENTS.md` (from the kit's `AGENTS.md`, de-templated) as the universal entry-point convention. This is the file a generic agent looks for.
-- **Optional (recommended): Turn the plan gate into a real lock** → copy `core/hooks/require-approved-plan.sh` to `.claude/hooks/require-approved-plan.sh` (chmod +x) and register under `PreToolUse` in `.claude/settings.json`. The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`.
+- **Optional (recommended): Turn the plan gate into a real lock** → copy `core/hooks/require-approved-plan.sh` to `.claude/hooks/require-approved-plan.sh` (chmod +x), adapt its `GUARDED` prefixes to the project's code directories, and register it for Claude Code by copying `core/hooks/claude-settings.json` to `.claude/settings.json` — or, if that file exists, **merging** this entry into its `hooks.PreToolUse` array (keep every other key):
+  ```json
+  {"hooks": {"PreToolUse": [{"matcher": "Edit|Write|MultiEdit|NotebookEdit",
+    "hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/require-approved-plan.sh"}]}]}}
+  ```
+  The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`. It speaks two protocols: Claude Code's (exit 2 + stderr) and Antigravity CLI's (`.agents/hooks.json`, above: a JSON `deny` on stdout to block, **empty** stdout to allow — never `"allow"`, which would skip the permission prompt). Gemini CLI hooks live in `.gemini/settings.json` (Gemini CLI only); the kit has not verified the script against that protocol.
 - **Optional (recommended): mechanize the no-LLM-co-author rule** → copy `core/hooks/commit-msg` to `.githooks/commit-msg` (chmod +x) and `core/ci/check_commit_trailers.py` to `scripts/ci/`, then run `git config core.hooksPath .githooks` (once per clone — put it in the onboarding notes). The hook is early feedback only; the guarantee is the CI step, which runs the same script on the commits each PR adds: `python3 scripts/ci/check_commit_trailers.py origin/<PR base>`, with a full-depth checkout. `core/ci/methodology-checks.yml` is a GitHub Actions template running it plus `/wiki-lint`. Plant a trailer once and watch both layers go red before trusting them (METHODOLOGY §6.7).
 
-Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub.
+Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub. Each stub (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`) also carries the one-line commit/PR convention from the kit's `AGENTS.md` "Non-negotiables" — copy that line as-is.
 
 ## 7. Post-install verification checklist
 
 Run these before telling the human it is done:
 
-- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude .gemini scripts CLAUDE.md GEMINI.md AGENTS.md` returns **nothing** (all placeholders substituted — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
+- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude .gemini scripts CLAUDE.md GEMINI.md AGENTS.md REVIEW.md .github/pull_request_template.md 2>/dev/null | sed -E 's/\{\{(args|\.State\.Health\.Status)\}\}//g' | grep '{{'` returns **nothing** (all placeholders substituted; the `sed` strips only the two run-time templates of §2, so a missed placeholder on the same line still shows, with its `file:line` — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
 - [ ] `.agents/METHODOLOGY.md`, `.agents/rules/mandatory_planning_rule.md` exist.
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).
+- [ ] No directory is left empty: `find {{project}}_wiki content docker -type d -empty -not -path '*/.obsidian*' 2>/dev/null` prints nothing (§3, `.gitkeep`).
 - [ ] `REVIEW.md` at the repo root, with "What failure looks like" and "Always high risk" filled with the human; `{{project}}_wiki/postmortems/_template.md` exists.
+- [ ] `.github/pull_request_template.md` exists (or the host's equivalent) with Summary / Testing / Risk / How to revert, and every root entry-point carries the commit/PR convention line.
 - [ ] `.claude/skills/_index.md` lists exactly the skills you installed (core, plus modules if chosen).
 - [ ] Root entry-point(s) for each chosen agent exist and point at `.agents/METHODOLOGY.md`.
-- [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `.gemini/commands/` populated if targeting Gemini CLI.
+- [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `test -L .agents/skills && ls .agents/skills/work-cycle/SKILL.md` succeeds (the skills link); `.gemini/commands/` populated if targeting Gemini CLI; if targeting Antigravity, `.agents/hooks.json` is the named-hook object (top-level key `plan-gate`, not `hooks`) and a guarded write on a non-ephemeral branch is denied — with `G` set to a path under one of your `GUARDED` prefixes (e.g. `G=src/probe`), `printf '%s' '{"toolCall":{"name":"write_file","args":{"Path":"'"$PWD/$G"'"}},"workspacePaths":["'"$PWD"'"]}' | (cd .agents && sh -c ../.claude/hooks/require-approved-plan.sh)` prints a `deny`.
 - [ ] If monorepo module installed: `.agents/rules/git_branching_rule.md` + `knowledge_source_of_truth_rule.md` exist; roster checklist done; `.gitattributes` has `{{project}}_wiki/_meta/log.md merge=union`; `python3 scripts/check-knowledge-paths.py` prints `ok`; the five self-tests pass — `bash scripts/test-broadcast-main.sh`, `bash scripts/test-broadcast-packages.sh`, `sh scripts/test_promote_detect.sh`, `sh scripts/test_dev_branch_reset.sh`, `sh scripts/test_check_branch_scope.sh`; §1.1 kept only if no `dev_*` exists.
 - [ ] If cross-team module installed: `cross-team-handoff` skill present; conventions extended.
 - [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1), with `kit_commit:`; `.agents/KIT_VERSION` holds the same stamp.
 - [ ] `.claude/skills/_index.md` §"Modules NOT installed" lists every module left out, why, and what would bring it in (§8).
 - [ ] `/work-index` runs clean (generates an empty-but-valid `work/_index.md`).
 - [ ] `python3 .claude/skills/wiki-lint/lint.py --root .` exits 0 (after `/work-index`, above). On an existing vault with debt, run `--init-baseline` once and commit `{{project}}_wiki/_meta/lint-baseline.json` — never start with a red gate.
+- [ ] If the plan gate was installed: `.claude/hooks/require-approved-plan.sh` is executable, `python3 -m json.tool .claude/settings.json` parses and shows the `Edit|Write|MultiEdit|NotebookEdit` entry, and a guarded write on `main` is refused — with `G` set to a path under one of your `GUARDED` prefixes (e.g. `G=src/probe`), `printf '%s' '{"tool_input":{"file_path":"'"$PWD/$G"'"}}' | CLAUDE_PROJECT_DIR=$PWD .claude/hooks/require-approved-plan.sh; echo $?` prints `2`.
 - [ ] If the trailer check was installed: a planted `Co-Authored-By: Claude …` commit is refused by the hook, and `scripts/ci/check_commit_trailers.py` exits 1 on a branch carrying one.
 - [ ] `.agents/rules/git_branching_rule.md` exists (core single-repo variant, or the monorepo module's variant if installed).
 - [ ] If benchmarks module installed: `.agents/rules/benchmark_protocol_rule.md`, `{{project}}_wiki/benchmarks/_template.md`, `run-benchmark` skill, conventions extended.
 - [ ] If contracts module installed: `.agents/rules/contract_change_rule.md`, `{{project}}_wiki/decisions/_templates/adr-contract.md`, conventions extended.
 - [ ] If dev-env module installed: `.agents/rules/dev_environment_rule.md`, `dev-env` skill, `docker/` created + `docker/**/.env` gitignored.
 - [ ] If writing module installed: `content/CLAUDE.md` override present and naming the safeguards it keeps; the three `write-*` skills registered as manual-only; `content/` tree created; conventions extended; **`write-academic` adapted** — persona filled in and the style section replaced with the actual style authority (a shipped-as-is `write-academic` is an incomplete install).
+
+## 7-bis. Bootstrap commit and the `dev` branch (single-repo only)
+
+The core branching rule has two permanent branches, `main` and `dev`, and every ephemeral branch starts from `dev` — so `dev` must exist before the first work cycle, and it must hold the **whole** install. Cut it only after the §7 checklist is green, because the checklist itself produces files to commit (`work/_index.md` from `/work-index`, a lint baseline, fixes).
+
+1. The human commits the install **and the checklist's outputs** on `main` — the bootstrap commit. The rule cannot be followed before `dev` exists; record the commit in the install log entry as that exception.
+2. `git status --porcelain` prints nothing.
+3. Announce and run:
+   ```bash
+   git branch dev main
+   git push -u origin main dev        # skip if the repo has no remote yet; push both once it does
+   ```
+4. Verify: `git rev-parse dev` equals `git rev-parse main`, and with a remote `git ls-remote --heads origin main dev` lists both.
+
+Then guide the human to protect `main` and `dev` in the git host (rule §3, host neutrality). **Monorepo module installed:** skip this section — that topology has its own permanent branches and bootstrap (`modules/monorepo/README.md`).
 
 ## 8. Hand-off to the human
 

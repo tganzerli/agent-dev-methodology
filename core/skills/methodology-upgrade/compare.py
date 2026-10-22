@@ -44,10 +44,13 @@ MAP = [
     (r"core/templates/wiki-page\.md", "{vault}/_meta/_page_template.md"),
     (r"core/templates/source\.md", "{vault}/sources/external/_template.md"),
     (r"core/templates/review\.md", "REVIEW.md"),
+    (r"core/templates/pull_request_template\.md", ".github/pull_request_template.md"),
     (r"core/skills/(.+)", r".claude/skills/\1"),
     (r"modules/[^/]+/skills/(.+)", r".claude/skills/\1"),
     (r"core/agents/(.+)", r".claude/agents/\1"),
     (r"core/hooks/require-approved-plan\.sh", ".claude/hooks/require-approved-plan.sh"),
+    (r"core/hooks/claude-settings\.json", ".claude/settings.json"),
+    (r"core/hooks/agy-hooks\.json", ".agents/hooks.json"),
     (r"core/hooks/commit-msg", ".githooks/commit-msg"),
     (r"core/ci/check_commit_trailers\.py", "scripts/ci/check_commit_trailers.py"),
     (r"core/ci/methodology-checks\.yml", ".github/workflows/methodology-checks.yml"),
@@ -58,7 +61,7 @@ MAP = [
 
 # Installed only by choice (a module, an agent, an optional mechanism): absent is not "missing".
 OPTIONAL = re.compile(r"modules/|.*/gemini-commands/|core/hooks/|core/ci/|core/mcp\.md$"
-                      r"|core/agents/|core/templates/review\.md$|adapters/")
+                      r"|core/agents/|core/templates/(review|pull_request_template)\.md$|adapters/")
 
 
 def git(kit, *argv):

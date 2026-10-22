@@ -1,6 +1,6 @@
 <!--
   Installs as: .agents/llm/<agent>.md for ANY agent without a dedicated adapter
-  (Cursor, Cline, Aider, Windsurf, a bespoke harness, …). De-template the {{...}}
+  (Cursor, Cline, Aider, Windsurf, a bespoke harness, …). De-template the double-brace
   placeholders at install and rename the file to the agent. This is the FALLBACK
   adapter: it assumes nothing about native capabilities. The canonical methodology
   is .agents/METHODOLOGY.md.

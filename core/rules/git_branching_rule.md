@@ -100,7 +100,7 @@ dev-feature / main_fix                ← collides with a permanent branch
 
 ### 4.6. Creation gate — mandatory sequence
 
-Before running `git checkout -b <branch>`, the LLM MUST, in order:
+Before running `git checkout -b <branch>` (or renaming a tool-created branch into it, §4.7), the LLM MUST, in order:
 
 1. **Validate** that `{{project}}_wiki/work/plans/{work_id}.md` exists.
 2. **Validate** that this plan is `status: approved` in its frontmatter (not `draft`, not `executed`).
@@ -108,6 +108,21 @@ Before running `git checkout -b <branch>`, the LLM MUST, in order:
 4. **Announce** the exact command to the human before executing it.
 
 If any check fails: **stop and demand the gate.** Do not invent a branch name; do not skip the plan.
+
+### 4.7. A branch or worktree the tool already created
+
+Any tool that creates a branch or worktree for the session (e.g. Claude Code worktrees, desktop agent clients) does so **before** the plan exists, under a name of its own. Then:
+
+1. **Do not create a second branch.** The session's branch is the one the tool made.
+2. **Before approval, commit nothing guarded on it.** Drafting the task and plan in the wiki is fine; code is not. Prefer keeping the drafts **uncommitted** until the branch is final (step 4 may replace it).
+3. **After approval, rename it in place.** Run §4.6 steps 1–3, announce the command, then `git branch -m <type>/<work_id>__<scope>`. This renames an ephemeral branch, not a permanent one — it is not the destructive operation of §9.1 / gate 12.
+4. **Before renaming, prove the base is the correct line** — `<line>` is `dev`, or `main` for a `hotfix`. Both must hold:
+   ```bash
+   git fetch origin
+   git merge-base --is-ancestor origin/<line> HEAD   # the line is in HEAD (exit 0)
+   git log --oneline origin/<line>..HEAD             # lists ONLY this session's own commits (nothing, if none)
+   ```
+   Together they mean HEAD = the line's tip + your own commits. Any foreign commit in the second list (unreleased `dev` work under a `hotfix`, another feature's commits) or a failed first check means the tool branched from the wrong base or the line moved: **do not rename** — create the branch from the right base, `git checkout -b <type>/<work_id>__<scope> --no-track origin/<line>`, cherry-pick any task/plan drafts you committed on the tool's branch (`git cherry-pick <sha>…`), and leave the tool's branch for cleanup.
 
 ## 5. Hotfix
 
@@ -167,6 +182,9 @@ Use these. Do not invent non-standard flags.
 git checkout dev && git pull
 git checkout -b <type>/<work_id>__<scope>
 
+# A tool already created the session's branch/worktree (§4.7) — after approval, base checked
+git branch -m <type>/<work_id>__<scope>
+
 # Hotfix (base = main — the only type that does)
 git checkout main && git pull
 git checkout -b hotfix/<work_id>__<scope>
@@ -216,6 +234,7 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 10. ❌ A commit message in a language other than English.
 11. ❌ A tag with an app/scope prefix, or an un-annotated tag.
 12. ❌ Renaming/deleting a permanent branch without `[y/n]` human confirmation.
+13. ❌ Creating a second branch when a tool already created one for the session, or renaming the tool's branch before the plan is approved or onto the wrong base (§4.7).
 
 ### 9.1. Destructive operations require an explicit `[y/n]`
 
