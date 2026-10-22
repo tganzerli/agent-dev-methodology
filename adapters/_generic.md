@@ -59,3 +59,5 @@ Assume nothing you "learn" survives the session. Everything durable about this p
 ### ⚠ No LLM co-authorship on commits (non-negotiable)
 
 **Forbidden** to include a `Co-Authored-By:` trailer — or any footer/trailer identifying the assistant (its model or product name) — in commits produced via this agent. Applies to ordinary commits, merge commits, amendments, any trailer/footer, and PR descriptions. The author is the human; the local `git user` already records authorship. Fix a co-authored message before committing; if already committed, do not rebase without human approval.
+
+**Mechanism:** `.githooks/commit-msg` (early feedback) plus `scripts/ci/check_commit_trailers.py <PR base>` in CI (the guarantee) — see the kit's `INSTALL.md` §6.

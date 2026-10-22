@@ -73,6 +73,9 @@ core/templates/postmortem.md           →  {{project}}_wiki/postmortems/_templa
 core/templates/review.md               →  REVIEW.md               (repo root — the reviewer's instructions; fill it with the human)
 core/skills/*                          →  .claude/skills/*
 core/agents/*                          →  .claude/agents/*        (Claude Code only)
+core/hooks/commit-msg                  →  .githooks/commit-msg    (optional, recommended — §6)
+core/ci/check_commit_trailers.py       →  scripts/ci/check_commit_trailers.py   (optional, recommended — §6)
+core/ci/methodology-checks.yml         →  .github/workflows/methodology-checks.yml   (optional — §6; adapt to the git host)
 ```
 
 Then create the empty work directories: `{{project}}_wiki/work/{tasks,plans,executions}/` and `{{project}}_wiki/work/archive/`.
@@ -228,6 +231,7 @@ The methodology is agent-agnostic; each agent just needs a thin stub pointing at
 - **Codex / others** → `.agents/llm/codex.md` (from `adapters/codex.md`).
 - **Always** → a root `AGENTS.md` (from the kit's `AGENTS.md`, de-templated) as the universal entry-point convention. This is the file a generic agent looks for.
 - **Optional (recommended): Turn the plan gate into a real lock** → copy `core/hooks/require-approved-plan.sh` to `.claude/hooks/require-approved-plan.sh` (chmod +x) and register under `PreToolUse` in `.claude/settings.json`. The hook checks guarded code directories and verifies plan approval, neutrally supporting both `.claude/active_work.json` and `.gemini/active_work.json`.
+- **Optional (recommended): mechanize the no-LLM-co-author rule** → copy `core/hooks/commit-msg` to `.githooks/commit-msg` (chmod +x) and `core/ci/check_commit_trailers.py` to `scripts/ci/`, then run `git config core.hooksPath .githooks` (once per clone — put it in the onboarding notes). The hook is early feedback only; the guarantee is the CI step, which runs the same script on the commits each PR adds: `python3 scripts/ci/check_commit_trailers.py origin/<PR base>`, with a full-depth checkout. `core/ci/methodology-checks.yml` is a GitHub Actions template running it plus `/wiki-lint`. Plant a trailer once and watch both layers go red before trusting them (METHODOLOGY §6.7).
 
 Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub.
 
@@ -247,6 +251,7 @@ Run these before telling the human it is done:
 - [ ] If cross-team module installed: `cross-team-handoff` skill present; conventions extended.
 - [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1).
 - [ ] `/work-index` runs clean (generates an empty-but-valid `work/_index.md`).
+- [ ] If the trailer check was installed: a planted `Co-Authored-By: Claude …` commit is refused by the hook, and `scripts/ci/check_commit_trailers.py` exits 1 on a branch carrying one.
 - [ ] `.agents/rules/git_branching_rule.md` exists (core single-repo variant, or the monorepo module's variant if installed).
 - [ ] If benchmarks module installed: `.agents/rules/benchmark_protocol_rule.md`, `{{project}}_wiki/benchmarks/_template.md`, `run-benchmark` skill, conventions extended.
 - [ ] If contracts module installed: `.agents/rules/contract_change_rule.md`, `{{project}}_wiki/decisions/_templates/adr-contract.md`, conventions extended.

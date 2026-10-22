@@ -92,3 +92,5 @@ Claude Code keeps a user-scoped memory (`.claude/projects/.../memory/`). Use it 
 Applies to: ordinary commits, merge commits (including conflict resolution), amendments, any trailer/footer (`git -c trailer.*` or heredoc), and PR descriptions created via CLI or suggested for a host UI.
 
 **Why:** the author is the human. Commits made via Claude already carry the configured local `git user`; duplicating that via co-authorship is noise. If you generate a co-authored message by mistake, **fix it before committing**; if it is already committed, do **not** rebase to rewrite history without human approval — just avoid it next time. (An equivalent rule holds for every other agent's adapter.)
+
+**Mechanism.** Text alone did not hold: one project found 16 violating commits on `main`, another 8 of 8 in one trio, both with the rule already written. The kit ships two layers sharing one pattern list (the kit's `INSTALL.md` §6): the `.githooks/commit-msg` hook (early feedback, only where `git config core.hooksPath .githooks` was run) and `scripts/ci/check_commit_trailers.py <PR base>` in CI — the load-bearing layer, scoped to the commits the PR adds.
