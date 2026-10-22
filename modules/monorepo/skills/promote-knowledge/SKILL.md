@@ -1,6 +1,6 @@
 ---
 name: promote-knowledge
-description: Promote knowledge-layer changes from the current branch (dev_<app>) to main via an ephemeral docs/<id>__knowledge branch. Detects knowledge-layer files changed since the last merge with main, creates a branch off main, copies the files, pushes, and instructs the human to open the PR. Use after /wiki-sync or after commits touching wiki/methodology. Agent-invocable; requires a single prior permission (yes/no).
+description: Promote knowledge-layer changes from the current branch (dev_<app>) to main via an ephemeral docs/<id>__knowledge branch. Detects knowledge-layer files that diverge from main (scripts/promote_detect.py), creates a branch off main, copies the files, pushes, and instructs the human to open the PR. Use after /wiki-sync or after commits touching wiki/methodology. Agent-invocable; requires a single prior permission (yes/no).
 argument-hint: "[work_id (optional — uses context)] [--all (promote the whole divergence vs main)] [--trio (include the task/plan/execution trio if closed)]"
 disable-model-invocation: false
 allowed-tools: Bash(git *), Bash(python3 *), Read, Write
@@ -34,7 +34,7 @@ The **step 7** checks are **deterministic automatic verifications**: on failure 
 ## Argument
 
 - **`<work_id>`** (optional): `YYYY-MM-DD_slug`. If omitted, infer from the most recent execution log or ask.
-- **`--all`** (optional): promote the **whole divergence** of the knowledge layer vs `main` (legacy). Without it, the **default is scoped to the work_id** — only files touched by the trio's commits (step 2).
+- **`--all`** (optional): promote the **whole divergence** of the knowledge layer vs `main` — `DIVERGENT`, orphans included (step 2). Without it, the **default is scoped to the work_id** — `ATTRIBUTED` only, with the orphans still shown at the gate.
 - **`--trio`** (optional): include the 3 trio files (`tasks/`, `plans/`, `executions/`) if `task: done` + `plan: executed` + `execution: done`.
 
 > **Why default-scoped:** `git diff origin/main HEAD` returns the **entire** accumulated divergence (multiple works), not the current one. Under multi-session authoring on `dev_<app>`, that over-reaches. Ideal isolation is one ephemeral branch per work; scoping covers the degraded case of direct authoring on `dev_<app>`. Use `--all` deliberately.
@@ -71,7 +71,7 @@ promote "the part that is current".
 
 ### 2. Detect the knowledge-layer files to promote
 
-The canonical knowledge-layer paths (rule §2) are the **mask** in both modes. Adapt this list to the project's actual filenames at install time; it must stay **equal** to rule §2 (rule §9.1 — `scripts/check-knowledge-paths.py` verifies it):
+The canonical knowledge-layer paths (rule §2) are the **mask** in both modes, passed to the detector below. Adapt this list to the project's actual filenames at install time; it must stay **equal** to rule §2 (rule §9.1 — `scripts/check-knowledge-paths.py` verifies it):
 
 ```bash
 KL_PATHS=".agents/ .claude/skills/ .claude/agents/ .claude/hooks/ .claude/settings.json \
@@ -84,33 +84,53 @@ KL_PATHS=".agents/ .claude/skills/ .claude/agents/ .claude/hooks/ .claude/settin
   {{project}}_wiki/overview.md {{project}}_wiki/.obsidian/"
 ```
 
-**Default mode — scoped to `<work_id>`** (only files touched by the trio's commits):
+**Call the mechanism. Do not re-specify the detection in shell.**
 
 ```bash
-# commits that touched ANY trio file for this work_id
-FILES=$(git log --format=%H -- \
-    "{{project}}_wiki/work/tasks/${WORK_ID}.md" \
-    "{{project}}_wiki/work/plans/${WORK_ID}.md" \
-    "{{project}}_wiki/work/executions/${WORK_ID}.md" \
-  | while read -r c; do git show --name-only --format= "$c"; done \
-  | sort -u | grep -E '<KL path regex adapted to this project>')
-# NB: `git log … | while read` (not `for c in $COMMITS`) — robust under bash AND zsh;
-# zsh does not word-split an unquoted variable, which would break the loop.
+python3 scripts/promote_detect.py "$WORK_ID" --mask "$KL_PATHS"                 # text blocks
+python3 scripts/promote_detect.py "$WORK_ID" --mask "$KL_PATHS" --format=json   # for programs
 ```
 
-If no commits touched the trio → **abort** with instructions (never fall silently into the total divergence).
+`--mask "$KL_PATHS"` is quoted on purpose: the script splits it, so the call behaves the same under
+bash and zsh. The script prints **four partitions**:
 
-**`--all` mode — total divergence vs `main`** (legacy):
+| Block | What it is | What to do |
+|---|---|---|
+| `DIVERGENT` | knowledge files that differ from `origin/main` (three-dot: against the merge-base) | **everything** there is to promote |
+| `ATTRIBUTED` | the subset touched by commits that also touched this `work_id`'s trio | the current work — the **default mode** promotes this |
+| `ORPHAN` | `DIVERGENT − ATTRIBUTED` | ⚠ **show at the gate; never drop silently**. `--all` promotes these too |
+| `DIVERGENT_TRIOS` | trios that differ from the base, **of any `work_id`** | trio drift; decide at the gate (`--trio` adds this work's own) |
+
+> ⛔ **Why this way, and why the earlier step left.** This step used to infer "this work's files" from
+> "files committed together with the trio". That is a **proxy, not the truth**, and in the
+> installation that replaced it, it was wrong 3 times out of 3 in one day — once losing the **central
+> ADR** of a trio. A controlled experiment showed the old shell block failing **both** ways at once: it
+> lost an ADR committed apart from the trio **and** brought in a file from a commit **already on
+> `main`**, which did not even diverge. Comparing **end states** instead of paths makes omission
+> **impossible by construction**: a file is left out only if it does not diverge, and then there is
+> nothing to promote. Attribution stops filtering and starts annotating.
+>
+> ⚠ **`{{project}}_wiki/work/` was never in the mask**, not even in `--all`; a divergent trio field
+> once stayed invisible for months. That is what `DIVERGENT_TRIOS` covers.
+>
+> ⚠ Prose was not enough here: a shell block the agent **retypes on every run** went wrong 3 of 3. The
+> mechanism is `scripts/promote_detect.py`, with a self-test in `scripts/test_promote_detect.sh` that
+> includes a **negative proof** — it fails the old logic on the same scenario.
+
+**Useful flags:** `--base <ref>` (default `origin/main`) and `--source <ref>` (default `HEAD`) audit a
+historical scenario without rebuilding a branch.
+
+**Cross-check by hand** (optional) — the same divergence, straight from git:
 
 ```bash
 # `$KL_PATHS` unquoted does NOT word-split under zsh: the whole mask becomes ONE
 # pathspec that matches nothing, and the command reports 0 files while a real
 # divergence exists (found in use: 0 reported against 19 real). Pipe through
 # xargs so the split is explicit and identical under bash and zsh.
-echo "$KL_PATHS" | xargs git diff --name-only origin/main HEAD --
+echo "$KL_PATHS" | xargs git diff --name-only origin/main...HEAD --
 ```
 
-If `--trio <id>`, add (either mode):
+If `--trio <id>`, add (either mode) the trio files, from `DIVERGENT_TRIOS`:
 
 ```bash
 {{project}}_wiki/work/tasks/<id>.md
@@ -119,30 +139,43 @@ If `--trio <id>`, add (either mode):
 # NB: {{project}}_wiki/work/_index.md is REGENERATED in step 6b — do not copy by hand.
 ```
 
-**Filter gitignored** explicitly (do not promote): local agent settings, `.claude/projects/`, `.claude/todos/`, `{{project}}_wiki/.obsidian/workspace*.json`.
+The script already filters gitignored/volatile paths (local agent settings, `.claude/projects/`, `.claude/todos/`, `{{project}}_wiki/.obsidian/workspace*.json`).
 
 **Edge cases:**
-- **Work with no trio** (default) → abort with instructions. ⚠ This includes the case where the trio is **real but lives on `main`** while the code lives on `dev_<app>`: the scoped detection runs `git log` on the *current* branch, so a trio authored on `main` is invisible to it and the skill aborts as if the work had none. Falling back to `--all` there is the unsafe direction step 5-bis guards; promote the named files instead.
-- **Work spread across commits** → `git log -- <trio>` already catches every commit that touched the trio; the union covers the work.
-- **A knowledge file touched in a commit that did NOT touch the trio** → out of scope; the gate (step 3) shows the list and the human may request `--all` or name the range.
+- **No `work_id` commit touched the trio** → `ATTRIBUTED` is empty and everything divergent is an orphan. ⚠ The typical case is a trio that is **real but lives on `main`** while the code lives on `dev_<app>`: attribution runs `git log` on the *current* branch, so a trio authored on `main` is invisible to it. The files are not lost — they show up as `ORPHAN` — but do not reach for `--all` reflexively; promote the named files the human picks at the gate.
+- **A knowledge file touched in a commit that did NOT touch the trio** → `ORPHAN`; the human decides at step 3.
 
-**If the list is empty** → report "nothing to promote" and stop.
+**If `DIVERGENT`, `ORPHAN` and `DIVERGENT_TRIOS` are all empty** → report "nothing to promote" and stop.
 
 ### 3. Single gate — prior permission (yes/no)
 
 **This is the skill's only human gate.** List the files to promote with diff size and ask for a `yes/no`:
 
 ```
-I will promote N knowledge-layer files to main:
-  - .agents/rules/foo.md (modified, +12/-3)
-  - {{project}}_wiki/decisions/2026-05-20_bar.md (new, +89)
-  - ...
+I will promote to main:
+
+  ATTRIBUTED to <work_id> (N):
+    - .agents/rules/foo.md (modified, +12/-3)
+    - {{project}}_wiki/decisions/2026-05-20_bar.md (new, +89)
+
+  ORPHAN — diverge from main and are NOT attributable to this work_id (M):
+    - {{project}}_wiki/apps/web/_index.md (modified, +4/-1)
+
+  DIVERGENT TRIOS (P):
+    - {{project}}_wiki/work/tasks/2026-07-08_other-work.md
+
 Ephemeral branch: docs/<work_id>__knowledge
 Confirm? (y/n)
 ```
 
+⚠ **Orphans and divergent trios are ALWAYS shown**, even when M and P are zero — it is the moment the
+human sees what the machine could not attribute. Omitting them reintroduces exactly the failure this
+design exists to kill.
+
 - Without an explicit `y` → **abort** (nothing created/pushed).
 - With `y` → the agent runs **all following steps autonomously**, through push and the PR link, **without asking again**.
+
+The confirmed list, one path per line, is `$FILES` in the steps below.
 
 ### 4. Confirm `work_id`
 
@@ -172,7 +205,7 @@ the hazard can reach, never *which direction* they travel.
 Run this over the **detected list** (the one the step-3 gate showed), not over the whole mask:
 
 ```bash
-printf '%s\n' $FILES | while read -r f; do
+printf '%s\n' "$FILES" | while read -r f; do
   [ -z "$f" ] && continue
   # Content first: identical content cannot be a revert, whatever the timestamps say.
   git diff --quiet origin/main "$SRC_BRANCH" -- "$f" && continue
@@ -210,7 +243,8 @@ promoted files explicitly. Never "promote anyway".
 **6a. Copy the knowledge-layer files EXCEPT the index** (trio task/plan/execution + knowledge pages), **excluding** `{{project}}_wiki/work/_index.md` and `{{project}}_wiki/work/archive/*`:
 
 ```bash
-git checkout "$SRC_BRANCH" -- <detected list WITHOUT _index.md and archive/*>
+# xargs, not an unquoted $FILES: zsh would pass the whole list as one path.
+printf '%s\n' "$FILES" | grep -v -e '/work/_index\.md$' -e '/work/archive/' | xargs git checkout "$SRC_BRANCH" --
 ```
 
 **6b. Regenerate the index from frontmatter:**
@@ -278,6 +312,7 @@ If another `dev_<app>` is active, suggest: "After the PR merges, run `/sync-know
 - ❌ Including code changes (`apps/`, `packages/`, manifests) in the promoted diff — the skill **must** filter them out.
 - ❌ Promoting `open`/`draft`/`in_progress` trios via `--trio`.
 - ❌ Promoting the **total** divergence by default (over-reach). The default is scoped to the `work_id`.
+- ❌ Re-specifying the detection in shell instead of calling `scripts/promote_detect.py`, or hiding the `ORPHAN` / `DIVERGENT_TRIOS` blocks from the gate.
 
 ## Cross-references
 
