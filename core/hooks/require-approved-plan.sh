@@ -80,14 +80,26 @@ else:
 
 target = ", ".join(guarded)
 
+# Permanent lines are never renamed into an ephemeral branch.
+PERMANENT = re.compile(r"^(main|master|dev|dev_.+|staging_.+|demo_.+|HEAD)$")
+
 if not work_id:
+    branch = current_branch() or "?"
+    if branch == "?" or PERMANENT.match(branch):
+        how = ("Create the ephemeral branch <type>/<work_id>__<scope> from the approved plan "
+               "(git_branching_rule.md), or record the active work_id in a marker file.")
+    else:
+        how = ("If a tool created this branch/worktree for the session, do not create a second one: "
+               "once the plan is approved, rename it in place (announce the command):\n"
+               "  git branch -m <type>/<work_id>__<scope>\n"
+               "only if it sits on the right base line; otherwise create the branch from that line "
+               "(git_branching_rule.md, tool-created branches). Or record the active work_id in a marker file.")
     block(
         "PLAN GATE — BLOCKED.\n"
         "Target: " + target + "\n"
-        "Could not determine work_id: current branch (" + (current_branch() or "?") + ") is not "
+        "Could not determine work_id: current branch (" + branch + ") is not "
         "ephemeral <type>/<work_id>__<scope> and no active_work.json exists in .claude/ or .gemini/.\n\n"
-        "mandatory_planning_rule.md: no code changes before an approved plan.\n"
-        "Create the ephemeral branch from the approved plan, or record active work_id in marker file."
+        "mandatory_planning_rule.md: no code changes before an approved plan.\n" + how
     )
 
 # Search for plan under {{project}}_wiki/work/plans/{work_id}.md or any *_wiki/work/plans/{work_id}.md

@@ -1,6 +1,6 @@
 ---
 name: git-runbook
-description: Operational runbook for this monorepo's Git branch flow — the HOW, not the WHETHER. Use when (1) changing a shared package through the dev_packages trunk — pkg/* flow, contents of dev_packages, release to main with a SemVer tag, new-app bootstrap, the two broadcasts; (2) running a canonical Git command (create, sync, rebase staging, tag, delete a branch); (3) guiding the human through a host-panel setting (branch protection, approvals, required checks, CI push exception, merge strategy, PR template); (4) reading WHY a monorepo rule says what it says (§5-6 hold the rationale moved out of the always-on rules). Whether an operation is allowed is decided by .agents/rules/git_branching_rule.md — this skill replaces no gate.
+description: Operational runbook for this monorepo's Git branch flow — the HOW, not the WHETHER. Use when (1) changing a shared package through the dev_packages trunk — pkg/* flow, contents of dev_packages, release to main with a SemVer tag, new-app bootstrap, the two broadcasts; (2) running a canonical Git command (create, sync, rebase staging, tag, delete a branch), including renaming a branch or worktree a tool created for the session; (3) guiding the human through a host-panel setting (branch protection, approvals, required checks, CI push exception, merge strategy, PR template); (4) reading WHY a monorepo rule says what it says (§5-6 hold the rationale moved out of the always-on rules). Whether an operation is allowed is decided by .agents/rules/git_branching_rule.md — this skill replaces no gate.
 ---
 
 # Git runbook
@@ -108,6 +108,27 @@ git branch -d <type>/<work_id>__<scope>            # -D (unmerged) is destructiv
 ```
 
 A local `dev_<app>` that stays "ahead" after its content was promoted and broadcast back is reset with `/reset-dev-branch`, never with a hand-typed `reset --hard`.
+
+### 3.1. A branch or worktree the tool already created
+
+Any tool that creates a branch or worktree for the session (e.g. Claude Code worktrees, desktop agent clients) does so before the plan exists, under a name of its own. The session works on that branch — no second one.
+
+1. **Before approval:** draft the task and plan in the wiki; commit nothing the plan gate guards.
+2. **After approval:** run the creation gate (the rule's §4.5 steps 1–3) on the target name.
+3. **Check the base** against the type's source line (the rule's §4.2: `dev_<app>`, `dev_packages` for `pkg/`, `main` for `hotfix/`, `contract/`, `docs/__knowledge`):
+   ```bash
+   git fetch origin
+   git merge-base --is-ancestor origin/<source-line> HEAD && echo base-ok
+   ```
+4. **Base ok → rename in place** (announce it; this is an ephemeral branch, not the destructive rename of a permanent one):
+   ```bash
+   git branch -m <type>/<work_id>__<scope>
+   ```
+5. **Base wrong** (the tool branched from `main`, or another app's line, or the line moved) → do not rename; create the branch from the right base and leave the tool's branch for cleanup. A worktree cannot check out a line that is checked out elsewhere, so branch from the remote ref:
+   ```bash
+   git checkout -b <type>/<work_id>__<scope> --no-track origin/<source-line>
+   ```
+   Renaming a branch cut from the wrong line is how another app's snapshot rides into `dev_<app>` — the contamination the rule's §4.6 forbids.
 
 ## 4. Host panel settings
 

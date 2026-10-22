@@ -166,6 +166,8 @@ Before running `git checkout -b <branch>`, the LLM MUST:
 
 If any check fails: **stop and demand the gate.** Do not invent a branch name; do not skip the plan.
 
+**Tool-created branch or worktree.** If a tool already created a branch or worktree for the session, do not create a second one: commit nothing guarded on it before approval, then rename it in place (`git branch -m <type>/<work_id>__<scope>`, announced) — only if it sits on the type's source line from §4.2; otherwise create the branch from that line instead. Procedure: `git-runbook` §3.1.
+
 ### 4.6. Branch scope barrier — what each branch may write
 
 The branch name (§4.1) is not a label: it is a **scope declaration**, and CI checks it. The invariant:
