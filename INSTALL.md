@@ -276,22 +276,11 @@ The methodology is agent-agnostic; each agent just needs a thin stub pointing at
 
 Every entry-point stub is short: it names the reading order and points at the canonical `.agents/METHODOLOGY.md`. Never duplicate methodology content into a stub. Each stub (`CLAUDE.md`, `GEMINI.md`, `AGENTS.md`) also carries the one-line commit/PR convention from the kit's `AGENTS.md` "Non-negotiables" — copy that line as-is.
 
-## 6-bis. Create the `dev` branch (single-repo only)
-
-The core branching rule has two permanent branches, `main` and `dev`, and every ephemeral branch starts from `dev` — so `dev` must exist before the first work cycle. Once the human has committed the install on `main` (the bootstrap commit: the rule cannot be followed before `dev` exists; record it in the install log entry as such), announce and run:
-
-```bash
-git branch dev main
-git push -u origin main dev        # skip if the repo has no remote yet; push both once it does
-```
-
-Then guide the human to protect `main` and `dev` in the git host (rule §3, host neutrality). **Monorepo module installed:** skip this section — that topology has its own permanent branches and bootstrap (`modules/monorepo/README.md`).
-
 ## 7. Post-install verification checklist
 
 Run these before telling the human it is done:
 
-- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude .gemini scripts CLAUDE.md GEMINI.md AGENTS.md REVIEW.md .github/pull_request_template.md 2>/dev/null | grep -vE '\{\{(args|\.State\.Health\.Status)\}\}'` returns **nothing** (all placeholders substituted; the two exclusions are run-time templates, §2 — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
+- [ ] `grep -rn '{{' .agents {{project}}_wiki .claude .gemini scripts CLAUDE.md GEMINI.md AGENTS.md REVIEW.md .github/pull_request_template.md 2>/dev/null | sed -E 's/\{\{(args|\.State\.Health\.Status)\}\}//g' | grep '{{'` returns **nothing** (all placeholders substituted; the `sed` strips only the two run-time templates of §2, so a missed placeholder on the same line still shows, with its `file:line` — `scripts/` matters when the monorepo module installed the broadcast scripts, which carry `{{project}}` paths).
 - [ ] `.agents/METHODOLOGY.md`, `.agents/rules/mandatory_planning_rule.md` exist.
 - [ ] `{{project}}_wiki/_meta/{conventions,index,log}.md` and `overview.md` exist.
 - [ ] `{{project}}_wiki/work/{tasks,plans,executions,archive}/` exist (with `_template.md` in tasks/plans/executions).
@@ -300,21 +289,35 @@ Run these before telling the human it is done:
 - [ ] `.github/pull_request_template.md` exists (or the host's equivalent) with Summary / Testing / Risk / How to revert, and every root entry-point carries the commit/PR convention line.
 - [ ] `.claude/skills/_index.md` lists exactly the skills you installed (core, plus modules if chosen).
 - [ ] Root entry-point(s) for each chosen agent exist and point at `.agents/METHODOLOGY.md`.
-- [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `test -L .agents/skills && ls .agents/skills/work-cycle/SKILL.md` succeeds (the skills link); `.gemini/commands/` populated if targeting Gemini CLI; if targeting Antigravity, `.agents/hooks.json` is the named-hook object (top-level key `plan-gate`, not `hooks`) and a guarded write on a non-ephemeral branch is denied (`printf '%s' '{"toolCall":{"name":"write_file","args":{"Path":"'"$PWD"'/src/x"}},"workspacePaths":["'"$PWD"'"]}' | (cd .agents && sh -c ../.claude/hooks/require-approved-plan.sh)` prints a `deny`).
+- [ ] If Gemini installed: `.agents/llm/gemini.md` + root `GEMINI.md` exist; `test -L .agents/skills && ls .agents/skills/work-cycle/SKILL.md` succeeds (the skills link); `.gemini/commands/` populated if targeting Gemini CLI; if targeting Antigravity, `.agents/hooks.json` is the named-hook object (top-level key `plan-gate`, not `hooks`) and a guarded write on a non-ephemeral branch is denied — with `G` set to a path under one of your `GUARDED` prefixes (e.g. `G=src/probe`), `printf '%s' '{"toolCall":{"name":"write_file","args":{"Path":"'"$PWD/$G"'"}},"workspacePaths":["'"$PWD"'"]}' | (cd .agents && sh -c ../.claude/hooks/require-approved-plan.sh)` prints a `deny`.
 - [ ] If monorepo module installed: `.agents/rules/git_branching_rule.md` + `knowledge_source_of_truth_rule.md` exist; roster checklist done; `.gitattributes` has `{{project}}_wiki/_meta/log.md merge=union`; `python3 scripts/check-knowledge-paths.py` prints `ok`; the five self-tests pass — `bash scripts/test-broadcast-main.sh`, `bash scripts/test-broadcast-packages.sh`, `sh scripts/test_promote_detect.sh`, `sh scripts/test_dev_branch_reset.sh`, `sh scripts/test_check_branch_scope.sh`; §1.1 kept only if no `dev_*` exists.
 - [ ] If cross-team module installed: `cross-team-handoff` skill present; conventions extended.
 - [ ] First `{{project}}_wiki/_meta/log.md` entry written (the install record, §1), with `kit_commit:`; `.agents/KIT_VERSION` holds the same stamp.
 - [ ] `.claude/skills/_index.md` §"Modules NOT installed" lists every module left out, why, and what would bring it in (§8).
 - [ ] `/work-index` runs clean (generates an empty-but-valid `work/_index.md`).
 - [ ] `python3 .claude/skills/wiki-lint/lint.py --root .` exits 0 (after `/work-index`, above). On an existing vault with debt, run `--init-baseline` once and commit `{{project}}_wiki/_meta/lint-baseline.json` — never start with a red gate.
-- [ ] If the plan gate was installed: `.claude/hooks/require-approved-plan.sh` is executable, `python3 -m json.tool .claude/settings.json` parses and shows the `Edit|Write|MultiEdit|NotebookEdit` entry, and a guarded write on `main` is refused (`printf '%s' '{"tool_input":{"file_path":"'"$PWD"'/src/x"}}' | CLAUDE_PROJECT_DIR=$PWD .claude/hooks/require-approved-plan.sh; echo $?` prints `2`).
+- [ ] If the plan gate was installed: `.claude/hooks/require-approved-plan.sh` is executable, `python3 -m json.tool .claude/settings.json` parses and shows the `Edit|Write|MultiEdit|NotebookEdit` entry, and a guarded write on `main` is refused — with `G` set to a path under one of your `GUARDED` prefixes (e.g. `G=src/probe`), `printf '%s' '{"tool_input":{"file_path":"'"$PWD/$G"'"}}' | CLAUDE_PROJECT_DIR=$PWD .claude/hooks/require-approved-plan.sh; echo $?` prints `2`.
 - [ ] If the trailer check was installed: a planted `Co-Authored-By: Claude …` commit is refused by the hook, and `scripts/ci/check_commit_trailers.py` exits 1 on a branch carrying one.
 - [ ] `.agents/rules/git_branching_rule.md` exists (core single-repo variant, or the monorepo module's variant if installed).
-- [ ] Single-repo: `git rev-parse --verify dev` succeeds and `dev` points at the install commit on `main` (§6-bis); with a remote, `git ls-remote --heads origin main dev` lists both.
 - [ ] If benchmarks module installed: `.agents/rules/benchmark_protocol_rule.md`, `{{project}}_wiki/benchmarks/_template.md`, `run-benchmark` skill, conventions extended.
 - [ ] If contracts module installed: `.agents/rules/contract_change_rule.md`, `{{project}}_wiki/decisions/_templates/adr-contract.md`, conventions extended.
 - [ ] If dev-env module installed: `.agents/rules/dev_environment_rule.md`, `dev-env` skill, `docker/` created + `docker/**/.env` gitignored.
 - [ ] If writing module installed: `content/CLAUDE.md` override present and naming the safeguards it keeps; the three `write-*` skills registered as manual-only; `content/` tree created; conventions extended; **`write-academic` adapted** — persona filled in and the style section replaced with the actual style authority (a shipped-as-is `write-academic` is an incomplete install).
+
+## 7-bis. Bootstrap commit and the `dev` branch (single-repo only)
+
+The core branching rule has two permanent branches, `main` and `dev`, and every ephemeral branch starts from `dev` — so `dev` must exist before the first work cycle, and it must hold the **whole** install. Cut it only after the §7 checklist is green, because the checklist itself produces files to commit (`work/_index.md` from `/work-index`, a lint baseline, fixes).
+
+1. The human commits the install **and the checklist's outputs** on `main` — the bootstrap commit. The rule cannot be followed before `dev` exists; record the commit in the install log entry as that exception.
+2. `git status --porcelain` prints nothing.
+3. Announce and run:
+   ```bash
+   git branch dev main
+   git push -u origin main dev        # skip if the repo has no remote yet; push both once it does
+   ```
+4. Verify: `git rev-parse dev` equals `git rev-parse main`, and with a remote `git ls-remote --heads origin main dev` lists both.
+
+Then guide the human to protect `main` and `dev` in the git host (rule §3, host neutrality). **Monorepo module installed:** skip this section — that topology has its own permanent branches and bootstrap (`modules/monorepo/README.md`).
 
 ## 8. Hand-off to the human
 
