@@ -119,7 +119,7 @@ When a knowledge-layer change goes **only** to main (no origin branch), create e
 
 > 🔒 **Exception: append-only files.** Adopting main's version of a **ledger** is data loss: the `dev_<app>` holds lines written between `/wiki-sync` and `/promote-knowledge` that exist nowhere else. The root `.gitattributes` declares `{{project}}_wiki/_meta/log.md merge=union`, so that conflict never happens.
 >
-> ⛔ `union` is for `_meta/log.md` **only** — never `_meta/index.md`, other catalogs or `work/_index.md`: union keeps both versions of a line edited on both sides. Do not replace it with another strategy. Why, and the refuted "union duplicates entries" claim: `git-runbook` §6.2.
+> ⛔ `union` is for `_meta/log.md` **only** — never `_meta/index.md`, other catalogs or `work/_index.md`: union keeps both versions of a line edited on both sides. Do not replace it with another strategy. Why, and the refuted "union duplicates entries" claim: `git-runbook/reference.md` §6.2.
 
 `scripts/check-knowledge-paths.py` verifies the partition and that no Group B path leaks into `KNOWLEDGE_PATHS` (§9.1). Keep a companion ADR (`{{project}}_wiki/decisions/YYYY-MM-DD_knowledge-reconcile-scope.md`).
 
@@ -185,4 +185,4 @@ Changed §2? Update **all four in the same work** — none is derived from the o
 - [ ] `.claude/skills/sync-knowledge/SKILL.md` — `KL_PATHS`. Equality required.
 - [ ] `scripts/broadcast-main.sh` — `KNOWLEDGE_PATHS`, which must cover every `[A]` path of §2 (the whole `{{project}}_wiki/` counts) and **nothing** tagged `[B]`.
 
-**Do not trust this checklist alone:** run `python3 scripts/check-knowledge-paths.py` — both skills run it at step 1 and abort on failure; wire it into CI too, since the skills do not run until a `dev_<app>` exists. Why it exists: `git-runbook` §6.3.
+**Do not trust this checklist alone:** run `python3 scripts/check-knowledge-paths.py` — both skills run it at step 1 and abort on failure; wire it into CI too, since the skills do not run until a `dev_<app>` exists. Why it exists: `git-runbook/reference.md` §6.3.

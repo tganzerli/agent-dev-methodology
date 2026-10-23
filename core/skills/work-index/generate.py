@@ -21,7 +21,8 @@ Usage:
   --quarter  force the "current quarter" (default: derived from the system date).
              Makes the output 100% deterministic for regenerating on a merge conflict.
   --check    do not write; exit 1 on drift (output differs from disk) or on a trio
-             error (plan without task, plan status contradicting its execution).
+             error (plan without task, plan status contradicting its execution). A drift
+             caused only by a quarter turning (no trio changed) is named as such.
              Warnings (skipped files, bad frontmatter, off-vocabulary topic) never fail;
              /work-audit R9 reports them.
 """
@@ -125,13 +126,19 @@ def parse_frontmatter(text):
             i += 1
             continue
         key, val = m.group(1), m.group(2).strip()
-        # inline comment
-        val = re.sub(r"\s+#.*$", "", val).strip()
+        quoted = yaml_quoted(val)
+        if quoted is None:
+            quoted = yaml_flow_list(val)
+        if quoted is not None:  # a `#` inside quotes is text, not a comment
+            fm[key] = quoted
+            i += 1
+            continue
+        val = strip_yaml_comment(val)
         if val == "":
             # could be a block list OR a map (scope)
             items, j = [], i + 1
             while j < len(block) and re.match(r"^\s+-\s+", block[j]):
-                items.append(block[j].strip()[2:].strip().strip('"').strip("'"))
+                items.append(parse_scalar_or_list(block[j].strip()[2:]))
                 j += 1
             if items:
                 fm[key] = items
@@ -152,14 +159,82 @@ def parse_frontmatter(text):
     return fm
 
 
+def yaml_quoted(val):
+    """The content of a quoted YAML scalar ('...' with '' for a quote; "..." with \\" and
+    \\\\ decoded, any other backslash kept as written so a Windows path survives),
+    ignoring a trailing ` # comment`; None when `val` is unquoted or never closes."""
+    if val[:1] not in ("'", '"'):
+        return None
+    q, out, i = val[0], [], 1
+    while i < len(val):
+        c = val[i]
+        if q == "'" and c == "'":
+            if val[i + 1:i + 2] == "'":
+                out.append("'")
+                i += 2
+                continue
+            return "".join(out)
+        if q == '"' and c == "\\" and val[i + 1:i + 2] in ('"', "\\"):
+            out.append(val[i + 1])
+            i += 2
+            continue
+        if q == '"' and c == '"':
+            return "".join(out)
+        out.append(c)
+        i += 1
+    return None
+
+
+def strip_yaml_comment(val):
+    """YAML semantics for an UNQUOTED scalar: ` #` (whitespace, then #) starts a comment,
+    so `summary: PR #29 done` reads `PR`. `issue#29` and `C# guide` are text. Quote the
+    value to keep a ` #`; /wiki-lint warns (`yaml-comment`) on summary/title."""
+    return re.sub(r"\s+#.*$", "", val).strip()
+
+
+def yaml_flow_list(val):
+    """A flow list `[a, "b, c", 'd #e']` -> items, splitting on commas OUTSIDE quotes and
+    reading each quoted item with yaml_quoted, so a `#` or `,` inside quotes is text; a
+    trailing ` # comment` after `]` is dropped. None when `val` is not a closed list."""
+    if val[:1] != "[":
+        return None
+    items, cur, q, i = [], [], None, 1
+    while i < len(val):
+        c = val[i]
+        if q:
+            cur.append(c)
+            if q == '"' and c == "\\" and i + 1 < len(val):
+                cur.append(val[i + 1])
+                i += 1
+            elif c == q and not (q == "'" and val[i + 1:i + 2] == "'"):
+                q = None
+            elif c == q:  # '' inside a single-quoted item
+                cur.append(val[i + 1])
+                i += 1
+        elif c in "\"'" and not "".join(cur).strip():
+            q = c
+            cur.append(c)
+        elif c in ",]":
+            item = "".join(cur).strip()
+            if item or c == ",":
+                quoted = yaml_quoted(item)
+                items.append(quoted if quoted is not None else item.strip('"').strip("'"))
+            cur = []
+            if c == "]":
+                return items
+        else:
+            cur.append(c)
+        i += 1
+    return None
+
+
 def parse_scalar_or_list(val):
     val = val.strip()
-    if val.startswith("[") and val.endswith("]"):
-        inner = val[1:-1].strip()
-        if not inner:
-            return []
-        return [x.strip().strip('"').strip("'") for x in inner.split(",")]
-    return val.strip('"').strip("'")
+    for reader in (yaml_quoted, yaml_flow_list):
+        out = reader(val)
+        if out is not None:
+            return out
+    return strip_yaml_comment(val).strip('"').strip("'")
 
 
 def read_fm(path):
@@ -421,6 +496,28 @@ def render_archive_router(archive, cur_q):
     return "\n".join(out) + "\n"
 
 
+def quarter_rollover_only(root, vault, cur_q, verbose=False):
+    """The index depends on the date: a repo with no new commit drifts when a quarter
+    ends, because "current quarter" moved. Returns the quarter the on-disk index was
+    generated for when regenerating with THAT quarter reproduces every file on disk
+    (so the only change is the rollover); None otherwise."""
+    path = os.path.join(root, vault, "work", "_index.md")
+    if not os.path.exists(path):
+        return None
+    m = re.search(r"\(\*\*(\d{4})-Q([1-4])\*\*\)", open(path, encoding="utf-8").read())
+    if not m:
+        return None
+    prev = (int(m.group(1)), int(m.group(2)))
+    if prev == cur_q:
+        return None
+    files = build(root, vault, prev, verbose)[0]
+    for rel, content in files.items():
+        fp = os.path.join(root, rel)
+        if not os.path.exists(fp) or open(fp, encoding="utf-8").read() != content:
+            return None
+    return prev
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=os.getcwd())
@@ -470,6 +567,12 @@ def main():
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
+    if args.check and drift:
+        rolled = quarter_rollover_only(args.root, vault, cur_q, args.verbose)
+        if rolled:
+            print(f"drift: quarter rollover only — the index was generated for {qlabel(rolled)}, "
+                  f"the current quarter is {qlabel(cur_q)}; no trio changed. Regenerate and commit "
+                  f"(trios closed in {qlabel(rolled)} move to archive/).", file=sys.stderr)
     if args.check and (drift or errors):
         sys.exit(1)
     print("ok" if not args.check else "in sync", file=sys.stderr)

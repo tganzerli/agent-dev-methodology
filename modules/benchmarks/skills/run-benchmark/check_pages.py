@@ -54,10 +54,32 @@ def frontmatter_lines(text):
 
 def top_value(lines, key):
     for line in lines:
-        m = re.match(r"^%s:\s*(.*?)\s*(#.*)?$" % re.escape(key), line)
+        m = re.match(r"^%s:\s*(.*)$" % re.escape(key), line)
         if m:
-            return m.group(1).strip("\"'")
+            return yaml_scalar(m.group(1).strip())
     return None
+
+
+def yaml_scalar(val):
+    """YAML scalar semantics (same as work-index's parser): in a quoted value a `#` is
+    text ('' is a quote, backslash escapes in "..."); in an unquoted one ` #` starts a
+    comment, and `run#3` is text."""
+    if val[:1] in ("'", '"'):
+        q, out, i = val[0], [], 1
+        while i < len(val):
+            c = val[i]
+            if q == "'" and c == "'" and val[i + 1:i + 2] == "'":
+                out.append("'")
+                i += 2
+            elif q == '"' and c == "\\" and val[i + 1:i + 2] in ('"', "\\"):
+                out.append(val[i + 1])
+                i += 2
+            elif c == q:
+                return "".join(out)
+            else:
+                out.append(c)
+                i += 1
+    return re.sub(r"\s+#.*$", "", val).strip().strip("\"'")
 
 
 def block_keys(lines, parent):

@@ -90,8 +90,30 @@ def frontmatter(text):
     for line in text[bounds[1]:bounds[2]].splitlines():
         m = re.match(r"^([A-Za-z_]+):\s*(.*)$", line)
         if m:
-            fm[m.group(1)] = re.sub(r"\s+#.*$", "", m.group(2)).strip().strip("\"'")
+            fm[m.group(1)] = yaml_scalar(m.group(2).strip())
     return fm
+
+
+def yaml_scalar(val):
+    """YAML scalar semantics (same as work-index's parser): in a quoted value a `#` is
+    text ('' is a quote, backslash escapes in "..."); in an unquoted one ` #` starts a
+    comment."""
+    if val[:1] in ("'", '"'):
+        q, out, i = val[0], [], 1
+        while i < len(val):
+            c = val[i]
+            if q == "'" and c == "'" and val[i + 1:i + 2] == "'":
+                out.append("'")
+                i += 2
+            elif q == '"' and c == "\\" and val[i + 1:i + 2] in ('"', "\\"):
+                out.append(val[i + 1])
+                i += 2
+            elif c == q:
+                return "".join(out)
+            else:
+                out.append(c)
+                i += 1
+    return re.sub(r"\s+#.*$", "", val).strip().strip("\"'")
 
 
 def matches(fm, peer):

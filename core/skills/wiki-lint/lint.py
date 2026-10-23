@@ -39,7 +39,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "work-index"))
-from generate import find_vault, parse_frontmatter  # noqa: E402
+from generate import find_vault, frontmatter_bounds, parse_frontmatter  # noqa: E402
 
 WORK_INDEX = os.path.join(HERE, "..", "work-index", "generate.py")
 WIKI_INDEX = os.path.join(HERE, "..", "wiki-index", "generate.py")
@@ -54,6 +54,12 @@ RULE_DOCS = [".agents/METHODOLOGY.md", ".agents/rules/*.md", ".agents/llm/*.md"]
 CITE = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):(\d+)(?:-(\d+))?`")
 CODE_PATH = re.compile(r"`((?:scripts|\.claude/skills|\.githooks)/[A-Za-z0-9_./-]+\.(?:sh|py|yml|yaml|json))`")
 ENTRY = re.compile(r"^- \[\[")
+# Files an agent loads whole (rules, entry-points, skill bodies). Antigravity CLI cuts each rule
+# file at ~24,000 bytes (24 KB) and the model never sees the rest — a gate or a 🔒 line
+# past the cut is silently absent. The cap leaves headroom for de-templating and the
+# per-project growth of a rule. Change it here if a target agent's limit differs.
+RULE_MAX_BYTES = 22_000
+ROOT_ENTRY_POINTS = ["AGENTS.md", "GEMINI.md"]
 
 
 def read(path):
@@ -95,6 +101,7 @@ def g_catalog_drift(ctx):
                         "--vault", ctx["vault"]], capture_output=True, text=True)
     if r.returncode != 0 and not fresh:
         why = [l for l in r.stderr.splitlines() if l.startswith(("drift", "✗"))]
+        why.sort(key=lambda l: "quarter rollover" not in l)  # the date-only cause first
         out.append(finding("catalog-drift", f"{ctx['vault']}/work/_index.md",
                            "work index drift or trio error — run /work-index --check: "
                            + "; ".join(why[:3])))
@@ -210,6 +217,27 @@ def g_rule_citation(ctx):
     return out
 
 
+def g_rule_size(ctx):
+    """Every `.agents/rules/*.md` (any `trigger:` — agy cuts each rule file it loads, and
+    `model_decision` rules load mid-session), the root entry-points and every
+    `.claude/skills/*/SKILL.md` must fit RULE_MAX_BYTES. Skills are a precaution: the cap
+    is measured on rules (⚠ unverified for skill bodies), and a rule's pointer into a
+    skill section past the cut would point at nothing. Bytes, not characters: the limit
+    is in bytes, and accented prose or emoji cost more than one."""
+    root, out = ctx["root"], []
+    files = sorted(glob.glob(os.path.join(root, ".agents", "rules", "*.md")))
+    files += [os.path.join(root, f) for f in ROOT_ENTRY_POINTS if os.path.isfile(os.path.join(root, f))]
+    files += sorted(glob.glob(os.path.join(root, ".claude", "skills", "*", "SKILL.md")))
+    for path in files:
+        size = os.path.getsize(path)
+        if size > RULE_MAX_BYTES:
+            out.append(finding("rule-size", os.path.relpath(path, root),
+                               f"{size} B > {RULE_MAX_BYTES} B — an agent may cut it on load "
+                               "(Antigravity: ~24 KB per rule file); move rationale/examples to a "
+                               "skill's reference file, keep every 🔒 line"))
+    return out
+
+
 # ── warnings ─────────────────────────────────────────────────────────────────
 def w_stale(ctx):
     out = []
@@ -254,11 +282,36 @@ def w_stalled(ctx):
     return out
 
 
+YAML_COMMENT_KEYS = ("summary", "title")
+
+
+def w_yaml_comment(ctx):
+    """An unquoted `summary`/`title` holding ` #` is cut there: YAML (and the kit's
+    parsers) read ` #...` as a comment, so `summary: merged in PR #29` catalogs as
+    "merged in PR". A warning, not a gate: the value is valid YAML, only probably not
+    what the author meant. Quote it."""
+    out = []
+    for p in ctx["all"]:
+        if is_template(p):
+            continue
+        b = frontmatter_bounds(p["body"])
+        if not b:
+            continue
+        for line in p["body"][b[1]:b[2]].splitlines():
+            m = re.match(r"^(%s):\s*(.*)$" % "|".join(YAML_COMMENT_KEYS), line)
+            if m and m.group(2)[:1] not in ("'", '"') and re.search(r"\s#", m.group(2)):
+                out.append(finding("yaml-comment", p["rel"],
+                                   f"unquoted `{m.group(1)}` holds ` #` — YAML drops the rest "
+                                   f"as a comment; quote the value"))
+    return out
+
+
 GATES = {"catalog-drift": g_catalog_drift, "missing-summary": g_missing_summary,
          "summary-too-long": g_summary_too_long, "frontmatter": g_frontmatter,
          "broken-wikilink": g_broken_wikilink, "index-format": g_index_format,
-         "rule-citation": g_rule_citation}
-WARNINGS = {"stale": w_stale, "orphan": w_orphan, "stalled": w_stalled}
+         "rule-citation": g_rule_citation, "rule-size": g_rule_size}
+WARNINGS = {"stale": w_stale, "orphan": w_orphan, "stalled": w_stalled,
+            "yaml-comment": w_yaml_comment}
 
 
 def main():

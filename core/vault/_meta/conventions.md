@@ -134,6 +134,7 @@ related:
 
 #### `summary` and `topic` (mandatory on new trios)
 - **`summary`** — one sentence stating what the work delivers. It is the text shown in the generated catalog (`work/_index.md`). Long narrative lives **only** in the execution. Generator preference: `execution.summary` → `task.summary` → `title`.
+- **Quote a `summary`/`title` that holds ` #`** (`summary: "merged in PR #29"`). Unquoted, YAML reads ` #…` as a comment and the catalog line stops at `PR`; `/wiki-lint` warns (`yaml-comment`).
 - **`topic`** — controlled-vocabulary labels for subject filtering and `/work-find`. A new label is added to the block below **before** use; `/work-index` reads the block and warns on off-vocabulary topics.
 
 #### `topic` vocabulary
