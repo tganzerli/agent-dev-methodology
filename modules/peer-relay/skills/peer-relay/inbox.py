@@ -105,7 +105,7 @@ def yaml_scalar(val):
             if q == "'" and c == "'" and val[i + 1:i + 2] == "'":
                 out.append("'")
                 i += 2
-            elif q == '"' and c == "\\" and i + 1 < len(val):
+            elif q == '"' and c == "\\" and val[i + 1:i + 2] in ('"', "\\"):
                 out.append(val[i + 1])
                 i += 2
             elif c == q:

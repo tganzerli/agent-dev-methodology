@@ -127,6 +127,8 @@ def parse_frontmatter(text):
             continue
         key, val = m.group(1), m.group(2).strip()
         quoted = yaml_quoted(val)
+        if quoted is None:
+            quoted = yaml_flow_list(val)
         if quoted is not None:  # a `#` inside quotes is text, not a comment
             fm[key] = quoted
             i += 1
@@ -136,7 +138,7 @@ def parse_frontmatter(text):
             # could be a block list OR a map (scope)
             items, j = [], i + 1
             while j < len(block) and re.match(r"^\s+-\s+", block[j]):
-                items.append(block[j].strip()[2:].strip().strip('"').strip("'"))
+                items.append(parse_scalar_or_list(block[j].strip()[2:]))
                 j += 1
             if items:
                 fm[key] = items
@@ -158,9 +160,9 @@ def parse_frontmatter(text):
 
 
 def yaml_quoted(val):
-    """The content of a quoted YAML scalar ('...' with '' for a quote, "..." with
-    backslash escapes), ignoring a trailing ` # comment`; None when `val` is unquoted
-    or the quote never closes."""
+    """The content of a quoted YAML scalar ('...' with '' for a quote; "..." with \\" and
+    \\\\ decoded, any other backslash kept as written so a Windows path survives),
+    ignoring a trailing ` # comment`; None when `val` is unquoted or never closes."""
     if val[:1] not in ("'", '"'):
         return None
     q, out, i = val[0], [], 1
@@ -172,7 +174,7 @@ def yaml_quoted(val):
                 i += 2
                 continue
             return "".join(out)
-        if q == '"' and c == "\\" and i + 1 < len(val):
+        if q == '"' and c == "\\" and val[i + 1:i + 2] in ('"', "\\"):
             out.append(val[i + 1])
             i += 2
             continue
@@ -190,14 +192,49 @@ def strip_yaml_comment(val):
     return re.sub(r"\s+#.*$", "", val).strip()
 
 
+def yaml_flow_list(val):
+    """A flow list `[a, "b, c", 'd #e']` -> items, splitting on commas OUTSIDE quotes and
+    reading each quoted item with yaml_quoted, so a `#` or `,` inside quotes is text; a
+    trailing ` # comment` after `]` is dropped. None when `val` is not a closed list."""
+    if val[:1] != "[":
+        return None
+    items, cur, q, i = [], [], None, 1
+    while i < len(val):
+        c = val[i]
+        if q:
+            cur.append(c)
+            if q == '"' and c == "\\" and i + 1 < len(val):
+                cur.append(val[i + 1])
+                i += 1
+            elif c == q and not (q == "'" and val[i + 1:i + 2] == "'"):
+                q = None
+            elif c == q:  # '' inside a single-quoted item
+                cur.append(val[i + 1])
+                i += 1
+        elif c in "\"'" and not "".join(cur).strip():
+            q = c
+            cur.append(c)
+        elif c in ",]":
+            item = "".join(cur).strip()
+            if item or c == ",":
+                quoted = yaml_quoted(item)
+                items.append(quoted if quoted is not None else item.strip('"').strip("'"))
+            cur = []
+            if c == "]":
+                return items
+        else:
+            cur.append(c)
+        i += 1
+    return None
+
+
 def parse_scalar_or_list(val):
     val = val.strip()
-    if val.startswith("[") and val.endswith("]"):
-        inner = val[1:-1].strip()
-        if not inner:
-            return []
-        return [x.strip().strip('"').strip("'") for x in inner.split(",")]
-    return val.strip('"').strip("'")
+    for reader in (yaml_quoted, yaml_flow_list):
+        out = reader(val)
+        if out is not None:
+            return out
+    return strip_yaml_comment(val).strip('"').strip("'")
 
 
 def read_fm(path):
