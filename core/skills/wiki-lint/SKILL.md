@@ -1,6 +1,6 @@
 ---
 name: wiki-lint
-description: Check wiki health by script — generated-catalog drift, trio errors, missing or digest-sized summaries, broken wikilinks, incomplete frontmatter, hand-kept index format, rule citations that no longer resolve; warnings for stale pages, orphans and stalled work. Gates ratchet against a measured baseline; read-only, never edits a page. Also lists the 🔒 gates of the normative docs. Use when the human invokes /wiki-lint or asks for a periodic health check of the wiki.
+description: Check wiki health by script — generated-catalog drift, trio errors, missing or digest-sized summaries, broken wikilinks, incomplete frontmatter, hand-kept index format, rule citations that no longer resolve; warnings for stale pages, orphans, stalled work and unquoted ` #` in a summary/title. Gates ratchet against a measured baseline; read-only, never edits a page. Also lists the 🔒 gates of the normative docs. Use when the human invokes /wiki-lint or asks for a periodic health check of the wiki.
 argument-hint: "[--only g1,g2] [--stale-days N] [--json] [--gates]"
 disable-model-invocation: true
 ---
@@ -42,6 +42,7 @@ A gate fails when its count **rises above** the baseline in `{{project}}_wiki/_m
 | `stale` | warning | A `code_refs` file committed after the page's `updated`. |
 | `orphan` | warning | Knowledge page with no inbound wikilink. |
 | `stalled` | warning | Task/plan/execution `open`/`approved`/`in_progress` for more than `--stale-days` (default 14). |
+| `yaml-comment` | warning | An unquoted `summary`/`title` holding ` #` — YAML (and every kit parser) drops the rest as a comment, so `summary: merged in PR #29` catalogs as "merged in PR". Quote the value. A warning: the YAML is valid, only probably not what was meant. |
 
 **Not scripted — judgement, report them by hand when asked:** contradictions between pages, and topics mentioned on many pages with no page of their own. Flag for the human; never resolve automatically.
 

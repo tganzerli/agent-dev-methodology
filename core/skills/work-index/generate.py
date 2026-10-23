@@ -125,8 +125,12 @@ def parse_frontmatter(text):
             i += 1
             continue
         key, val = m.group(1), m.group(2).strip()
-        # inline comment
-        val = re.sub(r"\s+#.*$", "", val).strip()
+        quoted = yaml_quoted(val)
+        if quoted is not None:  # a `#` inside quotes is text, not a comment
+            fm[key] = quoted
+            i += 1
+            continue
+        val = strip_yaml_comment(val)
         if val == "":
             # could be a block list OR a map (scope)
             items, j = [], i + 1
@@ -150,6 +154,39 @@ def parse_frontmatter(text):
         fm[key] = parse_scalar_or_list(val)
         i += 1
     return fm
+
+
+def yaml_quoted(val):
+    """The content of a quoted YAML scalar ('...' with '' for a quote, "..." with
+    backslash escapes), ignoring a trailing ` # comment`; None when `val` is unquoted
+    or the quote never closes."""
+    if val[:1] not in ("'", '"'):
+        return None
+    q, out, i = val[0], [], 1
+    while i < len(val):
+        c = val[i]
+        if q == "'" and c == "'":
+            if val[i + 1:i + 2] == "'":
+                out.append("'")
+                i += 2
+                continue
+            return "".join(out)
+        if q == '"' and c == "\\" and i + 1 < len(val):
+            out.append(val[i + 1])
+            i += 2
+            continue
+        if q == '"' and c == '"':
+            return "".join(out)
+        out.append(c)
+        i += 1
+    return None
+
+
+def strip_yaml_comment(val):
+    """YAML semantics for an UNQUOTED scalar: ` #` (whitespace, then #) starts a comment,
+    so `summary: PR #29 done` reads `PR`. `issue#29` and `C# guide` are text. Quote the
+    value to keep a ` #`; /wiki-lint warns (`yaml-comment`) on summary/title."""
+    return re.sub(r"\s+#.*$", "", val).strip()
 
 
 def parse_scalar_or_list(val):

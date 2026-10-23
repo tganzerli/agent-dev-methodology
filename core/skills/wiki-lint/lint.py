@@ -39,7 +39,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "work-index"))
-from generate import find_vault, parse_frontmatter  # noqa: E402
+from generate import find_vault, frontmatter_bounds, parse_frontmatter  # noqa: E402
 
 WORK_INDEX = os.path.join(HERE, "..", "work-index", "generate.py")
 WIKI_INDEX = os.path.join(HERE, "..", "wiki-index", "generate.py")
@@ -254,11 +254,36 @@ def w_stalled(ctx):
     return out
 
 
+YAML_COMMENT_KEYS = ("summary", "title")
+
+
+def w_yaml_comment(ctx):
+    """An unquoted `summary`/`title` holding ` #` is cut there: YAML (and the kit's
+    parsers) read ` #...` as a comment, so `summary: merged in PR #29` catalogs as
+    "merged in PR". A warning, not a gate: the value is valid YAML, only probably not
+    what the author meant. Quote it."""
+    out = []
+    for p in ctx["all"]:
+        if is_template(p):
+            continue
+        b = frontmatter_bounds(p["body"])
+        if not b:
+            continue
+        for line in p["body"][b[1]:b[2]].splitlines():
+            m = re.match(r"^(%s):\s*(.*)$" % "|".join(YAML_COMMENT_KEYS), line)
+            if m and m.group(2)[:1] not in ("'", '"') and re.search(r"\s#", m.group(2)):
+                out.append(finding("yaml-comment", p["rel"],
+                                   f"unquoted `{m.group(1)}` holds ` #` — YAML drops the rest "
+                                   f"as a comment; quote the value"))
+    return out
+
+
 GATES = {"catalog-drift": g_catalog_drift, "missing-summary": g_missing_summary,
          "summary-too-long": g_summary_too_long, "frontmatter": g_frontmatter,
          "broken-wikilink": g_broken_wikilink, "index-format": g_index_format,
          "rule-citation": g_rule_citation}
-WARNINGS = {"stale": w_stale, "orphan": w_orphan, "stalled": w_stalled}
+WARNINGS = {"stale": w_stale, "orphan": w_orphan, "stalled": w_stalled,
+            "yaml-comment": w_yaml_comment}
 
 
 def main():
