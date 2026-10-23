@@ -169,6 +169,12 @@ if re.match(r"^docs/.+__(knowledge|relay)$", _branch):
         "Code goes on a branch of the right scope (<type>/<work_id>__<scope>). " + DO_NOT_BYPASS
     )
 
+# Experimental branches (git_branching_rule.md §3.2): experiment/<slug> spikes are outside the
+# formal cycle — no task/plan/execution — and never merge into a permanent line; their insights
+# become a new task. Requiring a plan here would block a sanctioned workflow.
+if re.match(r"^experiment/[a-z0-9][a-z0-9-]*$", _branch):
+    allow()
+
 # The slug may carry `_` (sub-trios named <id>_stepa); non-greedy, so it stops at the first `__`.
 m = re.match(r"^[a-z-]+/(\d{4}-\d{2}-\d{2}_[a-z0-9][a-z0-9_-]*?)__", _branch)
 if m:
