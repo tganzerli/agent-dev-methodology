@@ -111,8 +111,11 @@ def comment_chars():
 def check_message_file(path):
     chars = comment_chars()
     scissors = re.compile(r"(?m)^[" + re.escape(chars) + r"] -+ >8 -+$")
-    with open(path, encoding="utf-8", errors="replace") as fh:
-        message = scissors.split(fh.read(), maxsplit=1)[0]
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            message = scissors.split(fh.read(), maxsplit=1)[0]
+    except OSError as e:  # missing, a directory, unreadable: a traceback reads as a crash
+        return cannot_verify(f"cannot read --message-file `{path}`: {e.strerror or e}.")
     found = hits(message, chars)
     if not found:
         return 0
