@@ -15,7 +15,7 @@ trigger: always_on
 
 > ⚠ **Read this first.** While this section is present, the rest of this rule describes the **future** topology, not the current one.
 
-Why: with zero apps the plan gate, the trio rule and §3.2 deadlock (`git-runbook` §5.1).
+Why: with zero apps the plan gate, the trio rule and §3.2 deadlock (`git-runbook/reference.md` §5.1).
 
 **Rule in force meanwhile:** *all work happens directly on `main`.* A direct commit to `main` is **allowed** and is the normal flow; §3.2's prohibition is **suspended for `main`** until the trigger.
 
@@ -23,7 +23,7 @@ Why: with zero apps the plan gate, the trio rule and §3.2 deadlock (`git-runboo
 
 **What it does NOT relax:** the plan gate (`mandatory_planning_rule.md`) — no code change before an `approved` plan, on `main` as anywhere. It relaxes **where a commit may land**, never **whether the work was planned and approved**.
 
-Genesis commit and bootstrap without a `dev_<app>` (the monorepo skills abort until one exists; run `scripts/check-knowledge-paths.py` in CI meanwhile): `git-runbook` §5.1.
+Genesis commit and bootstrap without a `dev_<app>` (the monorepo skills abort until one exists; run `scripts/check-knowledge-paths.py` in CI meanwhile): `git-runbook/reference.md` §5.1.
 
 ## 2. Language requirement
 
@@ -38,7 +38,7 @@ There are **four classes** of permanent branch. All live forever on the remote; 
 | `main` (production) | Production. The collection of stable products. | `staging_<app>` + `tag/<pkg>-vX.Y.Z__<pkg>` + `docs/<id>__knowledge` (+ `contract/<id>__<surface>` with the contracts module) | No (tags are cut on staging merges or package releases) |
 | `staging_<app>` | Release candidate, per app. | `dev_<app>` only | **Yes** — namespaced tag (`web-v1.0.1`, `mobile-v2.3.0`) cut on merge |
 | `dev_<app>` | Continuous development, per app. | Ephemeral branches + CI auto-merge (top-down broadcast from `main` and `dev_packages`) | No |
-| `demo_<app>` | Frozen demonstration build (fairs, events). **Terminal** — never promotes to staging/main. | Cherry-picked fixes only; manual rebase onto a stable snapshot | No |
+| `demo_<app>` | Frozen demonstration build. **Terminal** — never promotes to staging/main. | Cherry-picked fixes only; manual rebase onto a stable snapshot | No |
 
 Optionally, projects that share code across apps add a fifth permanent branch:
 
@@ -46,7 +46,7 @@ Optionally, projects that share code across apps add a fifth permanent branch:
 |---|---|---|---|
 | `dev_packages` | Single trunk for all shared packages (`<pkg>`…). **Does NOT contain `apps/*`.** | `pkg/<id>__<pkg>` branches | No (tag is cut on the `tag/* → main` merge) |
 
-> Install `dev_packages` and the package flow (§6) only if the repo has **shared packages consumed by more than one app**. A monorepo of independent apps with no shared package layer skips it.
+> Install `dev_packages` and the package flow (§6) only if the repo has **shared packages consumed by more than one app**.
 
 ### 3.1. Promotion flow
 
@@ -66,15 +66,15 @@ feat/<id>__<app>  →  dev_<app>  →  staging_<app>  →  main
   - `staging_<app>` (app release): `staging_<app>` was **rebased onto `main`** immediately before; CI green; human approved the release.
   - `tag/<pkg>-vX.Y.Z__<pkg>` (package release per §6): from `dev_packages`; CHANGELOG present; SemVer bump in the package manifest.
   - `docs/<id>__knowledge` — **only** knowledge-layer changes (`knowledge_source_of_truth_rule.md`): the diff must not touch `apps/*/lib/`, `packages/*/lib/`, or any other code path.
-  - `contract/<id>__<surface>` (contracts module only) — **only** a change to a versioned cross-boundary contract, atomic per `contract_change_rule.md`: the contract, the implementation, the ADR, **every** in-repo consumer, the tests and the knowledge page, in the same diff. Why `main`: `git-runbook` §5.3.
-- **PR into `staging_<app>`** requires: source is `dev_<app>`; the affected app's manifest got a **version bump** (patch/minor/major); CI green. On merge, the `<app>-vX.Y.Z` tag is cut.
+  - `contract/<id>__<surface>` (contracts module only) — **only** a change to a versioned cross-boundary contract, atomic per `contract_change_rule.md`: the contract, the implementation, the ADR, **every** in-repo consumer, the tests and the knowledge page, in the same diff. Why `main`: `git-runbook/reference.md` §5.3.
+- **PR into `staging_<app>`** requires: source is `dev_<app>`; the affected app's manifest got a **version bump**; CI green. On merge, the `<app>-vX.Y.Z` tag is cut.
 - **PR into `dev_<app>`** requires one of: an ephemeral branch with a valid `work_id` (`feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `hotfix/`, or a module-registered type — §4.2); a CI auto-merge (the broadcast, §6).
 
-  > **There is no direct commit into `dev_<app>`, not even from an approved plan** (why: `git-runbook` §5.2).
+  > **There is no direct commit into `dev_<app>`, not even from an approved plan** (why: `git-runbook/reference.md` §5.2).
 - **PR into `dev_packages`** requires: source is `pkg/<work_id>__<pkg>` with an approved plan. Diff restricted to `packages/*` + shared knowledge/tooling.
 - **Commit into `demo_<app>`** requires: explicit human confirmation and justification (this branch is frozen).
 - **Direct commit into `main` or `staging_*` is FORBIDDEN** — no exception.
-  (Before the first `dev_<app>`, the optional §1.1 suspends this for `main`; the genesis commit: `git-runbook` §5.1.)
+  (Before the first `dev_<app>`, the optional §1.1 suspends this for `main`; the genesis commit: `git-runbook/reference.md` §5.1.)
 
 > **Host neutrality.** Enforced two ways: this rule, which every agent obeys, and the **host's branch-protection / merge-check settings** (§9). Neither replaces the other.
 
@@ -112,7 +112,7 @@ The **`__`** separator between `<work_id>` and `<scope>` is mandatory — a sing
 | `bench` | Benchmark work (`benchmark_protocol_rule.md`) | `dev_<app>` | `dev_<app>` |
 | `contract` | Versioned cross-boundary contract change (`contract_change_rule.md`) — **atomic** (§3.2) | `main` | `main` |
 
-**Variant — the contract is a shared package:** `contract/<id>__<pkg>` off and into `dev_packages`, only if this rule names it in place of the `contract` row (recipe, trade-off, `SCOPE_CONTRACT_LINE`: `git-runbook` §5.3).
+**Variant — the contract is a shared package:** `contract/<id>__<pkg>` off and into `dev_packages`, only if this rule names it in place of the `contract` row (recipe, trade-off, `SCOPE_CONTRACT_LINE`: `git-runbook/reference.md` §5.3).
 
 **Module-registered types.** `bench` (benchmarks) and `contract` (contracts) are valid **only while their module is installed**; delete the row of a module not installed. The module's rule owns what rides on the branch; this table owns where it starts and lands.
 
@@ -151,7 +151,7 @@ Three operational rules follow:
 2. **No contamination.** No branch writes to an app outside its scope — by edit, or by a merge that carries another app's snapshot.
 3. **Single distribution path.** App code reaches other branches only via `staging_<X> → main` and then the broadcast (§6). No lateral shortcut.
 
-Checked by `scripts/check_branch_scope.sh` on every PR and on push to `dev_<app>` — **advisory** by default (`SCOPE_BARRIER_BLOCKING=1` blocks); hard prevention is branch protection requiring PRs on `dev_*` (§9). How and why: `git-runbook` §5.4.
+Checked by `scripts/check_branch_scope.sh` on every PR and on push to `dev_<app>` — **advisory** by default (`SCOPE_BARRIER_BLOCKING=1` blocks); hard prevention is branch protection requiring PRs on `dev_*` (§9). How and why: `git-runbook/reference.md` §5.4.
 
 ## 5. Hotfix
 
@@ -195,7 +195,7 @@ Every tag is prefixed with the app or package name — `web-v1.0.1`, `core-v0.4.
 - **App tag** — on the `dev_<app> → staging_<app>` merge (or `staging → main` for a hotfix).
 - **Package tag** — on the `tag/<pkg>-vX.Y.Z__<pkg> → main` merge.
 
-**Tags are MANUAL — the CI creates none** (unless the project adds and documents a tagging job). Whoever merges the release PR cuts the tag. Before tagging, verify the **target commit**: it is the merge commit on `main` (or `staging_<app>`), never the `HEAD` of your local tree.
+**Tags are MANUAL — the CI creates none** (unless a documented tagging job exists). Whoever merges the release PR cuts the tag. Before tagging, verify the **target commit**: it is the merge commit on `main` (or `staging_<app>`), never the `HEAD` of your local tree.
 
 ### 7.3. Manifest bump
 
@@ -203,7 +203,7 @@ The version bump is **manual** in the `dev → staging` PR, following SemVer: `p
 
 ## 8. Git commands and destructive operations
 
-Canonical commands (create, sync, rebase staging, tag, delete): the **`git-runbook`** skill (§3). Use those; do not invent non-standard flags.
+Canonical commands: the **`git-runbook`** skill (§3). Use those; do not invent non-standard flags.
 
 **Destructive operations — require human confirmation.** `push --force` (any variant, including `--force-with-lease` on a permanent branch), `branch -D` (unmerged local delete), `push --delete` on a permanent branch (`main`, `staging_*`, `dev_*`, `demo_*`) — always announce the command and ask `[y/n]` before running.
 
@@ -211,7 +211,7 @@ Canonical commands (create, sync, rebase staging, tag, delete): the **`git-runbo
 
 Some operations live in the git host's **control panel**, not in `git`: branch protection, required checks, merge settings, a bot's push exception. **By default the agent guides the human through the panel** — the path for their specific host and the expected result — **and does not touch them itself.** The **`git-runbook`** skill (§4) lists the settings and where each host keeps them.
 
-⚠ **Require a status check on a branch only once CI actually fires there** — a check no event produces **waits forever**, and every PR into that branch hangs. Add it in the work that extends CI to that branch (`git-runbook` §5.6).
+⚠ **Require a status check on a branch only once CI actually fires there** — a check no event produces **waits forever**, and every PR into that branch hangs. Add it in the work that extends CI to that branch (`git-runbook/reference.md` §5.6).
 
 ### 9.1. The gate is the authorisation, not the tool
 
@@ -225,7 +225,7 @@ With **explicit, per-task human authorisation**, an agent MAY apply the change t
 
 **Prefer the panel whenever the agent would have to guess an identifier** (actor id, app id, role name): a bypass handed to the wrong role dissolves the funnel §10 gate 1 depends on.
 
-Why "authorisation" and not "never": `git-runbook` §5.7.
+Why "authorisation" and not "never": `git-runbook/reference.md` §5.7.
 
 ## 10. LLM gates (explicit prohibitions)
 
@@ -239,10 +239,10 @@ These are **forbidden** for any LLM agent. Violations require immediate reversal
 6. ❌ Skipping the `staging_<app> → main` rebase before the PR to `main`.
 7. ❌ A global tag (e.g. `v1.0.0`). Always namespaced.
 8. ❌ Renaming/deleting a permanent branch without human confirmation.
-9. ❌ A `docs/<id>__knowledge` branch that touches **code** (`apps/*/lib/`, `apps/*/test/`, `packages/*/lib/`, `packages/*/test/`, any app/package manifest, lockfiles). Everything else in `knowledge_source_of_truth_rule.md` §2 may be touched: the knowledge layer (the root workspace manifest, `scripts/`, CI config and `qa/` included) **and the trio files under `{{project}}_wiki/work/`**, §2's third category (why: `git-runbook` §5.8).
+9. ❌ A `docs/<id>__knowledge` branch that touches **code** (`apps/*/lib/`, `apps/*/test/`, `packages/*/lib/`, `packages/*/test/`, any app/package manifest, lockfiles). Everything else in `knowledge_source_of_truth_rule.md` §2 may be touched: the knowledge layer (the root workspace manifest, `scripts/`, CI config and `qa/` included) **and the trio files under `{{project}}_wiki/work/`**, §2's third category (why: `git-runbook/reference.md` §5.8).
 10. ❌ Editing the knowledge layer on `demo_*`/`staging_*` without explicit human confirmation + justification.
 11. ❌ Editing `apps/*` on `dev_packages`, or creating a `pkg/<id>__<app>` branch. `dev_packages` is packages-only.
-12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). A manual broadcast while CI is down is allowed only under a named, dated exception written into this rule (recipe: `git-runbook` §1.6.1).
+12. ❌ A human pushing directly to `dev_<app>` (without a PR, and without being the CI bot token). The CI auto-merge has a branch-protection exception; humans stay restricted to PRs. A manual broadcast while CI is down is allowed only under a named, dated exception written into this rule (recipe: `git-runbook` §1.6.1).
 13. ❌ Using a module-registered type (`bench`, `contract`) when its module is not installed (§4.2).
 
 ## 11. Cross-reference
