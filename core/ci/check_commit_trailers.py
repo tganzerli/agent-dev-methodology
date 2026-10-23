@@ -47,35 +47,42 @@ import re
 import subprocess
 import sys
 
-# An attribution trailer names an agent when its e-mail is an agent's, or when its
-# name is made ONLY of product/model words (plus versions and filler) and holds at
-# least one product word. Whole tokens, so "Claude Opus 4.5 (1M context)", "Gemini 2.5
-# Pro", "OpenAI o3" and "Cursor Agent" match, while "Dr. Gemini Jones", "Haider Ali" and
-# "Max Mustermann" do not: one word outside the vocabulary (a real name) is enough to pass.
-# A trailing "via <anything>" (a wrapper or host: "Claude Sonnet 4.5 via Some App") is
-# dropped before the test — the agent is what precedes it.
+# An attribution trailer names an agent when its e-mail is a known AGENT MAILBOX, or when
+# its name is made ONLY of vocabulary words (products, filler, tiers, versions). Whole
+# tokens, so "Claude Opus 4.5 (1M context)", "Gemini 2.5 Pro", "OpenAI o3" and "Cursor
+# Agent" match, while "Dr. Gemini Jones", "Haider Ali" and "Max Mustermann" do not: one
+# word outside the vocabulary (a real name) is enough to pass. A trailing "via ..." (a
+# wrapper or host: "Claude Sonnet 4.5 via Some App") is dropped — the agent precedes it.
 #
-# Trade-off, deliberate: the name test cannot tell a person from a product when the
-# whole name IS vocabulary. "Devin <d@company.com>", "Claude <c@company.fr>" or
-# "Max Claude" are blocked — the fix is to sign with the full name. A surname alone
-# never blocks ("Ana Cursor", "Claudia Gemini-Santos"). The e-mail test wins over the
-# name both ways: an agent mailbox blocks any name, and a person's mailbox at a vendor
-# (`someone@google.com`) is not an agent mailbox — only the listed ones are.
-AGENT_EMAIL = re.compile(r"@(anthropic\.com|cursor\.(com|sh)|openai\.com|codeium\.com|windsurf\.com"
-                         r"|cognition\.ai|aider\.chat)>?$"
-                         r"|<?(noreply|no-reply|gemini|bard|jules)@google\.com>?$"
-                         r"|(copilot|devin-ai-integration\[bot\])@users\.noreply\.github\.com"
-                         r"|noreply@aider", re.I)
-PRODUCT = {"claude", "anthropic", "opus", "sonnet", "haiku", "cursor", "copilot", "gemini",
-           "codex", "openai", "chatgpt", "gpt", "aider", "devin", "windsurf", "codeium",
-           "antigravity", "agy", "bard"}
+# Mailboxes, not vendor domains: a person who works at a vendor (`jane@anthropic.com`,
+# `jane.gemini@google.com`) is a human co-author, and the commit-msg hook has no
+# `--allow`. Each entry is a whole address (optional `<id>+` prefix for GitHub bots).
+# An agent writing from an unlisted address is still caught by its name.
+#
+# Products that are also first names (PRODUCT_NAMELIKE: Claude, Devin, Jules, Junie,
+# Kiro) count bare, with agent filler ("Claude Code", "Devin AI") or with a version
+# ("Claude Max 4"); with a tier word alone they read as a person ("Claude Max", "Claude
+# Pro", "Max Claude" pass). Trade-off, deliberate: a person who signs with ONLY such a
+# name ("Claude <c@company.fr>", "Devin") is blocked — sign with the full name.
+_GH_BOTS = ("copilot", r"copilot-swe-agent\[bot\]", r"claude\[bot\]", r"cursor\[bot\]",
+            r"devin-ai-integration\[bot\]", r"gemini-code-assist\[bot\]",
+            r"google-labs-jules\[bot\]", r"chatgpt-codex-connector\[bot\]")
+AGENT_EMAIL = re.compile(
+    r"^<?(?:noreply@anthropic\.com|cursoragent@cursor\.com|(?:noreply|codex)@openai\.com"
+    r"|(?:noreply|no-reply|gemini|gemini-cli|antigravity|bard|jules)@google\.com"
+    r"|copilot@github\.com|noreply@aider(?:\.chat)?"
+    r"|(?:\d+\+)?(?:" + "|".join(_GH_BOTS) + r")@users\.noreply\.github\.com)>?$", re.I)
+PRODUCT = {"anthropic", "opus", "sonnet", "haiku", "cursor", "copilot", "gemini", "codex",
+           "openai", "chatgpt", "gpt", "aider", "windsurf", "codeium", "antigravity", "agy",
+           "bard", "cline", "qwen", "q"}
+PRODUCT_NAMELIKE = {"claude", "devin", "jules", "junie", "kiro"}
 FILLER = {"code", "agent", "assist", "ai", "bot", "github", "google", "cli", "context", "model",
-          # model tiers / release tags, as model ids print them
-          "pro", "flash", "ultra", "mini", "nano", "max", "lite", "turbo", "preview", "exp",
-          "experimental", "latest", "thinking"}
-MODEL_ID = re.compile(r"o\d+")                    # OpenAI reasoning ids: o1, o3, o4 (counts as a product word)
+          "amazon", "developer", "cascade", "labs"}
+TIER = {"pro", "flash", "ultra", "mini", "nano", "max", "lite", "turbo", "preview", "exp",
+        "experimental", "latest", "thinking"}       # model tiers / release tags
+MODEL_ID = re.compile(r"o\d+")                    # OpenAI reasoning ids: o1, o3, o4 (a product word)
 VERSION = re.compile(r"[\d.]+[a-z]?|v?\d[\w.]*")  # 4.5, 2.0, 4o, 1m, v2
-VIA = re.compile(r"(?i)\s+via\s+.*$")
+VIA = re.compile(r"(?i)\s+via(?:\s+.*)?$")
 TRAILER = re.compile(r"(?im)^\s*(Co-Authored-By|Generated-By|Assisted-By):\s*(.*?)\s*(<[^>]*>)?\s*$")
 BANNED = [
     (re.compile(r"(?im)^\s*Claude-Session:"), "Claude-Session trailer"),
@@ -88,9 +95,15 @@ def agent_trailer(name, email):
         return True
     tokens = [w for w in re.split(r"[^a-z0-9.]+", VIA.sub("", name).lower()) if w]
     words = [w for w in tokens if not VERSION.fullmatch(w)]
-    product = [w for w in words if w in PRODUCT or MODEL_ID.fullmatch(w)]
-    return bool(product) and all(w in PRODUCT or w in FILLER or MODEL_ID.fullmatch(w)
-                                 for w in words)
+    versioned = len(words) < len(tokens)
+    vocab = PRODUCT | PRODUCT_NAMELIKE | FILLER | TIER
+    if not words or not all(w in vocab or MODEL_ID.fullmatch(w) for w in words):
+        return False
+    if any(w in PRODUCT or MODEL_ID.fullmatch(w) for w in words):
+        return True
+    # only first-name-like products left: a tier word without a version reads as a person
+    return any(w in PRODUCT_NAMELIKE for w in words) and (
+        versioned or not any(w in TIER for w in words))
 
 
 RULE = 'Rule: .agents/llm/<agent>.md, "No LLM co-authorship on commits (non-negotiable)".'
