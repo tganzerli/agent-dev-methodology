@@ -33,7 +33,7 @@ A gate fails when its count **rises above** the baseline in `{{project}}_wiki/_m
 
 | Check | Kind | Definition |
 |---|---|---|
-| `catalog-drift` | gate | `work-index --check` (drift **or** trio error) and `wiki-index <dir> --check` for each generated catalog. |
+| `catalog-drift` | gate | `work-index --check` (drift **or** trio error) and `wiki-index <dir> --check` for each generated catalog. The work index depends on the date: at a quarter turn it drifts with no commit — the finding then says `quarter rollover only`; regenerate (`/work-index`) and commit. |
 | `missing-summary` | gate | Page in a generated-catalog dir without `summary`. |
 | `summary-too-long` | gate | `summary` over 250 chars — a catalog entry turned digest. |
 | `frontmatter` | gate | Knowledge page missing `title`/`type`/`status`/`updated` (templates `_*` exempt). |

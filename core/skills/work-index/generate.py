@@ -21,7 +21,8 @@ Usage:
   --quarter  force the "current quarter" (default: derived from the system date).
              Makes the output 100% deterministic for regenerating on a merge conflict.
   --check    do not write; exit 1 on drift (output differs from disk) or on a trio
-             error (plan without task, plan status contradicting its execution).
+             error (plan without task, plan status contradicting its execution). A drift
+             caused only by a quarter turning (no trio changed) is named as such.
              Warnings (skipped files, bad frontmatter, off-vocabulary topic) never fail;
              /work-audit R9 reports them.
 """
@@ -458,6 +459,28 @@ def render_archive_router(archive, cur_q):
     return "\n".join(out) + "\n"
 
 
+def quarter_rollover_only(root, vault, cur_q, verbose=False):
+    """The index depends on the date: a repo with no new commit drifts when a quarter
+    ends, because "current quarter" moved. Returns the quarter the on-disk index was
+    generated for when regenerating with THAT quarter reproduces every file on disk
+    (so the only change is the rollover); None otherwise."""
+    path = os.path.join(root, vault, "work", "_index.md")
+    if not os.path.exists(path):
+        return None
+    m = re.search(r"\(\*\*(\d{4})-Q([1-4])\*\*\)", open(path, encoding="utf-8").read())
+    if not m:
+        return None
+    prev = (int(m.group(1)), int(m.group(2)))
+    if prev == cur_q:
+        return None
+    files = build(root, vault, prev, verbose)[0]
+    for rel, content in files.items():
+        fp = os.path.join(root, rel)
+        if not os.path.exists(fp) or open(fp, encoding="utf-8").read() != content:
+            return None
+    return prev
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=os.getcwd())
@@ -507,6 +530,12 @@ def main():
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
+    if args.check and drift:
+        rolled = quarter_rollover_only(args.root, vault, cur_q, args.verbose)
+        if rolled:
+            print(f"drift: quarter rollover only — the index was generated for {qlabel(rolled)}, "
+                  f"the current quarter is {qlabel(cur_q)}; no trio changed. Regenerate and commit "
+                  f"(trios closed in {qlabel(rolled)} move to archive/).", file=sys.stderr)
     if args.check and (drift or errors):
         sys.exit(1)
     print("ok" if not args.check else "in sync", file=sys.stderr)

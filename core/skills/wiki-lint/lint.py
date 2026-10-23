@@ -101,6 +101,7 @@ def g_catalog_drift(ctx):
                         "--vault", ctx["vault"]], capture_output=True, text=True)
     if r.returncode != 0 and not fresh:
         why = [l for l in r.stderr.splitlines() if l.startswith(("drift", "✗"))]
+        why.sort(key=lambda l: "quarter rollover" not in l)  # the date-only cause first
         out.append(finding("catalog-drift", f"{ctx['vault']}/work/_index.md",
                            "work index drift or trio error — run /work-index --check: "
                            + "; ".join(why[:3])))

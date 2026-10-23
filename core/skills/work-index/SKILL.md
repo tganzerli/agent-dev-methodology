@@ -13,7 +13,7 @@ Generates the work catalog from the trio frontmatter. The index stops being a ha
 
 - **After closing/reopening a trio** or changing `status`/`summary`/`topic` in the frontmatter.
 - **After a backfill** of `summary`/`topic`.
-- **At quarter turn** — trios closed in the quarter that ended roll into `archive/`.
+- **At quarter turn** — trios closed in the quarter that ended roll into `archive/`. The output depends on the **date**, not only on the trios: a dormant repo with no new commit goes red on `--check` (and on `/wiki-lint`'s `catalog-drift`, in CI) the first day of a new quarter. `--check` names that case — `drift: quarter rollover only — the index was generated for YYYY-Qn …` — when regenerating with the old quarter reproduces every file; the fix is to regenerate and commit. Pin `--quarter` where a date-independent answer is needed.
 - **On an `_index.md`/`archive/*` merge conflict** — `git checkout --theirs` (or `--ours`) to unblock and **regenerate** instead of resolving by hand.
 
 ## When NOT to use
