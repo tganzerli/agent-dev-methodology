@@ -23,6 +23,16 @@ Changes to `packages/<pkg>` live on the permanent `dev_packages` trunk. Apps con
 
 > **History.** The trunk model replaced an earlier "N twin all-or-nothing PRs" model. A fresh install starts at the mature trunk + broadcast form.
 
+The flow (the rule's §3.1, drawn):
+
+```
+pkg/<id>__<pkg>  →  dev_packages  ──(CI: direct auto-merge)──▶  dev_<app>
+                          │
+                          └── tag/<pkg>-vX.Y.Z__<pkg> ──▶ main ──(CI: auto-merge)──▶ dev_<app> + dev_packages
+                                                              ↑
+                                                        namespaced tag
+```
+
 ### 1.1. Change flow
 
 1. **Ephemeral branch** `pkg/<work_id>__<pkg>` off `dev_packages`.
@@ -177,6 +187,37 @@ Any tool that creates a branch or worktree for the session (e.g. Claude Code wor
    ```
    Renaming a branch cut from the wrong line is how another app's snapshot rides into `dev_<app>` — the contamination the rule's §4.6 forbids.
 
+### 3.2. Branch names — examples, and the scopes that need a second look
+
+Valid (the rule's §4.3):
+
+```
+feat/2026-05-16_diary-schedule__mobile
+fix/2026-05-14_dfu-disconnect__web
+chore/2026-05-20_bump-toolchain__web
+pkg/2026-05-22_retry-backoff__core          (off dev_packages, PR to dev_packages — broadcast downstream via CI)
+tag/core-v0.4.0__core                       (off dev_packages, PR to main, tag cut on merge)
+hotfix/2026-05-30_crash-on-launch__web
+docs/2026-05-20_knowledge-source-of-truth__knowledge
+chore/2026-07-30_ci-broadcast-tweak__tooling   (shared tooling/CI; off dev_<app>, promoted to main via /promote-knowledge)
+bench/2026-08-02_decode-throughput__web        (benchmarks module; off dev_<app>, PR to dev_<app>)
+contract/2026-08-04_retire-legacy__public-api  (contracts module; off main, PR to main — atomic across every consumer)
+```
+
+Rejected by the gate (the rule's §4.4):
+
+```
+feature/diary-schedule_mobile         ← type "feature" does not exist; single underscore ambiguous
+feat/diary-schedule__mobile           ← missing work_id (no date)
+feat/2026-05-16_diary__web__mobile    ← two scopes
+feat/2026-05-16_diary__co             ← scope must be the full package name
+web_dev / web-dev                     ← reserved (the permanent branch is dev_web)
+```
+
+**`tooling` vs `knowledge`.** Use `knowledge` for pure knowledge-layer `docs/` branches that go **straight to and from `main`**. Use `tooling` when a tooling/CI change is **developed and tested on a `dev_<app>`** (types `chore`/`refactor`/`fix`) — even when it is also knowledge layer — and then promoted to `main` with `/promote-knowledge`. Rule of thumb: branched off `dev_<app>` → `tooling`; branched off `main` → `knowledge`.
+
+**Contract surfaces** (`contract/` only — `public-api`, `shared-packages`, `wire-protocol`, …): the change lands in every consumer at once, so one app or package name would misdescribe the diff.
+
 ## 4. Host panel settings
 
 The agent guides the human; it changes host configuration only with explicit, per-task authorisation (the rule's §9.1). Name the concept and let the human find it in their host — GitHub → Settings → Rules → Rulesets (or Settings → Branches); GitLab → Settings → Repository → Protected branches; Bitbucket → Repository settings → Branch permissions.
@@ -232,7 +273,7 @@ The cost the default route avoids — consumers on the old shape until each app'
 
 ### 5.5. Why tags are manual
 
-While the rule said a tag "is cut on merge", agents assumed it appeared on its own and never cut it; one installation also found a release tag on the wrong commit.
+While the rule said a tag "is cut on merge", agents assumed it appeared on its own and never cut it; one installation also found a release tag on the wrong commit. The manifest bump is manual for the same reason; an auto-bump CI step is a possible follow-up, and once it exists the rule must say so.
 
 ### 5.6. Required checks that never fire
 
@@ -245,6 +286,8 @@ One installation armed `staging_*` with protection but deliberately without the 
 The second of those carried a written trigger — *"if a third arrives, stop writing notes and rewrite this section"* — on the reasoning that a policy suspended every time it binds is not a policy but a ritual with a waiver attached. The third arrived the same day.
 
 This rewrite is deliberately **not** a loosening. The control that was actually in force all three times is now what the text says, plus two obligations (record, read back) that used to be habit and are now required. The failure it avoids is the one catalogued in the kit's own lesson on unexecuted copies: a clause that everybody waives becomes a clause nobody reads.
+
+**Why the panel when an identifier would be guessed.** An actor id, an app id or a role name typed from memory is the likeliest wrong write: a bypass handed to a repository-admin role instead of the CI identity looks like success and dissolves the funnel the rule's §10 gate 1 depends on.
 
 ### 5.8. Why gate 9 allows trio files on `docs/__knowledge`
 
