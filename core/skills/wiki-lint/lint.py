@@ -54,7 +54,7 @@ RULE_DOCS = [".agents/METHODOLOGY.md", ".agents/rules/*.md", ".agents/llm/*.md"]
 CITE = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):(\d+)(?:-(\d+))?`")
 CODE_PATH = re.compile(r"`((?:scripts|\.claude/skills|\.githooks)/[A-Za-z0-9_./-]+\.(?:sh|py|yml|yaml|json))`")
 ENTRY = re.compile(r"^- \[\[")
-# Files an agent loads in full at every session open. Antigravity CLI cuts each rule
+# Files an agent loads whole (rules, entry-points, skill bodies). Antigravity CLI cuts each rule
 # file at ~24,000 bytes (24 KB) and the model never sees the rest — a gate or a 🔒 line
 # past the cut is silently absent. The cap leaves headroom for de-templating and the
 # per-project growth of a rule. Change it here if a target agent's limit differs.
@@ -218,20 +218,23 @@ def g_rule_citation(ctx):
 
 
 def g_rule_size(ctx):
-    """Every `.agents/rules/*.md` with `trigger: always_on`, plus the root entry-points,
-    must fit RULE_MAX_BYTES. Bytes, not characters: the agent's limit is in bytes, and
-    accented prose or emoji cost more than one."""
+    """Every `.agents/rules/*.md` (any `trigger:` — agy cuts each rule file it loads, and
+    `model_decision` rules load mid-session), the root entry-points and every
+    `.claude/skills/*/SKILL.md` must fit RULE_MAX_BYTES. Skills are a precaution: the cap
+    is measured on rules (⚠ unverified for skill bodies), and a rule's pointer into a
+    skill section past the cut would point at nothing. Bytes, not characters: the limit
+    is in bytes, and accented prose or emoji cost more than one."""
     root, out = ctx["root"], []
-    files = [p for p in sorted(glob.glob(os.path.join(root, ".agents", "rules", "*.md")))
-             if parse_frontmatter(read(p)).get("trigger") == "always_on"]
+    files = sorted(glob.glob(os.path.join(root, ".agents", "rules", "*.md")))
     files += [os.path.join(root, f) for f in ROOT_ENTRY_POINTS if os.path.isfile(os.path.join(root, f))]
+    files += sorted(glob.glob(os.path.join(root, ".claude", "skills", "*", "SKILL.md")))
     for path in files:
         size = os.path.getsize(path)
         if size > RULE_MAX_BYTES:
             out.append(finding("rule-size", os.path.relpath(path, root),
-                               f"{size} B > {RULE_MAX_BYTES} B — always loaded, and an agent may cut "
-                               "it (Antigravity: ~24 KB per file); move rationale/examples to a "
-                               "skill or runbook, keep every 🔒 line"))
+                               f"{size} B > {RULE_MAX_BYTES} B — an agent may cut it on load "
+                               "(Antigravity: ~24 KB per rule file); move rationale/examples to a "
+                               "skill's reference file, keep every 🔒 line"))
     return out
 
 
