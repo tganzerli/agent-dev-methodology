@@ -1,6 +1,6 @@
 ---
 name: wiki-lint
-description: Check wiki health by script — generated-catalog drift, trio errors, missing or digest-sized summaries, broken wikilinks, incomplete frontmatter, hand-kept index format, rule citations that no longer resolve; warnings for stale pages, orphans, stalled work and unquoted ` #` in a summary/title. Gates ratchet against a measured baseline; read-only, never edits a page. Also lists the 🔒 gates of the normative docs. Use when the human invokes /wiki-lint or asks for a periodic health check of the wiki.
+description: Check wiki health by script — generated-catalog drift, trio errors, missing or digest-sized summaries, broken wikilinks, incomplete frontmatter, hand-kept index format, rule citations that no longer resolve, always-loaded rules over the per-file byte cap; warnings for stale pages, orphans, stalled work and unquoted ` #` in a summary/title. Gates ratchet against a measured baseline; read-only, never edits a page. Also lists the 🔒 gates of the normative docs. Use when the human invokes /wiki-lint or asks for a periodic health check of the wiki.
 argument-hint: "[--only g1,g2] [--stale-days N] [--json] [--gates]"
 disable-model-invocation: true
 ---
@@ -27,6 +27,7 @@ A gate fails when its count **rises above** the baseline in `{{project}}_wiki/_m
 - **After fixing pages:** the report says `↓ below baseline`; run `lint.py --lower-baseline` and commit it. That is what makes the debt monotonic.
 - **Raising a baseline is a conversation, not a commit.** It is the one move that destroys the tool.
 - A fresh install has no file: every baseline is 0.
+- A gate added by a kit upgrade (e.g. `rule-size`) has no baseline entry, so it starts at 0. Red on arrival means the finding is real — fix it (trim the rule); recording it in the baseline is the same conversation as raising one.
 
 ## Gates (exit code) and warnings (human reading)
 
@@ -39,6 +40,7 @@ A gate fails when its count **rises above** the baseline in `{{project}}_wiki/_m
 | `broken-wikilink` | gate | `[[target]]` with no page, scanned in the vault and `.agents/`. Code spans/fences and placeholder targets (`{`, `*`, `…`) are examples, not links. |
 | `index-format` | gate | Hand-kept catalogs (`_meta/index.md`, non-generated `_index.md`): ≤20 KB, one physical line per entry, ≤300 chars per line. `wiki-sync`'s script runs this one after every sync. |
 | `rule-citation` | gate | A `file:line` in `.agents/METHODOLOGY.md`, `.agents/rules/`, `.agents/llm/` whose file is gone or whose line is past the end; a cited script path that does not exist. Existence and range only — citations are point-in-time (conventions §2), so content is never compared with today's file. |
+| `rule-size` | gate | Every `.agents/rules/*.md` with `trigger: always_on`, plus root `AGENTS.md`/`GEMINI.md`, ≤ 22,000 bytes (`RULE_MAX_BYTES` in `lint.py`). Always loaded, and Antigravity CLI cuts each rule file at ~24 KB without a sign; the margin absorbs de-templating. Over it: move rationale/examples to the rule's skill, keep every 🔒 line (`list_gates.py` before/after, same count). |
 | `stale` | warning | A `code_refs` file committed after the page's `updated`. |
 | `orphan` | warning | Knowledge page with no inbound wikilink. |
 | `stalled` | warning | Task/plan/execution `open`/`approved`/`in_progress` for more than `--stale-days` (default 14). |

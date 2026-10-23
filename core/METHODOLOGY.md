@@ -261,6 +261,8 @@ Three failure modes produce a bloated prefix, and all three are structural rathe
 2. **Catalog entries that became digests.** One paragraph per entry duplicates what the target page already says. Fix: one line per entry, a byte budget on the file, and a check that **fails** — a convention with no verification is a suggestion.
 3. **Recipe living inside a normative rule.** The obligation must be loaded always; the runbook around it must not. Fix: keep the gate in the rule, move the recipe to a skill (§8 — the skill body is genuinely deferred).
 
+**Some runtimes also cap each file.** Antigravity CLI cuts every rule file at ~24,000 bytes and the model never sees the rest — a gate past the cut is silently absent, and the rule still looks loaded. So an always-loaded file (an `always_on` rule, a root entry-point) has a per-file target of **≤ 22,000 bytes** after de-templating, and `/wiki-lint`'s `rule-size` gate enforces it. Over the target, move rationale, examples and history into the rule's skill or runbook, behind a one-line pointer; never a 🔒 line.
+
 **Measure before you cut, and measure at section granularity.** A file-level ratio ("the core is ~30%") is misleading: the heavy sections tend to be exactly the ones containing gates, so the movable share is smaller than the average suggests. Cut against a measurement, not an estimate.
 
 ## 6.7. Every non-negotiable needs a mechanism

@@ -25,9 +25,22 @@
 
 **Gemini Code Assist (IDE)** reads `GEMINI.md` when the workspace opens (enable it in the assistant's settings). **Direct API:** no automatic read — pass `.agents/METHODOLOGY.md` + `{{project}}_wiki/_meta/index.md` in the system prompt.
 
-### 1.1. The `agy` rule budget — keep the always-on prefix lean
+### 1.1. The `agy` rule budget and per-file cap — keep the always-on prefix lean
 
 `agy` discovers workspace rules by walking from the CWD up to the repo root, and **user and workspace rules share one 20,000-token budget**; a rule that does not fit is **cut on a newline boundary** — silently, mid-rule. Everything `always_on` in `.agents/rules/` plus `GEMINI.md` and `AGENTS.md` is in that budget. This is METHODOLOGY §6.6 with a hard ceiling: keep the gate in the rule and the recipe in a skill, keep the entry-points thin, and measure the always-on set (`wc -w` × ~1.3 is a fair token estimate) whenever a rule grows. A rule cut in half still looks loaded.
+
+**And each file has its own cap: ~24,000 bytes.** Independently of the token budget, `agy` cuts every rule file at 24 KB (its changelog: rule "content cut to fit the 24 KB limit"). A live probe returned `<truncated 5593 bytes>` for a 29,608-byte rule, cut at byte ~24,016; trimmed to 18,775 bytes, the same probe quoted the last line exactly. 🔒 **Every `always_on` rule and the root `GEMINI.md`/`AGENTS.md` stay ≤ 22,000 bytes after de-templating** — the 2 KB of headroom absorbs project-specific growth. `/wiki-lint` gates it (`rule-size`). Over it, move rationale, examples and history into the rule's skill or runbook behind a one-line pointer, and keep every 🔒 line: run `list_gates.py` before and after the trim, and expect the same count.
+
+**Verify a rule reaches the model** (`agy` in plan mode — it reads nothing, writes nothing; point `F` at the rule and expect its real last line back, not `<truncated …>`):
+
+```bash
+F=.agents/rules/git_branching_rule.md; wc -c "$F"; tail -n 1 "$F"
+agy -p "Without reading any file or running any tool, quote verbatim the LAST line of the always_on rule $(basename "$F") as it appears in your context. If it was truncated, say so and quote the truncation marker." \
+  --mode plan --output-format stream-json \
+  | python3 -c 'import json,sys; print([json.loads(l) for l in sys.stdin if l.strip()][-1]["result"]["response"])'
+```
+
+The last stream-json event (`"event":"result"`) carries the answer in `result.response`. Run it from the repo root, so `agy` loads the workspace rules.
 
 ## 2. Strengths to lean on
 

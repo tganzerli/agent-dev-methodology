@@ -54,6 +54,12 @@ RULE_DOCS = [".agents/METHODOLOGY.md", ".agents/rules/*.md", ".agents/llm/*.md"]
 CITE = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):(\d+)(?:-(\d+))?`")
 CODE_PATH = re.compile(r"`((?:scripts|\.claude/skills|\.githooks)/[A-Za-z0-9_./-]+\.(?:sh|py|yml|yaml|json))`")
 ENTRY = re.compile(r"^- \[\[")
+# Files an agent loads in full at every session open. Antigravity CLI cuts each rule
+# file at ~24,000 bytes (24 KB) and the model never sees the rest — a gate or a 🔒 line
+# past the cut is silently absent. The cap leaves headroom for de-templating and the
+# per-project growth of a rule. Change it here if a target agent's limit differs.
+RULE_MAX_BYTES = 22_000
+ROOT_ENTRY_POINTS = ["AGENTS.md", "GEMINI.md"]
 
 
 def read(path):
@@ -210,6 +216,24 @@ def g_rule_citation(ctx):
     return out
 
 
+def g_rule_size(ctx):
+    """Every `.agents/rules/*.md` with `trigger: always_on`, plus the root entry-points,
+    must fit RULE_MAX_BYTES. Bytes, not characters: the agent's limit is in bytes, and
+    accented prose or emoji cost more than one."""
+    root, out = ctx["root"], []
+    files = [p for p in sorted(glob.glob(os.path.join(root, ".agents", "rules", "*.md")))
+             if parse_frontmatter(read(p)).get("trigger") == "always_on"]
+    files += [os.path.join(root, f) for f in ROOT_ENTRY_POINTS if os.path.isfile(os.path.join(root, f))]
+    for path in files:
+        size = os.path.getsize(path)
+        if size > RULE_MAX_BYTES:
+            out.append(finding("rule-size", os.path.relpath(path, root),
+                               f"{size} B > {RULE_MAX_BYTES} B — always loaded, and an agent may cut "
+                               "it (Antigravity: ~24 KB per file); move rationale/examples to a "
+                               "skill or runbook, keep every 🔒 line"))
+    return out
+
+
 # ── warnings ─────────────────────────────────────────────────────────────────
 def w_stale(ctx):
     out = []
@@ -281,7 +305,7 @@ def w_yaml_comment(ctx):
 GATES = {"catalog-drift": g_catalog_drift, "missing-summary": g_missing_summary,
          "summary-too-long": g_summary_too_long, "frontmatter": g_frontmatter,
          "broken-wikilink": g_broken_wikilink, "index-format": g_index_format,
-         "rule-citation": g_rule_citation}
+         "rule-citation": g_rule_citation, "rule-size": g_rule_size}
 WARNINGS = {"stale": w_stale, "orphan": w_orphan, "stalled": w_stalled,
             "yaml-comment": w_yaml_comment}
 
