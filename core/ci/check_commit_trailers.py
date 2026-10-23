@@ -48,13 +48,34 @@ import subprocess
 import sys
 
 # An attribution trailer names an agent when its e-mail is an agent's, or when its
-# name is made ONLY of product/model words (plus versions and filler). Whole tokens,
-# so "Claude Opus 4.5 (1M context)" and "Cursor Agent" match, "Dr. Gemini Jones" does not.
-AGENT_EMAIL = re.compile(r"@(anthropic\.com|cursor\.(com|sh)|openai\.com)>?$"
-                         r"|copilot@users\.noreply\.github\.com|noreply@aider", re.I)
+# name is made ONLY of product/model words (plus versions and filler) and holds at
+# least one product word. Whole tokens, so "Claude Opus 4.5 (1M context)", "Gemini 2.5
+# Pro", "OpenAI o3" and "Cursor Agent" match, while "Dr. Gemini Jones", "Haider Ali" and
+# "Max Mustermann" do not: one word outside the vocabulary (a real name) is enough to pass.
+# A trailing "via <anything>" (a wrapper or host: "Claude Sonnet 4.5 via Some App") is
+# dropped before the test — the agent is what precedes it.
+#
+# Trade-off, deliberate: the name test cannot tell a person from a product when the
+# whole name IS vocabulary. "Devin <d@company.com>", "Claude <c@company.fr>" or
+# "Max Claude" are blocked — the fix is to sign with the full name. A surname alone
+# never blocks ("Ana Cursor", "Claudia Gemini-Santos"). The e-mail test wins over the
+# name both ways: an agent mailbox blocks any name, and a person's mailbox at a vendor
+# (`someone@google.com`) is not an agent mailbox — only the listed ones are.
+AGENT_EMAIL = re.compile(r"@(anthropic\.com|cursor\.(com|sh)|openai\.com|codeium\.com|windsurf\.com"
+                         r"|cognition\.ai|aider\.chat)>?$"
+                         r"|<?(noreply|no-reply|gemini|bard|jules)@google\.com>?$"
+                         r"|(copilot|devin-ai-integration\[bot\])@users\.noreply\.github\.com"
+                         r"|noreply@aider", re.I)
 PRODUCT = {"claude", "anthropic", "opus", "sonnet", "haiku", "cursor", "copilot", "gemini",
-           "codex", "openai", "chatgpt", "gpt", "aider", "devin", "windsurf", "codeium"}
-FILLER = {"code", "agent", "assist", "ai", "bot", "github", "google", "cli", "context", "model"}
+           "codex", "openai", "chatgpt", "gpt", "aider", "devin", "windsurf", "codeium",
+           "antigravity", "agy", "bard"}
+FILLER = {"code", "agent", "assist", "ai", "bot", "github", "google", "cli", "context", "model",
+          # model tiers / release tags, as model ids print them
+          "pro", "flash", "ultra", "mini", "nano", "max", "lite", "turbo", "preview", "exp",
+          "experimental", "latest", "thinking"}
+MODEL_ID = re.compile(r"o\d+")                    # OpenAI reasoning ids: o1, o3, o4 (counts as a product word)
+VERSION = re.compile(r"[\d.]+[a-z]?|v?\d[\w.]*")  # 4.5, 2.0, 4o, 1m, v2
+VIA = re.compile(r"(?i)\s+via\s+.*$")
 TRAILER = re.compile(r"(?im)^\s*(Co-Authored-By|Generated-By|Assisted-By):\s*(.*?)\s*(<[^>]*>)?\s*$")
 BANNED = [
     (re.compile(r"(?im)^\s*Claude-Session:"), "Claude-Session trailer"),
@@ -65,10 +86,11 @@ BANNED = [
 def agent_trailer(name, email):
     if email and AGENT_EMAIL.search(email):
         return True
-    tokens = [w for w in re.split(r"[^a-z0-9.]+", name.lower()) if w]
-    words = [w for w in tokens if not re.fullmatch(r"[\d.]+[a-z]?|v?\d[\w.]*", w)]
-    return bool(words) and any(w in PRODUCT for w in words) and all(
-        w in PRODUCT or w in FILLER for w in words)
+    tokens = [w for w in re.split(r"[^a-z0-9.]+", VIA.sub("", name).lower()) if w]
+    words = [w for w in tokens if not VERSION.fullmatch(w)]
+    product = [w for w in words if w in PRODUCT or MODEL_ID.fullmatch(w)]
+    return bool(product) and all(w in PRODUCT or w in FILLER or MODEL_ID.fullmatch(w)
+                                 for w in words)
 
 
 RULE = 'Rule: .agents/llm/<agent>.md, "No LLM co-authorship on commits (non-negotiable)".'
