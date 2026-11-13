@@ -1,6 +1,9 @@
 ---
 trigger: manual
 self: {{project}}   # our name in the peers' registries — inbox.py flags their outbound copies addressed to it
+# host_token_cmd: security find-generic-password -s <service> -a <account> -w
+#   Bitbucket Cloud only: inbox.py runs this (no shell) and uses its stdout as the API token.
+#   Never put the token itself here. Inner quotes? Wrap the whole value in YAML single quotes.
 ---
 
 <!--

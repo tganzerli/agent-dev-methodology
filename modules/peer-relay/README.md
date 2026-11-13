@@ -109,5 +109,10 @@ The `read` flow runs `skills/peer-relay/inbox.py <peer>`, which reads the peer's
 
 - **Exit `0`** — both states checked; an empty list means empty.
 - **Exit `2`** — the open PRs were **not** checked (or the `fetch` failed). Never report "no messages" on a `2`.
-- Open PRs are read with the GitHub CLI (`gh`). On another host, replace the script's `list_prs()` with that host's CLI; until then it exits `2`, which is the honest answer.
+- Open PRs are read through a **host adapter**, picked by `--host` (default `auto`: Bitbucket when the remote URL is on `bitbucket.org`, else GitHub):
+  - **GitHub** — the GitHub CLI (`gh`), authenticated the usual way.
+  - **Bitbucket Cloud** — the REST API 2.0, with a token from the command in `host_token_cmd:` (frontmatter of `.agents/peers.md`), run without a shell; its stdout is the token, which never reaches argv or the output. `PEER_RELAY_TOKEN` overrides it, for tests. Keep the token out of files: point the command at the OS keychain (on macOS, `security find-generic-password -s <service> -a <account> -w`). A command with inner quotes goes inside YAML single quotes. The token needs read access to pull requests; a private repository answers **404**, not 401, to a bad token, and the script says both causes.
+  - The adapter asks for large pages, follows `next` and checks `size` (a short read is an error, never a smaller answer), retries on 429, and refuses a PR from a fork (its branch is not readable from your remote) with exit `2` instead of skipping it.
+  - Another host: add a lister with the same contract (`number`, `headRefName`, `files[].path`, `fetchRef`); until then it exits `2`, which is the honest answer.
+- Tests run offline: `python3 -m unittest discover -s modules/peer-relay/tests -v`.
 - It also lists relay files in open PRs stamped `direction: outbound` and `peer: <us>` — the peer's own outbound copy addressed to us, delivered unchanged and otherwise invisible. This has happened, four messages in a row. Intra-team messages (no `peer:`) and our own outbound copies to other peers are not flagged. `<us>` is `--self`, else `self:` in the frontmatter of `.agents/peers.md`, else the vault name without `_wiki`.

@@ -252,6 +252,7 @@ Then:
 - Register `peer-relay` in `.claude/skills/_index.md` — mark it **hybrid** (`absorb`/`read` autonomous; `send` carries a **double** human gate — the text, then the write into another repo; `board` gated).
 - **No script change needed**, same as intra-team: `work-index`/`work-find`/`work-audit` scan only `tasks`/`plans`/`executions`.
 - **Mirror the counterpart** in the peer, and diff the two registries side by side — mirroring is neither automatic nor verified, and a mismatched inbox means messages written and never read.
+- **Host of your remote.** `inbox.py` reads open PRs on GitHub (`gh`) or Bitbucket Cloud (REST API). On Bitbucket, set `host_token_cmd:` in the frontmatter of `.agents/peers.md` to a command that prints a token with pull-request read access (e.g. from the OS keychain) — `modules/peer-relay/README.md` §9.
 - Add the `relay` branch scope and the entry-point non-negotiable ("writing into a peer repo is an external action") — `modules/peer-relay/README.md` §7–§8.
 
 Follow `modules/peer-relay/README.md` for the qualified-citation rule (a `file:line` without a repo prefix is a format error), the they-can-but-won't asymmetry, and claim-state with origin.
